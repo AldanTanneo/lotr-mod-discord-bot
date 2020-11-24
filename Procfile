@@ -1,1 +1,1 @@
-web: ./target/release/lotr-mod-discord-bot
+worker: ./target/release/lotr-mod-discord-bot
