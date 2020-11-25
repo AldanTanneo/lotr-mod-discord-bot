@@ -317,6 +317,8 @@ async fn curseforge(ctx: &Context, msg: &Message) -> CommandResult {
     Ok(())
 }
 
+/////////////////////// Wiki Commands ///////////////////////
+
 #[command]
 async fn wiki(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     msg.channel_id
@@ -327,7 +329,6 @@ async fn wiki(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
             ))
         })
         .await?;
-    msg.delete(ctx).await?;
 
     Ok(())
 }
@@ -342,7 +343,6 @@ async fn search(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
             ))
         })
         .await?;
-    msg.delete(ctx).await?;
 
     Ok(())
 }
@@ -357,7 +357,6 @@ async fn user(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
             ))
         })
         .await?;
-    msg.delete(ctx).await?;
 
     Ok(())
 }
@@ -372,7 +371,6 @@ async fn category(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
             ))
         })
         .await?;
-    msg.delete(ctx).await?;
 
     Ok(())
 }
@@ -386,7 +384,6 @@ async fn template(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
             ))
         })
         .await?;
-    msg.delete(ctx).await?;
 
     Ok(())
 }
