@@ -173,14 +173,16 @@ async fn main() {
 
     let framework = StandardFramework::new()
         .configure(|c| {
-            c.dynamic_prefix(|ctx, msg| {
-                Box::pin(async move { Some(get_prefix(ctx, msg.guild_id).await) })
-            })
-            .allow_dm(false)
-            .on_mention(Some(BOT_ID))
-            .owners(vec![OWNER_ID].into_iter().collect())
+            c.prefix("")
+                .dynamic_prefix(|ctx, msg| {
+                    Box::pin(async move { Some(get_prefix(ctx, msg.guild_id).await) })
+                })
+                .allow_dm(false)
+                .on_mention(Some(BOT_ID))
+                .owners(vec![OWNER_ID].into_iter().collect())
         })
-        .group(&GENERAL_GROUP);
+        .group(&GENERAL_GROUP)
+        .group(&WIKI_GROUP);
 
     let token = env::var("DISCORD_TOKEN").expect("Expected a token in the environment");
     let mut client = Client::builder(token)
@@ -314,8 +316,6 @@ async fn curseforge(ctx: &Context, msg: &Message) -> CommandResult {
     })).await?;
     Ok(())
 }
-
-// -------------- WIKI COMMANDS -------------
 
 #[command]
 async fn wiki(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
