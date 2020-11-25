@@ -84,8 +84,11 @@ pub async fn set_prefix(ctx: &Context, guild_id: Option<GuildId>, prefix: String
         },
     ); */
     conn.exec_batch(
-        r"INSERT INTO payment (customer_id, amount, account_name)
-      VALUES (:customer_id, :amount, :account_name)",
+        format!(
+            "INSERT INTO {} (server_id, prefix) VALUES (:server_id, :prefix)",
+            TABLE_PREFIX
+        )
+        .as_str(),
         vec![ServerPrefix {
             server_id: server_id,
             prefix: Some(prefix),
