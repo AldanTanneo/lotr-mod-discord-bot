@@ -121,7 +121,7 @@ struct General;
 
 #[group]
 #[default_command(wiki)]
-#[prefixes("wiki", "w")]
+#[prefixes("wiki")]
 #[commands(user, category, template, search, random)]
 struct Wiki;
 
