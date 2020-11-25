@@ -238,10 +238,26 @@ fn wiki_query(args: Args, del: &str) -> String {
 
 #[command] // action=query&list=search&srwhat=text&srsearch=Bar&srnamespace=0&srlimit=1
 async fn wiki(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
+    if args.is_empty() {
+        fandom::display(
+            ctx,
+            msg,
+            fandom::Page {
+                id: 1501,
+                title: String::from("The Lord of the Rings Minecraft Mod Wiki:About"),
+            },
+        )
+        .await?;
+        return Ok(());
+    }
     let srsearch = &wiki_query(args, "_");
     let p = fandom::search(ctx, "Page", srsearch).await;
     if let Some(page) = p {
         fandom::display(ctx, msg, page).await?;
+    } else {
+        msg.channel_id
+            .send_message(ctx, |m| m.content("Couldn't execute query!"))
+            .await?;
     }
     Ok(())
 }
@@ -252,6 +268,10 @@ async fn user(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let p = fandom::search(ctx, "User", srsearch).await;
     if let Some(page) = p {
         fandom::display(ctx, msg, page).await?;
+    } else {
+        msg.channel_id
+            .send_message(ctx, |m| m.content("Couldn't execute query!"))
+            .await?;
     }
     Ok(())
 }
@@ -262,6 +282,10 @@ async fn category(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let p = fandom::search(ctx, "Category", srsearch).await;
     if let Some(page) = p {
         fandom::display(ctx, msg, page).await?;
+    } else {
+        msg.channel_id
+            .send_message(ctx, |m| m.content("Couldn't execute query!"))
+            .await?;
     }
     Ok(())
 }
@@ -271,6 +295,10 @@ async fn template(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let p = fandom::search(ctx, "Template", srsearch).await;
     if let Some(page) = p {
         fandom::display(ctx, msg, page).await?;
+    } else {
+        msg.channel_id
+            .send_message(ctx, |m| m.content("Couldn't execute query!"))
+            .await?;
     }
     Ok(())
 }
@@ -280,6 +308,10 @@ async fn random(ctx: &Context, msg: &Message) -> CommandResult {
     let p = fandom::random(ctx).await;
     if let Some(page) = p {
         fandom::display(ctx, msg, page).await?;
+    } else {
+        msg.channel_id
+            .send_message(ctx, |m| m.content("Couldn't execute query!"))
+            .await?;
     }
     Ok(())
 }

@@ -13,8 +13,8 @@ impl TypeMapKey for ReqwestClient {
 }
 
 pub struct Page {
-    id: u64,
-    title: String,
+    pub id: u64,
+    pub title: String,
 }
 
 const WIKI_API: &str = "https://lotrminecraftmod.fandom.com/api.php&format=json";
