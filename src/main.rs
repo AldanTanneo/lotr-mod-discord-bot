@@ -85,7 +85,7 @@ pub async fn set_prefix(ctx: &Context, guild_id: Option<GuildId>, prefix: &str) 
     ); */
     conn.exec_batch(
         format!(
-            "INSERT INTO {} (server_id, prefix) VALUES (:server_id, :prefix)",
+            "UPDATE {} SET prefix = :prefix WHERE server_id = :server_id",
             TABLE_PREFIX
         )
         .as_str(),
