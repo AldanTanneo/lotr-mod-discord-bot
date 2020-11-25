@@ -121,7 +121,7 @@ struct General;
 
 #[group]
 #[default_command(wiki)]
-#[prefix = "wiki"]
+#[prefixes("wiki", "w")]
 #[commands(user, category, template, search, random)]
 struct Wiki;
 
@@ -318,7 +318,6 @@ async fn curseforge(ctx: &Context, msg: &Message) -> CommandResult {
 // -------------- WIKI COMMANDS -------------
 
 #[command]
-#[aliases("page")]
 async fn wiki(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     msg.channel_id
         .send_message(ctx, |m| {
@@ -347,6 +346,7 @@ async fn search(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 
     Ok(())
 }
+
 #[command]
 async fn user(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     msg.channel_id
@@ -361,6 +361,7 @@ async fn user(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 
     Ok(())
 }
+
 #[command]
 async fn category(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     msg.channel_id
