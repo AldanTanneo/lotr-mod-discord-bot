@@ -10,6 +10,8 @@ edition = "2018"
 tokio = { version = "0.2.23", features = ["macros"] }
 itertools = "0.9.0"
 mysql_async = "0.25.0"
+reqwest = "0.10.9"
+json = "0.12.4"
 
 [dependencies.serenity]
 default-features = false

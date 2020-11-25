@@ -1,6 +1,9 @@
+mod database;
+mod fandom;
+
 use itertools::free::join;
-use mysql_async::prelude::*;
 use mysql_async::*;
+use reqwest::redirect;
 use serenity::async_trait;
 use serenity::client::{Client, Context, EventHandler};
 use serenity::framework::standard::{
@@ -11,109 +14,16 @@ use serenity::model::prelude::ReactionType;
 use serenity::model::{
     channel::Message,
     gateway::{Activity, Ready},
-    id::{GuildId, UserId},
+    id::UserId,
 };
-use serenity::prelude::TypeMapKey;
 use std::{env, sync::Arc};
+
+use database::{get_prefix, set_prefix, DatabasePool};
+use fandom::ReqwestClient;
 
 const BOT_ID: UserId = UserId(780858391383638057);
 const OWNER_ID: UserId = UserId(405421991777009678);
-
-const TABLE_PREFIX: &str = "lotr_mod_bot_prefix";
-
-#[derive(Debug, PartialEq, Eq)]
-struct ServerPrefix {
-    server_id: u64,
-    prefix: Option<String>,
-}
-
-pub async fn get_prefix(ctx: &Context, guild_id: Option<GuildId>) -> String {
-    let pool = {
-        let data_read = ctx.data.read().await;
-        data_read
-            .get::<DatabasePool>()
-            .expect("Expected DatabasePool in TypeMap")
-            .clone()
-    };
-    let mut conn = pool
-        .get_conn()
-        .await
-        .expect("Could not connect to database");
-    let server_id: u64 = if let Some(id) = guild_id {
-        id.into()
-    } else {
-        0
-    };
-    let res = conn
-        .query_first(format!(
-            "SELECT prefix FROM {} WHERE server_id={}",
-            TABLE_PREFIX, server_id
-        ))
-        .await;
-    if let Ok(Some(prefix)) = res {
-        prefix
-    } else {
-        set_prefix(ctx, guild_id, "!", false).await.unwrap();
-        "!".to_string()
-    }
-}
-
-pub async fn set_prefix(
-    ctx: &Context,
-    guild_id: Option<GuildId>,
-    prefix: &str,
-    update: bool,
-) -> Result<()> {
-    let pool = {
-        let data_read = ctx.data.read().await;
-        data_read
-            .get::<DatabasePool>()
-            .expect("Expected DatabasePool in TypeMap")
-            .clone()
-    };
-    let mut conn = pool
-        .get_conn()
-        .await
-        .expect("Could not connect to database");
-    let server_id: u64 = if let Some(id) = guild_id {
-        id.into()
-    } else {
-        0
-    };
-    let req = if update {
-        format!(
-            "UPDATE {} SET prefix = :prefix WHERE server_id = :server_id",
-            TABLE_PREFIX
-        )
-    } else {
-        format!(
-            "INSERT INTO {} (server_id, prefix) VALUES (:server_id, :prefix)",
-            TABLE_PREFIX
-        )
-    };
-    conn.exec_batch(
-        req.as_str(),
-        vec![ServerPrefix {
-            server_id,
-            prefix: Some(prefix.to_string()),
-        }]
-        .iter()
-        .map(|p| {
-            params! {
-                "server_id" => p.server_id,
-                "prefix" => &p.prefix,
-            }
-        }),
-    )
-    .await?;
-    Ok(())
-}
-
-struct DatabasePool;
-
-impl TypeMapKey for DatabasePool {
-    type Value = Arc<Pool>;
-}
+const WIKI_DOMAIN: &str = "lotrminecraftmod.fandom.com";
 
 #[group]
 #[commands(renewed, help, prefix, tos, curseforge)]
@@ -122,7 +32,7 @@ struct General;
 #[group]
 #[default_command(wiki)]
 #[prefixes("wiki")]
-#[commands(user, category, template, search, random)]
+#[commands(user, category, template, random)]
 struct Wiki;
 
 struct Handler;
@@ -171,6 +81,22 @@ async fn main() {
             .tcp_port(db_portdb_server),
     );
 
+    let custom_redirect_policy = redirect::Policy::custom(|attempt| {
+        if attempt.previous().len() > 5 {
+            attempt.error("too many redirects")
+        } else if attempt.url().host_str() != Some(WIKI_DOMAIN) {
+            // prevent redirects outside of WIKI_DOMAIN
+            attempt.stop()
+        } else {
+            attempt.follow()
+        }
+    });
+
+    let fandom_client = reqwest::Client::builder()
+        .redirect(custom_redirect_policy)
+        .build()
+        .expect("Could not build the reqwest client");
+
     let framework = StandardFramework::new()
         .configure(|c| {
             c.prefix("")
@@ -194,6 +120,7 @@ async fn main() {
         let mut data = client.data.write().await;
 
         data.insert::<DatabasePool>(Arc::new(pool));
+        data.insert::<ReqwestClient>(Arc::new(fandom_client));
     }
 
     // start listening for events by starting a single shard
@@ -242,20 +169,6 @@ async fn help(ctx: &Context, msg: &Message) -> CommandResult {
     msg.react(ctx, ReactionType::from('✅')).await?;
 
     Ok(())
-}
-
-fn wiki_url(args: Args, caps: bool, del: &str) -> String {
-    join(
-        args.rest().split_whitespace().map(|word| {
-            if caps {
-                let (a, b) = word.split_at(1);
-                format!("{}{}", a.to_uppercase(), b)
-            } else {
-                word.to_string()
-            }
-        }),
-        del,
-    )
 }
 
 #[command]
@@ -317,83 +230,56 @@ async fn curseforge(ctx: &Context, msg: &Message) -> CommandResult {
     Ok(())
 }
 
-/////////////////////// Wiki Commands ///////////////////////
+// --------------------- Wiki Commands -------------------------
 
-#[command]
-async fn wiki(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-    msg.channel_id
-        .send_message(ctx, |m| {
-            m.content(format!(
-                "https://lotrminecraftmod.fandom.com/wiki/{}",
-                wiki_url(args, true, "_")
-            ))
-        })
-        .await?;
-
-    Ok(())
+fn wiki_query(args: Args, del: &str) -> String {
+    join(args.rest().split_whitespace(), del)
 }
 
-#[command]
-async fn search(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-    msg.channel_id
-        .send_message(ctx, |m| {
-            m.content(format!(
-                "https://lotrminecraftmod.fandom.com/wiki/Special:Search?query={}&scope=internal&navigationSearch=true",
-                wiki_url(args, false, "+")
-            ))
-        })
-        .await?;
-
+#[command] // action=query&list=search&srwhat=text&srsearch=Bar&srnamespace=0&srlimit=1
+async fn wiki(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
+    let srsearch = &wiki_query(args, "_");
+    let p = fandom::search(ctx, "Page", srsearch).await;
+    if let Some(page) = p {
+        fandom::display(ctx, msg, page).await?;
+    }
     Ok(())
 }
 
 #[command]
 async fn user(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-    msg.channel_id
-        .send_message(ctx, |m| {
-            m.content(format!(
-                "https://lotrminecraftmod.fandom.com/wiki/User:{}",
-                wiki_url(args, false, "_")
-            ))
-        })
-        .await?;
-
+    let srsearch = &wiki_query(args, "_");
+    let p = fandom::search(ctx, "User", srsearch).await;
+    if let Some(page) = p {
+        fandom::display(ctx, msg, page).await?;
+    }
     Ok(())
 }
 
 #[command]
 async fn category(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-    msg.channel_id
-        .send_message(ctx, |m| {
-            m.content(format!(
-                "https://lotrminecraftmod.fandom.com/wiki/Category:{}",
-                wiki_url(args, true, "_")
-            ))
-        })
-        .await?;
-
+    let srsearch = &wiki_query(args, "_");
+    let p = fandom::search(ctx, "Category", srsearch).await;
+    if let Some(page) = p {
+        fandom::display(ctx, msg, page).await?;
+    }
     Ok(())
 }
 #[command]
 async fn template(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-    msg.channel_id
-        .send_message(ctx, |m| {
-            m.content(format!(
-                "https://lotrminecraftmod.fandom.com/wiki/Template:{}",
-                wiki_url(args, false, "_")
-            ))
-        })
-        .await?;
-
+    let srsearch = &wiki_query(args, "_");
+    let p = fandom::search(ctx, "Template", srsearch).await;
+    if let Some(page) = p {
+        fandom::display(ctx, msg, page).await?;
+    }
     Ok(())
 }
 
 #[command]
 async fn random(ctx: &Context, msg: &Message) -> CommandResult {
-    msg.channel_id
-        .send_message(ctx, |m| {
-            m.content("https://lotrminecraftmod.fandom.com/wiki/Special:Random")
-        })
-        .await?;
+    let p = fandom::random(ctx).await;
+    if let Some(page) = p {
+        fandom::display(ctx, msg, page).await?;
+    }
     Ok(())
 }
