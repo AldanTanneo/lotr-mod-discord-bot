@@ -7,16 +7,17 @@ use serenity::framework::standard::{
     macros::{command, group},
     Args, CommandResult, StandardFramework,
 };
+use serenity::model::prelude::ReactionType;
 use serenity::model::{
     channel::Message,
     gateway::{Activity, Ready},
     id::{GuildId, UserId},
-    prelude::*,
 };
-use serenity::prelude::*;
+use serenity::prelude::TypeMapKey;
 use std::{env, sync::Arc};
 
 const BOT_ID: UserId = UserId(780858391383638057);
+const OWNER_ID: UserId = UserId(405421991777009678);
 
 const TABLE_PREFIX: &str = "lotr_mod_bot_prefix";
 
@@ -115,9 +116,13 @@ impl TypeMapKey for DatabasePool {
 }
 
 #[group]
-#[default_command(help)]
-#[commands(renewed, help, wiki, prefix, tos)]
+#[commands(renewed, help, prefix, tos, curseforge)]
 struct General;
+
+#[group]
+#[default_command(wiki)]
+#[commands(user, category, template, search, random)]
+struct Wiki;
 
 struct Handler;
 
@@ -172,6 +177,7 @@ async fn main() {
             })
             .allow_dm(false)
             .on_mention(Some(BOT_ID))
+            .owners(vec![OWNER_ID].into_iter().collect())
         })
         .group(&GENERAL_GROUP);
 
@@ -222,7 +228,8 @@ async fn help(ctx: &Context, msg: &Message) -> CommandResult {
             m.content(format!("My prefix here is \"{}\"", prefix));
             m.embed(|e| {
                 e.title("Available commands");
-                e.description("`renewed`, `tos`, `wiki`, `help`, `prefix`");
+                e.field("General commands", "`renewed`, `tos`, `curseforge`, `help`, `prefix`", false);
+                e.field("Wiki commands", "`wiki`, `wiki user`, `wiki category`, `wiki template`, `wiki search`, `wiki random`", false);
                 e
             });
             m
@@ -234,28 +241,23 @@ async fn help(ctx: &Context, msg: &Message) -> CommandResult {
     Ok(())
 }
 
-#[command]
-async fn wiki(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-    let url = join(
+fn wiki_url(args: Args, caps: bool, del: &str) -> String {
+    join(
         args.rest().split_whitespace().map(|word| {
-            let (a, b) = word.split_at(1);
-            format!("{}{}", a.to_uppercase(), b)
+            if caps {
+                let (a, b) = word.split_at(1);
+                format!("{}{}", a.to_uppercase(), b)
+            } else {
+                word.to_string()
+            }
         }),
-        "_",
-    );
-
-    msg.channel_id
-        .send_message(ctx, |m| {
-            m.content(format!("https://lotrminecraftmod.fandom.com/wiki/{}", url))
-        })
-        .await?;
-    msg.delete(ctx).await?;
-
-    Ok(())
+        del,
+    )
 }
 
 #[command]
 #[required_permissions("ADMINISTRATOR")]
+#[owner_privilege(true)]
 #[max_args(1)]
 async fn prefix(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     if args.is_empty() {
@@ -281,7 +283,7 @@ async fn prefix(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
             }
         } else {
             msg.channel_id
-                .send_message(ctx, |m| m.content("Failed to set the new prefix!"))
+                .send_message(ctx, |m| m.content("Invalid new prefix!"))
                 .await?;
         }
     }
@@ -293,11 +295,106 @@ async fn tos(ctx: &Context, msg: &Message) -> CommandResult {
     msg.channel_id
         .send_message(ctx, |m| {
             m.content(
-            "This is the Discord server of the **Lord of the Rings Mod**, not the official server.
+            "This is the Discord server of the **Lord of the Rings Mod**, not the official Minecraft server of the mod.
 Their Discord can be found here: https://discord.gg/gMNKaX6",
         )
         })
         .await?;
     msg.delete(ctx).await?;
+    Ok(())
+}
+
+#[command]
+async fn curseforge(ctx: &Context, msg: &Message) -> CommandResult {
+    msg.channel_id.send_message(ctx, |m| m.embed(|e|{
+        e.title("Link to the Renewed version");
+        e.description("The Renewed edition of the mod can be found on [Curseforge](https://www.curseforge.com/minecraft/mc-mods/the-lord-of-the-rings-mod-renewed)");
+        e
+    })).await?;
+    Ok(())
+}
+
+// -------------- WIKI COMMANDS -------------
+
+#[command]
+#[aliases("page")]
+async fn wiki(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
+    msg.channel_id
+        .send_message(ctx, |m| {
+            m.content(format!(
+                "https://lotrminecraftmod.fandom.com/wiki/{}",
+                wiki_url(args, true, "_")
+            ))
+        })
+        .await?;
+    msg.delete(ctx).await?;
+
+    Ok(())
+}
+
+#[command]
+async fn search(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
+    msg.channel_id
+        .send_message(ctx, |m| {
+            m.content(format!(
+                "https://lotrminecraftmod.fandom.com/wiki/Special:Search?query={}&scope=internal&navigationSearch=true",
+                wiki_url(args, false, "+")
+            ))
+        })
+        .await?;
+    msg.delete(ctx).await?;
+
+    Ok(())
+}
+#[command]
+async fn user(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
+    msg.channel_id
+        .send_message(ctx, |m| {
+            m.content(format!(
+                "https://lotrminecraftmod.fandom.com/wiki/User:{}",
+                wiki_url(args, false, "_")
+            ))
+        })
+        .await?;
+    msg.delete(ctx).await?;
+
+    Ok(())
+}
+#[command]
+async fn category(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
+    msg.channel_id
+        .send_message(ctx, |m| {
+            m.content(format!(
+                "https://lotrminecraftmod.fandom.com/wiki/Category:{}",
+                wiki_url(args, true, "_")
+            ))
+        })
+        .await?;
+    msg.delete(ctx).await?;
+
+    Ok(())
+}
+#[command]
+async fn template(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
+    msg.channel_id
+        .send_message(ctx, |m| {
+            m.content(format!(
+                "https://lotrminecraftmod.fandom.com/wiki/Template:{}",
+                wiki_url(args, false, "_")
+            ))
+        })
+        .await?;
+    msg.delete(ctx).await?;
+
+    Ok(())
+}
+
+#[command]
+async fn random(ctx: &Context, msg: &Message) -> CommandResult {
+    msg.channel_id
+        .send_message(ctx, |m| {
+            m.content("https://lotrminecraftmod.fandom.com/wiki/Special:Random")
+        })
+        .await?;
     Ok(())
 }
