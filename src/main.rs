@@ -33,8 +33,7 @@ pub async fn get_prefix(ctx: &Context, guild_id: Option<GuildId>) -> String {
             .expect("Expected DatabasePool in TypeMap")
             .clone()
     };
-    let mut conn = Arc::try_unwrap(pool)
-        .unwrap()
+    let mut conn = pool
         .get_conn()
         .await
         .expect("Could not connect to database");
@@ -65,8 +64,7 @@ pub async fn set_prefix(ctx: &Context, guild_id: Option<GuildId>, prefix: String
             .expect("Expected DatabasePool in TypeMap")
             .clone()
     };
-    let mut conn = Arc::try_unwrap(pool)
-        .unwrap()
+    let mut conn = pool
         .get_conn()
         .await
         .expect("Could not connect to database");
