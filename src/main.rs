@@ -8,7 +8,7 @@ use serenity::framework::standard::{
     Args, CommandResult, StandardFramework,
 };
 use serenity::model::{
-    channel::Message,
+    channel::{Message, ReactionType},
     gateway::{Activity, Ready},
     id::{GuildId, UserId},
 };
@@ -115,7 +115,7 @@ impl TypeMapKey for DatabasePool {
 
 #[group]
 #[default_command(help)]
-#[commands(renewed, help, wiki, prefix)]
+#[commands(renewed, help, wiki, prefix, tos)]
 struct General;
 
 struct Handler;
@@ -221,16 +221,14 @@ async fn help(ctx: &Context, msg: &Message) -> CommandResult {
             m.content(format!("My prefix here is \"{}\"", prefix));
             m.embed(|e| {
                 e.title("Available commands");
-                e.description(
-                    "renewed
-wiki
-help
-prefix",
-                );
+                e.description("`renewed`, `tos`, `wiki`, `help`, `prefix`");
                 e
             });
             m
         })
+        .await?;
+
+    msg.react(ctx, ReactionType::Unicode("white_check_mark".to_string()))
         .await?;
 
     Ok(())
@@ -296,5 +294,19 @@ async fn prefix(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
                 .await?;
         }
     }
+    Ok(())
+}
+
+#[command]
+async fn tos(ctx: &Context, msg: &Message) -> CommandResult {
+    msg.channel_id
+        .send_message(ctx, |m| {
+            m.content(
+            "This is the Discord server of the **Lord of the Rings Mod**, not the official server.
+Their Discord can be found here: https://discord.gg/gMNKaX6",
+        )
+        })
+        .await?;
+    msg.delete(ctx).await?;
     Ok(())
 }
