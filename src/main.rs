@@ -246,16 +246,7 @@ async fn wiki(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 
     msg.channel_id
         .send_message(ctx, |m| {
-            m.content(format!("https://lotrminecraftmod.fandom.com/{}", url))
-            /* m.embed(|e| {
-                e.title(if url.is_empty() {
-                    String::from("The Lord of the Rings Minecraft Mod Wiki")
-                } else {
-                    url.replace("_", " ")
-                });
-                e.url(format!("https://lotrminecraftmod.fandom.com/wiki/{}", url));
-                e
-            }) */
+            m.content(format!("https://lotrminecraftmod.fandom.com/wiki/{}", url))
         })
         .await?;
     msg.delete(ctx).await?;
