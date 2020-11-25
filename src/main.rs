@@ -1,4 +1,7 @@
+mod database;
+
 use itertools::free::join;
+use mysql_async::*;
 use serenity::async_trait;
 use serenity::client::{Client, Context, EventHandler};
 use serenity::framework::standard::{
@@ -10,12 +13,21 @@ use serenity::model::{
     gateway::{Activity, Ready},
     id::UserId,
 };
+use serenity::prelude::*;
+use std::{env, sync::Arc};
 
-use std::env;
+use database::get_prefix;
 
-const BOT_ID: u64 = 780858391383638057;
+const BOT_ID: UserId = UserId(780858391383638057);
+
+struct DatabasePool;
+
+impl TypeMapKey for DatabasePool {
+    type Value = Arc<Pool>;
+}
 
 #[group]
+#[default_command(help)]
 #[commands(renewed, help, wiki, prefix)]
 struct General;
 
@@ -30,10 +42,11 @@ impl EventHandler for Handler {
     }
 
     async fn message(&self, ctx: Context, msg: Message) {
-        if msg.mentions_user_id(UserId(BOT_ID)) {
+        if msg.mentions_user_id(BOT_ID) {
+            let prefix = get_prefix(&ctx, msg.guild_id).await;
             msg.channel_id
                 .send_message(ctx, |m| {
-                    m.content(format!("My prefix here is \"{}\"", get_prefix()))
+                    m.content(format!("My prefix here is \"{}\"", prefix))
                 })
                 .await
                 .expect("Failed to send message");
@@ -41,30 +54,50 @@ impl EventHandler for Handler {
     }
 }
 
-fn get_prefix() -> String {
-    // reads the bot prefix from environment variables
-    env::var("PREFIX")
-        .expect("Expected a prefix in the environment")
-        .to_string()
-}
-
 #[tokio::main]
 async fn main() {
+    let db_name: String = env::var("DB_NAME").expect("Expected an environment variable DB_NAME");
+    let db_userdb_password: String =
+        env::var("DB_USER").expect("Expected an environment variable DB_USER");
+    let db_password: String =
+        env::var("DB_PASSWORD").expect("Expected an environment variable DB_PASSWORD");
+    let db_server: String =
+        env::var("DB_SERVER").expect("Expected an environment variable DB_SERVER");
+    let db_portdb_server: u16 = env::var("DB_PORT")
+        .expect("Expected an environment variable DB_PORT")
+        .parse()
+        .unwrap();
+
+    let pool: Pool = Pool::new(
+        OptsBuilder::default()
+            .user(Some(db_userdb_password))
+            .db_name(Some(db_name))
+            .ip_or_hostname(db_server)
+            .pass(Some(db_password))
+            .tcp_port(db_portdb_server),
+    );
+
     let framework = StandardFramework::new()
         .configure(|c| {
-            c.dynamic_prefix(|_, _| Box::pin(async move { Some(get_prefix()) }))
-                .allow_dm(false)
-                .on_mention(Some(UserId(780858391383638057)))
+            c.dynamic_prefix(|ctx, msg| {
+                Box::pin(async move { Some(get_prefix(ctx, msg.guild_id).await) })
+            })
+            .allow_dm(false)
+            .on_mention(Some(BOT_ID))
         })
         .group(&GENERAL_GROUP);
 
-    // Login with a bot token from the environment
     let token = env::var("DISCORD_TOKEN").expect("Expected a token in the environment");
     let mut client = Client::builder(token)
         .event_handler(Handler)
         .framework(framework)
         .await
         .expect("Error creating client");
+    {
+        let mut data = client.data.write().await;
+
+        data.insert::<DatabasePool>(Arc::new(pool));
+    }
 
     // start listening for events by starting a single shard
     if let Err(why) = client.start().await {
@@ -95,9 +128,10 @@ You can find those in the full 1.7.10 Legacy edition [here](https://lotrminecraf
 
 #[command]
 async fn help(ctx: &Context, msg: &Message) -> CommandResult {
+    let prefix = get_prefix(ctx, msg.guild_id).await;
     msg.author
         .direct_message(ctx, |m| {
-            m.content(format!("My prefix here is \"{}\"", get_prefix()));
+            m.content(format!("My prefix here is \"{}\"", prefix));
             m.embed(|e| {
                 e.title("Available commands");
                 e.description(
@@ -149,9 +183,10 @@ async fn wiki(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 #[max_args(1)]
 async fn prefix(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     if args.is_empty() {
+        let prefix = get_prefix(ctx, msg.guild_id).await;
         msg.channel_id
             .send_message(ctx, |m| {
-                m.content(format!("My prefix here is \"{}\"", get_prefix()))
+                m.content(format!("My prefix here is \"{}\"", prefix))
             })
             .await?;
     } else {
@@ -163,7 +198,7 @@ async fn prefix(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
                 .arg(format!("PREFIX={}", &p));
             msg.channel_id
                 .send_message(ctx, |m| {
-                    m.content(format!("Set the new prefix to {}", get_prefix()))
+                    m.content(format!("Set the new prefix to \"{}\"", p))
                 })
                 .await?;
         } else {
