@@ -17,7 +17,7 @@ pub struct Page {
     pub title: String,
 }
 
-const WIKI_API: &str = "https://lotrminecraftmod.fandom.com/api.php&format=json";
+const WIKI_API: &str = "https://lotrminecraftmod.fandom.com/api.php&format=json&";
 
 pub fn namespace(s: &str) -> Option<&str> {
     match s {
