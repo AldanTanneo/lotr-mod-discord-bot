@@ -8,9 +8,10 @@ use serenity::framework::standard::{
     Args, CommandResult, StandardFramework,
 };
 use serenity::model::{
-    channel::{Message, ReactionType},
+    channel::Message,
     gateway::{Activity, Ready},
     id::{GuildId, UserId},
+    prelude::*,
 };
 use serenity::prelude::*;
 use std::{env, sync::Arc};
@@ -228,8 +229,7 @@ async fn help(ctx: &Context, msg: &Message) -> CommandResult {
         })
         .await?;
 
-    msg.react(ctx, ReactionType::Unicode("white_check_mark".to_string()))
-        .await?;
+    msg.react(ctx, ReactionType::from('✅')).await?;
 
     Ok(())
 }
