@@ -93,7 +93,7 @@ pub async fn set_prefix(
     conn.exec_batch(
         req.as_str(),
         vec![ServerPrefix {
-            server_id: server_id,
+            server_id,
             prefix: Some(prefix.to_string()),
         }]
         .iter()
@@ -277,7 +277,7 @@ async fn prefix(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     } else {
         let new_prefix = args.single::<String>();
         if let Ok(p) = new_prefix {
-            if let Ok(_) = set_prefix(ctx, msg.guild_id, &p, true).await {
+            if set_prefix(ctx, msg.guild_id, &p, true).await.is_ok() {
                 msg.channel_id
                     .send_message(ctx, |m| {
                         m.content(format!("Set the new prefix to \"{}\"", p))
