@@ -103,7 +103,8 @@ async fn help(ctx: &Context, msg: &Message) -> CommandResult {
                 e.description(
                     "renewed
 wiki
-help",
+help
+prefix",
                 );
                 e
             });
