@@ -157,7 +157,10 @@ async fn prefix(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     } else {
         let new_prefix = args.single::<String>();
         if let Ok(p) = new_prefix {
-            env::set_var("PREFIX", p);
+            env::set_var("PREFIX", &p);
+            std::process::Command::new("heroku")
+                .arg("config:set")
+                .arg(format!("PREFIX={}", &p));
             msg.channel_id
                 .send_message(ctx, |m| {
                     m.content(format!("Set the new prefix to {}", get_prefix()))
