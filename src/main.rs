@@ -51,12 +51,17 @@ pub async fn get_prefix(ctx: &Context, guild_id: Option<GuildId>) -> String {
     if let Ok(Some(prefix)) = res {
         prefix
     } else {
-        set_prefix(ctx, guild_id, "!").await.unwrap();
+        set_prefix(ctx, guild_id, "!", true).await.unwrap();
         "!".to_string()
     }
 }
 
-pub async fn set_prefix(ctx: &Context, guild_id: Option<GuildId>, prefix: &str) -> Result<()> {
+pub async fn set_prefix(
+    ctx: &Context,
+    guild_id: Option<GuildId>,
+    prefix: &str,
+    new: bool,
+) -> Result<()> {
     let pool = {
         let data_read = ctx.data.read().await;
         data_read
@@ -73,22 +78,19 @@ pub async fn set_prefix(ctx: &Context, guild_id: Option<GuildId>, prefix: &str) 
     } else {
         0
     };
-    /* conn.exec_first(
-        format!(
-            "INSERT INTO {} (server_id, prefix) VALUES (:server_id, :prefix)",
-            TABLE_PREFIX
-        ),
-        params! {
-            "server_id" => server_id,
-            "prefix" => Some(prefix),
-        },
-    ); */
-    conn.exec_batch(
+    let req = if new {
         format!(
             "UPDATE {} SET prefix = :prefix WHERE server_id = :server_id",
             TABLE_PREFIX
         )
-        .as_str(),
+    } else {
+        format!(
+            "INSERT INTO {} (server_id, prefix) VALUES (:server_id, :prefix)",
+            TABLE_PREFIX
+        )
+    };
+    conn.exec_batch(
+        req.as_str(),
         vec![ServerPrefix {
             server_id: server_id,
             prefix: Some(prefix.to_string()),
@@ -277,7 +279,7 @@ async fn prefix(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     } else {
         let new_prefix = args.single::<String>();
         if let Ok(p) = new_prefix {
-            if let Ok(_) = set_prefix(ctx, msg.guild_id, &p).await {
+            if let Ok(_) = set_prefix(ctx, msg.guild_id, &p, false).await {
                 msg.channel_id
                     .send_message(ctx, |m| {
                         m.content(format!("Set the new prefix to \"{}\"", p))
