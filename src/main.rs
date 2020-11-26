@@ -239,6 +239,7 @@ fn wiki_query(args: Args, del: &str) -> String {
 #[command] // action=query&list=search&srwhat=text&srsearch=Bar&srnamespace=0&srlimit=1
 async fn wiki(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     if args.is_empty() {
+        println!("Wiki default page");
         fandom::display(
             ctx,
             msg,

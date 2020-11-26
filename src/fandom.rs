@@ -39,18 +39,16 @@ pub async fn search(ctx: &Context, ns: &str, srsearch: &str) -> Option<Page> {
             .clone()
     };
 
-    let req = [
-        ("action", "query"),
-        ("list", "search"),
-        ("srwhat", "text"),
-        ("srsearch", srsearch),
-        ("srnamespace", namespace(ns)?),
-        ("srlimit", "1"),
-    ];
-
     let res = fclient
-        .get(WIKI_API)
-        .query(&req)
+        .get(
+            format!(
+                "{}action=query&list=search&srwhat=text&srlimit=1&srsearch={}&srnamespace={}",
+                WIKI_API,
+                srsearch,
+                namespace(ns)?
+            )
+            .as_str(),
+        )
         .send()
         .await
         .ok()?
@@ -103,8 +101,8 @@ pub async fn random(ctx: &Context) -> Option<Page> {
     println!("Parsed successfully");
 
     let (rnd_id, rnd_title) = (
-        &body["query"]["random"]["id"],
-        &body["query"]["random"]["title"],
+        &body["query"]["random"][0]["id"],
+        &body["query"]["random"][0]["title"],
     );
 
     match (rnd_id, rnd_title) {
