@@ -10,11 +10,11 @@ use serenity::framework::standard::{
     macros::{command, group},
     Args, CommandResult, StandardFramework,
 };
-use serenity::model::prelude::ReactionType;
 use serenity::model::{
     channel::Message,
     gateway::{Activity, Ready},
     id::UserId,
+    prelude::ReactionType,
 };
 use std::{env, sync::Arc};
 
@@ -36,7 +36,8 @@ struct General;
 struct Wiki;
 
 #[group]
-#[required_permissions("ADMINISTRATOR")]
+#[only_in(guilds)]
+#[owners_only]
 #[commands(prefix)]
 struct Admin;
 
