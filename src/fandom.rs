@@ -1,5 +1,4 @@
 use json::{parse, JsonValue};
-use reqwest;
 use serenity::client::Context;
 use serenity::framework::standard::CommandResult;
 use serenity::model::prelude::Message;
@@ -66,14 +65,14 @@ pub async fn search(ctx: &Context, ns: &str, srsearch: &str) -> Option<Page> {
         JsonValue::Array(v) => Some(v),
         _ => None,
     }?;
-    if results.len() != 0 {
+    if !results.is_empty() {
         match (
             results[0].take()["pageid"].take(),
             results[0].take()["title"].take(),
         ) {
             (JsonValue::Number(id), JsonValue::String(s)) => Some(Page {
                 id: id.as_fixed_point_u64(0).unwrap(),
-                title: s.to_string(),
+                title: s,
             }),
             _ => None,
         }
@@ -122,9 +121,16 @@ pub async fn display(ctx: &Context, msg: &Message, p: Page) -> CommandResult {
             .expect("Expected DatabasePool in TypeMap")
             .clone()
     };
+
+    let req = format!(
+        "{}action=imageserving&wisId={}",
+        WIKI_API,
+        &p.id.to_string()
+    );
+    println!("Display query: {}", &req);
+
     let res = fclient
-        .get(WIKI_API)
-        .query(&[("action", "imageserving"), ("wisId", &p.id.to_string())])
+        .get(req.as_str())
         .send()
         .await
         .expect("Oh no it broke at send")

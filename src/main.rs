@@ -240,15 +240,14 @@ fn wiki_query(args: Args, del: &str) -> String {
 async fn wiki(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     if args.is_empty() {
         println!("Wiki default page");
-        fandom::display(
-            ctx,
-            msg,
-            fandom::Page {
-                id: 1501,
-                title: String::from("The Lord of the Rings Minecraft Mod Wiki:About"),
-            },
-        )
-        .await?;
+        msg.channel_id.send_message(ctx,|m| {
+            m.embed(|e| {
+                e.title("The Lord of the Rings Minecraft Mod Wiki");
+                e.url("https://lotrminecraftmod.fandom.com/wiki/The_Lord_of_the_Rings_Minecraft_Mod_Wiki");
+                e
+            });
+            m
+        }).await?;
         return Ok(());
     }
     let srsearch = &wiki_query(args, "_");
