@@ -113,7 +113,8 @@ async fn main() {
                 .owners(vec![OWNER_ID].into_iter().collect())
         })
         .group(&GENERAL_GROUP)
-        .group(&WIKI_GROUP);
+        .group(&WIKI_GROUP)
+        .group(&ADMIN_GROUP);
 
     let token = env::var("DISCORD_TOKEN").expect("Expected a token in the environment");
     let mut client = Client::builder(token)
@@ -163,8 +164,16 @@ async fn help(ctx: &Context, msg: &Message) -> CommandResult {
             m.content(format!("My prefix here is \"{}\"", prefix));
             m.embed(|e| {
                 e.title("Available commands");
-                e.field("General commands", "`renewed`, `tos`, `curseforge`, `help`", false);
-                e.field("Wiki commands", "`wiki`, `wiki user`, `wiki category`, `wiki template`, `wiki search`, `wiki random`", false);
+                e.field(
+                    "General commands",
+                    "`renewed`, `tos`, `curseforge`, `help`",
+                    false,
+                );
+                e.field(
+                    "Wiki commands",
+                    "`wiki`, `wiki user`, `wiki category`, `wiki template`, `wiki random`",
+                    false,
+                );
                 e.field("Admin commands", "`prefix`", false);
                 e
             });
