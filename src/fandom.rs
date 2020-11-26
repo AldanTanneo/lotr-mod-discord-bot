@@ -126,17 +126,24 @@ pub async fn display(ctx: &Context, msg: &Message, p: Page) -> CommandResult {
         .get(WIKI_API)
         .query(&[("action", "imageserving"), ("wisId", &p.id.to_string())])
         .send()
-        .await?
+        .await
+        .expect("Oh no it broke at send")
         .text()
-        .await?;
+        .await
+        .expect("Oh no it broke at text");
 
     println!("Display: {}", res);
 
-    let body = parse(res.as_str())?;
+    let mut body = parse(res.as_str())?;
 
     println!("Parsed successfully");
 
-    let img = &body["image"]["imageserving"];
+    let img = if let JsonValue::String(img) = body["image"].take()["imageserving"].take() {
+        img
+    } else {
+        String::new()
+    };
+    println!("{}", img);
     msg.channel_id
         .send_message(ctx, |m| {
             m.embed(|e| {
