@@ -40,15 +40,17 @@ pub async fn search(ctx: &Context, ns: &str, srsearch: &str) -> Option<Page> {
     };
 
     let res = fclient
-        .get(
-            format!(
+        .get({
+            let x = format!(
                 "{}action=query&list=search&srwhat=text&srlimit=1&srsearch={}&srnamespace={}",
                 WIKI_API,
                 srsearch,
                 namespace(ns)?
             )
-            .as_str(),
-        )
+            .as_str();
+            println!("Search query: {}", x);
+            x
+        })
         .send()
         .await
         .ok()?
