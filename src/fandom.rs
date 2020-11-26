@@ -213,7 +213,11 @@ pub async fn display(
             .clone()
     };
 
-    let req = [("action", "imageserving"), ("wisId", &id.to_string())];
+    let req = [
+        ("format", "json"),
+        ("action", "imageserving"),
+        ("wisId", &id.to_string()),
+    ];
 
     let res = fclient
         .get(wiki.get_api())
@@ -226,8 +230,8 @@ pub async fn display(
     println!("Display: {}", res);
 
     let body: Result<ImageRes, _> = serde_json::from_str(res.as_str());
-    println!("Parsed successfully");
     let img = if let Ok(body) = body {
+        println!("Parsed successfully");
         body.image.imageserving
     } else {
         String::from("https://static.wikia.nocookie.net/lotrminecraftmod/images/8/8e/GrukRenewedLogo.png/revision/latest")
