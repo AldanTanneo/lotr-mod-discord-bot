@@ -26,14 +26,19 @@ const OWNER_ID: UserId = UserId(405421991777009678);
 const WIKI_DOMAIN: &str = "lotrminecraftmod.fandom.com";
 
 #[group]
-#[commands(renewed, help, prefix, tos, curseforge)]
+#[commands(help, renewed, tos, curseforge)]
 struct General;
 
 #[group]
 #[default_command(wiki)]
 #[prefixes("wiki")]
-#[commands(user, category, template, random)]
+#[commands(user, category, template, file, random)]
 struct Wiki;
+
+#[group]
+#[required_permissions("ADMINISTRATOR")]
+#[commands(prefix)]
+struct Admin;
 
 struct Handler;
 
@@ -158,8 +163,9 @@ async fn help(ctx: &Context, msg: &Message) -> CommandResult {
             m.content(format!("My prefix here is \"{}\"", prefix));
             m.embed(|e| {
                 e.title("Available commands");
-                e.field("General commands", "`renewed`, `tos`, `curseforge`, `help`, `prefix`", false);
+                e.field("General commands", "`renewed`, `tos`, `curseforge`, `help`", false);
                 e.field("Wiki commands", "`wiki`, `wiki user`, `wiki category`, `wiki template`, `wiki search`, `wiki random`", false);
+                e.field("Admin commands", "`prefix`", false);
                 e
             });
             m
@@ -172,7 +178,6 @@ async fn help(ctx: &Context, msg: &Message) -> CommandResult {
 }
 
 #[command]
-#[required_permissions("ADMINISTRATOR")]
 #[owner_privilege(true)]
 #[max_args(1)]
 async fn prefix(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
@@ -236,78 +241,80 @@ fn wiki_query(args: Args, del: &str) -> String {
     join(args.rest().split_whitespace(), del)
 }
 
-#[command] // action=query&list=search&srwhat=text&srsearch=Bar&srnamespace=0&srlimit=1
-async fn wiki(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-    if args.is_empty() {
-        println!("Wiki default page");
-        msg.channel_id.send_message(ctx,|m| {
-            m.embed(|e| {
-                e.title("The Lord of the Rings Minecraft Mod Wiki");
-                e.url("https://lotrminecraftmod.fandom.com/wiki/The_Lord_of_the_Rings_Minecraft_Mod_Wiki");
-                e
-            });
-            m
-        }).await?;
-        return Ok(());
-    }
+async fn wiki_search(
+    ctx: &Context,
+    msg: &Message,
+    args: Args,
+    namespace: fandom::Namespace,
+    wiki: &fandom::Wikis,
+) -> CommandResult {
     let srsearch = &wiki_query(args, "_");
-    let p = fandom::search(ctx, "Page", srsearch).await;
+    let p = fandom::search(ctx, &namespace, srsearch, wiki).await;
     if let Some(page) = p {
-        fandom::display(ctx, msg, page.pageid, page.title).await?;
+        fandom::display(ctx, msg, &page, wiki).await?;
     } else {
         msg.channel_id
-            .send_message(ctx, |m| m.content("Couldn't execute query!"))
+            .send_message(ctx, |m| {
+                m.content(format!("Couldn't find a {} for the given name!", namespace))
+            })
             .await?;
     }
+    Ok(())
+}
+
+#[command]
+async fn wiki(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
+    let wiki = &fandom::Wikis::LOTRMod;
+    if args.is_empty() {
+        fandom::display(
+            ctx,
+            msg,
+            &fandom::GenericPage {
+                id: 331703,
+                title: "The Lord of the Rings Minecraft Mod Wiki".into(),
+            },
+            &fandom::Wikis::LOTRMod,
+        )
+        .await?;
+        return Ok(());
+    }
+    wiki_search(ctx, msg, args, fandom::Namespace::Page, wiki).await?;
     Ok(())
 }
 
 #[command]
 async fn user(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-    let srsearch = &wiki_query(args, "_");
-    let p = fandom::search(ctx, "User", srsearch).await;
-    if let Some(page) = p {
-        fandom::display(ctx, msg, page.pageid, page.title).await?;
-    } else {
-        msg.channel_id
-            .send_message(ctx, |m| m.content("Couldn't execute query!"))
-            .await?;
-    }
+    let wiki = &fandom::Wikis::LOTRMod;
+    wiki_search(ctx, msg, args, fandom::Namespace::User, wiki).await?;
     Ok(())
 }
 
 #[command]
 async fn category(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-    let srsearch = &wiki_query(args, "_");
-    let p = fandom::search(ctx, "Category", srsearch).await;
-    if let Some(page) = p {
-        fandom::display(ctx, msg, page.pageid, page.title).await?;
-    } else {
-        msg.channel_id
-            .send_message(ctx, |m| m.content("Couldn't execute query!"))
-            .await?;
-    }
+    let wiki = &fandom::Wikis::LOTRMod;
+    wiki_search(ctx, msg, args, fandom::Namespace::Category, wiki).await?;
     Ok(())
 }
 #[command]
 async fn template(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-    let srsearch = &wiki_query(args, "_");
-    let p = fandom::search(ctx, "Template", srsearch).await;
-    if let Some(page) = p {
-        fandom::display(ctx, msg, page.pageid, page.title).await?;
-    } else {
-        msg.channel_id
-            .send_message(ctx, |m| m.content("Couldn't execute query!"))
-            .await?;
-    }
+    let wiki = &fandom::Wikis::LOTRMod;
+    wiki_search(ctx, msg, args, fandom::Namespace::Template, wiki).await?;
+    Ok(())
+}
+
+#[command]
+async fn file(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
+    let wiki = &fandom::Wikis::LOTRMod;
+    wiki_search(ctx, msg, args, fandom::Namespace::File, wiki).await?;
     Ok(())
 }
 
 #[command]
 async fn random(ctx: &Context, msg: &Message) -> CommandResult {
-    let p = fandom::random(ctx).await;
+    let wiki = &fandom::Wikis::LOTRMod;
+    let p = fandom::random(ctx, wiki).await;
     if let Some(page) = p {
-        fandom::display(ctx, msg, page.id, page.title).await?;
+        fandom::display(ctx, msg, &page, wiki).await?;
     } else {
         msg.channel_id
             .send_message(ctx, |m| m.content("Couldn't execute query!"))
