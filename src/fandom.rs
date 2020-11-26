@@ -61,6 +61,9 @@ pub async fn search(ctx: &Context, ns: &str, srsearch: &str) -> Option<Page> {
     println!("Search: {}", res);
 
     let mut body = parse(res.as_str()).ok()?;
+
+    println!("Parsed successfully");
+
     let mut results = match body["query"]["search"].take() {
         JsonValue::Array(v) => Some(v),
         _ => None,
@@ -97,6 +100,8 @@ pub async fn random(ctx: &Context) -> Option<Page> {
 
     let body = parse(res.as_str()).ok()?;
 
+    println!("Parsed successfully");
+
     let (rnd_id, rnd_title) = (
         &body["query"]["random"]["id"],
         &body["query"]["random"]["title"],
@@ -130,6 +135,8 @@ pub async fn display(ctx: &Context, msg: &Message, p: Page) -> CommandResult {
     println!("Display: {}", res);
 
     let body = parse(res.as_str())?;
+
+    println!("Parsed successfully");
 
     let img = &body["image"]["imageserving"];
     msg.channel_id
