@@ -57,6 +57,9 @@ pub async fn search(ctx: &Context, ns: &str, srsearch: &str) -> Option<Page> {
         .text()
         .await
         .ok()?;
+
+    println!("Search: {}", res);
+
     let mut body = parse(res.as_str()).ok()?;
     let mut results = match body["query"]["search"].take() {
         JsonValue::Array(v) => Some(v),
@@ -90,6 +93,8 @@ pub async fn random(ctx: &Context) -> Option<Page> {
         .get("https://lotrminecraftmod.fandom.com/api.php?action=query&list=random&rnnamespace=0&rnlimit=1&format=json")
         .send().await.ok()?.text().await.ok()?;
 
+    println!("Random: {}", res);
+
     let body = parse(res.as_str()).ok()?;
 
     let (rnd_id, rnd_title) = (
@@ -121,6 +126,9 @@ pub async fn display(ctx: &Context, msg: &Message, p: Page) -> CommandResult {
         .await?
         .text()
         .await?;
+
+    println!("Display: {}", res);
+
     let body = parse(res.as_str())?;
 
     let img = &body["image"]["imageserving"];
