@@ -1,4 +1,5 @@
-use json::{parse, JsonValue};
+use serde::{Deserialize, Serialize};
+use serde_json;
 use serenity::client::Context;
 use serenity::framework::standard::CommandResult;
 use serenity::model::prelude::Message;
@@ -11,9 +12,46 @@ impl TypeMapKey for ReqwestClient {
     type Value = Arc<reqwest::Client>;
 }
 
-pub struct Page {
+#[derive(Serialize, Deserialize)]
+pub struct SearchPage {
+    pub pageid: u64,
+    pub title: String,
+}
+
+#[derive(Serialize, Deserialize)]
+struct SearchQuery {
+    search: Vec<SearchPage>,
+}
+
+#[derive(Serialize, Deserialize)]
+struct SearchRes {
+    query: SearchQuery,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct RandomPage {
     pub id: u64,
     pub title: String,
+}
+
+#[derive(Serialize, Deserialize)]
+struct RandomQuery {
+    random: Vec<RandomPage>,
+}
+
+#[derive(Serialize, Deserialize)]
+struct RandomRes {
+    query: RandomQuery,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct ImageServing {
+    imageserving: String,
+}
+
+#[derive(Serialize, Deserialize)]
+struct ImageRes {
+    image: ImageServing,
 }
 
 const WIKI_API: &str = "https://lotrminecraftmod.fandom.com/api.php?format=json&";
@@ -29,7 +67,7 @@ pub fn namespace(s: &str) -> Option<&str> {
     }
 }
 
-pub async fn search(ctx: &Context, ns: &str, srsearch: &str) -> Option<Page> {
+pub async fn search(ctx: &Context, ns: &str, srsearch: &str) -> Option<SearchPage> {
     let fclient = {
         let data_read = ctx.data.read().await;
         data_read
@@ -50,38 +88,21 @@ pub async fn search(ctx: &Context, ns: &str, srsearch: &str) -> Option<Page> {
         .get(req.as_str())
         .send()
         .await
-        .expect("Oh no it broke at send")
+        .ok()?
         .text()
         .await
-        .expect("Oh no it broke at text");
+        .ok()?;
 
     println!("Search: {}", res);
 
-    let mut body = parse(res.as_str()).ok()?;
+    let body: SearchRes = serde_json::from_str(res.as_str()).ok()?;
 
     println!("Parsed successfully");
 
-    let mut results = match body["query"]["search"].take() {
-        JsonValue::Array(v) => Some(v),
-        _ => None,
-    }?;
-    if !results.is_empty() {
-        match (
-            results[0].take()["pageid"].take(),
-            results[0].take()["title"].take(),
-        ) {
-            (JsonValue::Number(id), JsonValue::String(s)) => Some(Page {
-                id: id.as_fixed_point_u64(0).unwrap(),
-                title: s,
-            }),
-            _ => None,
-        }
-    } else {
-        None
-    }
+    Some(body.query.search.into_iter().nth(0)?)
 }
 
-pub async fn random(ctx: &Context) -> Option<Page> {
+pub async fn random(ctx: &Context) -> Option<RandomPage> {
     let fclient = {
         let data_read = ctx.data.read().await;
         data_read
@@ -95,25 +116,14 @@ pub async fn random(ctx: &Context) -> Option<Page> {
 
     println!("Random: {}", res);
 
-    let body = parse(res.as_str()).ok()?;
+    let body: RandomRes = serde_json::from_str(res.as_str()).ok()?;
 
     println!("Parsed successfully");
 
-    let (rnd_id, rnd_title) = (
-        &body["query"]["random"][0]["id"],
-        &body["query"]["random"][0]["title"],
-    );
-
-    match (rnd_id, rnd_title) {
-        (JsonValue::Number(id), JsonValue::String(s)) => Some(Page {
-            id: id.as_fixed_point_u64(0)?,
-            title: s.to_string(),
-        }),
-        _ => None,
-    }
+    Some(body.query.random.into_iter().nth(0)?)
 }
 
-pub async fn display(ctx: &Context, msg: &Message, p: Page) -> CommandResult {
+pub async fn display(ctx: &Context, msg: &Message, id: u64, title: String) -> CommandResult {
     let fclient = {
         let data_read = ctx.data.read().await;
         data_read
@@ -122,42 +132,32 @@ pub async fn display(ctx: &Context, msg: &Message, p: Page) -> CommandResult {
             .clone()
     };
 
-    let req = format!(
-        "{}action=imageserving&wisId={}",
-        WIKI_API,
-        &p.id.to_string()
-    );
+    let req = format!("{}action=imageserving&wisId={}", WIKI_API, id);
+
     println!("Display query: {}", &req);
 
-    let res = fclient
-        .get(req.as_str())
-        .send()
-        .await
-        .expect("Oh no it broke at send")
-        .text()
-        .await
-        .expect("Oh no it broke at text");
+    let res = fclient.get(req.as_str()).send().await?.text().await?;
 
     println!("Display: {}", res);
 
-    let mut body = parse(res.as_str())?;
+    let body: Result<ImageRes, _> = serde_json::from_str(res.as_str());
 
     println!("Parsed successfully");
 
-    let img = if let JsonValue::String(img) = body["image"].take()["imageserving"].take() {
-        img
+    let img = if let Ok(body) = body {
+        body.image.imageserving
     } else {
-        String::new()
+        String::from("https://static.wikia.nocookie.net/lotrminecraftmod/images/8/8e/GrukRenewedLogo.png/revision/latest?cb=20200914215540")
     };
-    println!("{}", img);
+
     msg.channel_id
         .send_message(ctx, |m| {
             m.embed(|e| {
-                e.title(&p.title);
+                e.title(&title);
                 e.image(img);
                 e.url(format!(
                     "https://lotrminecraftmod.fandom.com/wiki/{}",
-                    &p.title.replace(" ", "_")
+                    title.as_str().replace(" ", "_")
                 ));
                 e
             })

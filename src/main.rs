@@ -253,7 +253,7 @@ async fn wiki(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let srsearch = &wiki_query(args, "_");
     let p = fandom::search(ctx, "Page", srsearch).await;
     if let Some(page) = p {
-        fandom::display(ctx, msg, page).await?;
+        fandom::display(ctx, msg, page.pageid, page.title).await?;
     } else {
         msg.channel_id
             .send_message(ctx, |m| m.content("Couldn't execute query!"))
@@ -267,7 +267,7 @@ async fn user(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let srsearch = &wiki_query(args, "_");
     let p = fandom::search(ctx, "User", srsearch).await;
     if let Some(page) = p {
-        fandom::display(ctx, msg, page).await?;
+        fandom::display(ctx, msg, page.pageid, page.title).await?;
     } else {
         msg.channel_id
             .send_message(ctx, |m| m.content("Couldn't execute query!"))
@@ -281,7 +281,7 @@ async fn category(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let srsearch = &wiki_query(args, "_");
     let p = fandom::search(ctx, "Category", srsearch).await;
     if let Some(page) = p {
-        fandom::display(ctx, msg, page).await?;
+        fandom::display(ctx, msg, page.pageid, page.title).await?;
     } else {
         msg.channel_id
             .send_message(ctx, |m| m.content("Couldn't execute query!"))
@@ -294,7 +294,7 @@ async fn template(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let srsearch = &wiki_query(args, "_");
     let p = fandom::search(ctx, "Template", srsearch).await;
     if let Some(page) = p {
-        fandom::display(ctx, msg, page).await?;
+        fandom::display(ctx, msg, page.pageid, page.title).await?;
     } else {
         msg.channel_id
             .send_message(ctx, |m| m.content("Couldn't execute query!"))
@@ -307,7 +307,7 @@ async fn template(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 async fn random(ctx: &Context, msg: &Message) -> CommandResult {
     let p = fandom::random(ctx).await;
     if let Some(page) = p {
-        fandom::display(ctx, msg, page).await?;
+        fandom::display(ctx, msg, page.id, page.title).await?;
     } else {
         msg.channel_id
             .send_message(ctx, |m| m.content("Couldn't execute query!"))
