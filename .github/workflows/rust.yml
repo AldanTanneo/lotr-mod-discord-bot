@@ -10,11 +10,17 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  check:
-
+  fmt:
     runs-on: ubuntu-latest
-
+    steps:
+      - uses: actions/checkout@v2
+      - name: Format
+        run: cargo fmt
+  check:
+    runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
     - name: Check
-      run: cargo check
+      run: |
+        cargo check
+        cargo clippy
