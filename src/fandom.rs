@@ -147,7 +147,13 @@ pub async fn search(
     let title = &google_titles(srsearch, Wikis::LOTRMod).await?;
 
     let query = match ns {
-        Namespace::Page => title.split(" | ").into_iter().next()?,
+        Namespace::Page => {
+            if title.contains("|") {
+                title.split(" | ").into_iter().next()?
+            } else {
+                title.split(" - ").into_iter().next()?
+            }
+        }
         _ => srsearch,
     };
 
