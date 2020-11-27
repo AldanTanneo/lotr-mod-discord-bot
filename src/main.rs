@@ -19,9 +19,10 @@ use serenity::model::{
 use std::{env, sync::Arc};
 
 use database::{
-    add_admin, get_admins, get_floppa, get_prefix, remove_admin, set_prefix, DatabasePool,
+    add_admin, add_floppa, get_admins, get_floppa, get_prefix, remove_admin, set_prefix,
+    DatabasePool,
 };
-use fandom::ReqwestClient;
+use fandom::{GenericPage, Namespace, ReqwestClient, Wikis};
 
 const BOT_ID: UserId = UserId(780858391383638057);
 const OWNER_ID: UserId = UserId(405421991777009678);
@@ -42,7 +43,7 @@ struct Wiki;
 #[only_in(guilds)]
 #[prefixes("admin")]
 #[default_command(list)]
-#[commands(add, remove, list)]
+#[commands(add, remove, list, floppadd)]
 struct Admin;
 
 struct Handler;
@@ -144,7 +145,6 @@ You can find those in the full 1.7.10 Legacy edition [here](https://lotrminecraf
             m
         })
         .await?;
-    msg.delete(ctx).await?;
 
     Ok(())
 }
@@ -191,7 +191,6 @@ async fn tos(ctx: &Context, msg: &Message) -> CommandResult {
 Their Discord can be found here: https://discord.gg/gMNKaX6",
         )
         .await?;
-    msg.delete(ctx).await?;
     Ok(())
 }
 
@@ -205,6 +204,19 @@ async fn curseforge(ctx: &Context, msg: &Message) -> CommandResult {
     Ok(())
 }
 
+#[command]
+async fn floppa(ctx: &Context, msg: &Message) -> CommandResult {
+    let url = if let Some(url) = get_floppa(ctx).await {
+        url
+    } else {
+        "https://i.kym-cdn.com/photos/images/original/001/878/839/c6f.jpeg".to_string()
+    };
+    msg.channel_id
+        .send_message(ctx, |m| m.add_file(url.as_str()))
+        .await?;
+    Ok(())
+}
+
 // --------------------- Wiki Commands -------------------------
 
 fn wiki_query(args: Args, del: &str) -> String {
@@ -215,8 +227,8 @@ async fn wiki_search(
     ctx: &Context,
     msg: &Message,
     args: Args,
-    namespace: fandom::Namespace,
-    wiki: &fandom::Wikis,
+    namespace: Namespace,
+    wiki: &Wikis,
 ) -> CommandResult {
     let srsearch = &wiki_query(args, "_");
     let p = fandom::search(ctx, &namespace, srsearch, wiki).await;
@@ -235,54 +247,54 @@ async fn wiki_search(
 
 #[command]
 async fn wiki(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-    let wiki = &fandom::Wikis::LOTRMod;
+    let wiki = &Wikis::LOTRMod;
     if args.is_empty() {
         fandom::display(
             ctx,
             msg,
-            &fandom::GenericPage {
+            &GenericPage {
                 id: 331703,
                 title: "The Lord of the Rings Minecraft Mod Wiki".into(),
             },
-            &fandom::Wikis::LOTRMod,
+            &Wikis::LOTRMod,
         )
         .await?;
         return Ok(());
     }
-    wiki_search(ctx, msg, args, fandom::Namespace::Page, wiki).await?;
+    wiki_search(ctx, msg, args, Namespace::Page, wiki).await?;
     Ok(())
 }
 
 #[command]
 async fn user(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-    let wiki = &fandom::Wikis::LOTRMod;
-    wiki_search(ctx, msg, args, fandom::Namespace::User, wiki).await?;
+    let wiki = &Wikis::LOTRMod;
+    wiki_search(ctx, msg, args, Namespace::User, wiki).await?;
     Ok(())
 }
 
 #[command]
 async fn category(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-    let wiki = &fandom::Wikis::LOTRMod;
-    wiki_search(ctx, msg, args, fandom::Namespace::Category, wiki).await?;
+    let wiki = &Wikis::LOTRMod;
+    wiki_search(ctx, msg, args, Namespace::Category, wiki).await?;
     Ok(())
 }
 #[command]
 async fn template(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-    let wiki = &fandom::Wikis::LOTRMod;
-    wiki_search(ctx, msg, args, fandom::Namespace::Template, wiki).await?;
+    let wiki = &Wikis::LOTRMod;
+    wiki_search(ctx, msg, args, Namespace::Template, wiki).await?;
     Ok(())
 }
 
 #[command]
 async fn file(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-    let wiki = &fandom::Wikis::LOTRMod;
-    wiki_search(ctx, msg, args, fandom::Namespace::File, wiki).await?;
+    let wiki = &Wikis::LOTRMod;
+    wiki_search(ctx, msg, args, Namespace::File, wiki).await?;
     Ok(())
 }
 
 #[command]
 async fn random(ctx: &Context, msg: &Message) -> CommandResult {
-    let wiki = &fandom::Wikis::LOTRMod;
+    let wiki = &Wikis::LOTRMod;
     let p = fandom::random(ctx, wiki).await;
     if let Some(page) = p {
         fandom::display(ctx, msg, &page, wiki).await?;
@@ -421,14 +433,12 @@ async fn list(ctx: &Context, msg: &Message) -> CommandResult {
 }
 
 #[command]
-async fn floppa(ctx: &Context, msg: &Message) -> CommandResult {
-    let url = if let Some(url) = get_floppa(ctx).await {
-        url
-    } else {
-        "https://i.kym-cdn.com/photos/images/original/001/878/839/c6f.jpeg".to_string()
-    };
-    msg.channel_id
-        .send_message(ctx, |m| m.add_files(vec![url.as_str()]))
-        .await?;
+async fn floppadd(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+    if msg.author.id == OWNER_ID {
+        let url = args.single::<String>();
+        if let Ok(floppa_url) = url {
+            add_floppa(ctx, floppa_url).await?;
+        }
+    }
     Ok(())
 }

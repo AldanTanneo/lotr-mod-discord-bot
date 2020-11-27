@@ -7,6 +7,7 @@ use serenity::model::id::{GuildId, UserId};
 use serenity::prelude::TypeMapKey;
 use std::sync::Arc;
 
+const OWNER_ID: UserId = UserId(405421991777009678);
 const TABLE_PREFIX: &str = "lotr_mod_bot_prefix";
 const TABLE_ADMINS: &str = "bot_admins";
 const TABLE_FLOPPA: &str = "floppa_images";
@@ -162,7 +163,7 @@ pub async fn add_admin(ctx: &Context, guild_id: Option<GuildId>, user_id: UserId
         .as_str(),
         params! {
             "server_id" => server_id,
-            "user_id" => user_id.0,
+            "user_id" => user_id.as_u64(),
         },
     )
     .await?;
@@ -254,4 +255,45 @@ pub async fn get_floppa(ctx: &Context) -> Option<String> {
     } else {
         None
     }
+}
+
+pub async fn add_floppa(ctx: &Context, floppa_url: String) -> CommandResult {
+    let pool = {
+        let data_read = ctx.data.read().await;
+        data_read
+            .get::<DatabasePool>()
+            .expect("Expected DatabasePool in TypeMap")
+            .clone()
+    };
+    let mut conn = pool
+        .get_conn()
+        .await
+        .expect("Could not connect to database");
+    let images: Vec<String> = conn
+        .exec_map(
+            format!("SELECT image_url FROM {}", TABLE_FLOPPA).as_str(),
+            (),
+            |url| url,
+        )
+        .await?;
+
+    if !images.contains(&floppa_url) {
+        conn.exec_drop(
+            format!("INSERT INTO {} image_url VALUES (:image_url)", TABLE_FLOPPA).as_str(),
+            params! {
+                "image_url" => floppa_url,
+            },
+        )
+        .await?;
+    } else {
+        OWNER_ID
+            .to_user(ctx)
+            .await?
+            .dm(ctx, |m| m.content("Floppa already exists!"))
+            .await?;
+    }
+
+    drop(conn);
+
+    Ok(())
 }
