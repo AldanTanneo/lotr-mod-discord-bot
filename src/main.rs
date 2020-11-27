@@ -205,8 +205,10 @@ async fn curseforge(ctx: &Context, msg: &Message) -> CommandResult {
 }
 
 #[command]
-async fn floppa(ctx: &Context, msg: &Message) -> CommandResult {
-    let url = if let Some(url) = get_floppa(ctx).await {
+#[max_args(1)]
+async fn floppa(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+    let n = args.single::<u32>().ok();
+    let url = if let Some(url) = get_floppa(ctx, n).await {
         url
     } else {
         "https://i.kym-cdn.com/photos/images/original/001/878/839/c6f.jpeg".to_string()

@@ -217,7 +217,7 @@ fn choose_from_ids(vec: Vec<u32>) -> u32 {
     *id
 }
 
-pub async fn get_floppa(ctx: &Context) -> Option<String> {
+pub async fn get_floppa(ctx: &Context, n: Option<u32>) -> Option<String> {
     let pool = {
         let data_read = ctx.data.read().await;
         data_read
@@ -239,7 +239,11 @@ pub async fn get_floppa(ctx: &Context) -> Option<String> {
         .await
         .ok()?;
 
-    let floppa_id = choose_from_ids(ids);
+    let floppa_id = if n.is_some() && ids.contains(&n.unwrap()) {
+        n.unwrap()
+    } else {
+        choose_from_ids(ids)
+    };
 
     let res = conn
         .query_first(format!(
