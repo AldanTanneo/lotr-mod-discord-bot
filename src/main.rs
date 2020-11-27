@@ -403,30 +403,25 @@ async fn list(ctx: &Context, msg: &Message) -> CommandResult {
     let admins = get_admins(ctx, msg.guild_id)
         .await
         .unwrap_or_else(|| vec![OWNER_ID]);
-    println!("Retrieved admins");
     let mut user_names: Vec<String> = vec![];
     for user in admins.iter().map(|id| id.to_user(ctx)) {
         let user = user.await?;
         user_names.push(user.name);
     }
     user_names.push(OWNER_ID.to_user(ctx).await?.name);
-    println!("Built admin names");
     let guild_name = msg
         .guild_id
         .unwrap_or(LOTR_DISCORD)
         .to_partial_guild(ctx)
         .await?
         .name;
-    println!("Retrieved guild name: {}", guild_name);
     msg.channel_id
         .send_message(ctx, |m| {
             m.embed(|e| {
                 e.title("List of bot admins");
-                e.description(format!("On **{}**\n\n{}", guild_name, user_names.join("\n")));
-                println!("Returning embed");
+                e.description(format!("On **{}**\n{}", guild_name, user_names.join("\n")));
                 e
             });
-            println!("Returning message");
             m
         })
         .await?;
