@@ -440,6 +440,6 @@ async fn floppa(ctx: &Context, msg: &Message) -> CommandResult {
     } else {
          String::from("https://i.kym-cdn.com/photos/images/original/001/878/839/c6f.jpeg") 
     };
-    msg.channel_id.send_message(ctx, |m| m.add_file(url.as_str())).await?;
+    msg.channel_id.send_message(ctx, |m| m.content(url)).await?;
     Ok(())
 }
