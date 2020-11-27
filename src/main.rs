@@ -409,6 +409,7 @@ async fn list(ctx: &Context, msg: &Message) -> CommandResult {
         let user = user.await?;
         user_names.push(user.name);
     }
+    user_names.push(OWNER_ID.to_user(ctx).await?.name);
     println!("Built admin names");
     let guild_name = msg
         .guild_id
