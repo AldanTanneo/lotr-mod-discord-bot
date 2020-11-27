@@ -240,6 +240,12 @@ pub async fn display(
     msg.channel_id
         .send_message(ctx, |m| {
             m.embed(|e| {
+                e.author(|a| {
+                    a.icon_url("https://static.wikia.nocookie.net/lotrminecraftmod/images/b/bc/WikiIcon_About.png/revision/20160507175049");
+                    a.name("The Lord of the Rings Minecraft Mod Wiki");
+                    a.url("https://lotrminecraftmod.fandom.com/");
+                    a
+                });
                 e.title(title);
                 e.image(img);
                 e.url(format!(
