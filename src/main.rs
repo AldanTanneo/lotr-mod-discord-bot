@@ -13,20 +13,21 @@ use serenity::framework::standard::{
 use serenity::model::{
     channel::Message,
     gateway::{Activity, Ready},
-    id::UserId,
+    id::{GuildId, UserId},
     prelude::ReactionType,
 };
 use std::{env, sync::Arc};
 
-use database::{get_prefix, set_prefix, DatabasePool};
+use database::{add_admin, get_admins, get_prefix, remove_admin, set_prefix, DatabasePool};
 use fandom::ReqwestClient;
 
 const BOT_ID: UserId = UserId(780858391383638057);
 const OWNER_ID: UserId = UserId(405421991777009678);
+const LOTR_DISCORD: GuildId = GuildId(405091134327619587);
 const WIKI_DOMAIN: &str = "lotrminecraftmod.fandom.com";
 
 #[group]
-#[commands(help, renewed, tos, curseforge)]
+#[commands(help, renewed, tos, curseforge, prefix)]
 struct General;
 
 #[group]
@@ -37,8 +38,9 @@ struct Wiki;
 
 #[group]
 #[only_in(guilds)]
-#[owners_only]
-#[commands(prefix)]
+#[prefixes("admin")]
+#[default_command(list)]
+#[commands(add, remove, list)]
 struct Admin;
 
 struct Handler;
@@ -52,12 +54,10 @@ impl EventHandler for Handler {
     }
 
     async fn message(&self, ctx: Context, msg: Message) {
-        if msg.mentions_user_id(BOT_ID) {
+        if msg.mentions_user_id(BOT_ID) && !msg.content.contains("prefix") {
             let prefix = get_prefix(&ctx, msg.guild_id).await;
             msg.channel_id
-                .send_message(ctx, |m| {
-                    m.content(format!("My prefix here is \"{}\"", prefix))
-                })
+                .say(ctx, format!("My prefix here is \"{}\"", prefix))
                 .await
                 .expect("Failed to send message");
         }
@@ -175,7 +175,11 @@ async fn help(ctx: &Context, msg: &Message) -> CommandResult {
                     "`wiki`, `wiki user`, `wiki category`, `wiki template`, `wiki random`",
                     false,
                 );
-                e.field("Admin commands", "`prefix`", false);
+                e.field(
+                    "Admin commands",
+                    "`prefix`, `admin add`, `admin remove`, `admin list`",
+                    false,
+                );
                 e
             });
             m
@@ -188,48 +192,12 @@ async fn help(ctx: &Context, msg: &Message) -> CommandResult {
 }
 
 #[command]
-#[owner_privilege(true)]
-#[max_args(1)]
-async fn prefix(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    if args.is_empty() {
-        let prefix = get_prefix(ctx, msg.guild_id).await;
-        msg.channel_id
-            .send_message(ctx, |m| {
-                m.content(format!("My prefix here is \"{}\"", prefix))
-            })
-            .await?;
-    } else {
-        let new_prefix = args.single::<String>();
-        if let Ok(p) = new_prefix {
-            if set_prefix(ctx, msg.guild_id, &p, true).await.is_ok() {
-                msg.channel_id
-                    .send_message(ctx, |m| {
-                        m.content(format!("Set the new prefix to \"{}\"", p))
-                    })
-                    .await?;
-            } else {
-                msg.channel_id
-                    .send_message(ctx, |m| m.content("Failed to set the new prefix!"))
-                    .await?;
-            }
-        } else {
-            msg.channel_id
-                .send_message(ctx, |m| m.content("Invalid new prefix!"))
-                .await?;
-        }
-    }
-    Ok(())
-}
-
-#[command]
 async fn tos(ctx: &Context, msg: &Message) -> CommandResult {
     msg.channel_id
-        .send_message(ctx, |m| {
-            m.content(
+        .say(ctx, 
             "This is the Discord server of the **Lord of the Rings Mod**, not the official Minecraft server of the mod.
 Their Discord can be found here: https://discord.gg/gMNKaX6",
         )
-        })
         .await?;
     msg.delete(ctx).await?;
     Ok(())
@@ -264,9 +232,10 @@ async fn wiki_search(
         fandom::display(ctx, msg, &page, wiki).await?;
     } else {
         msg.channel_id
-            .send_message(ctx, |m| {
-                m.content(format!("Couldn't find a {} for the given name!", namespace))
-            })
+            .say(
+                ctx,
+                format!("Couldn't find a {} for the given name!", namespace),
+            )
             .await?;
     }
     Ok(())
@@ -326,9 +295,134 @@ async fn random(ctx: &Context, msg: &Message) -> CommandResult {
     if let Some(page) = p {
         fandom::display(ctx, msg, &page, wiki).await?;
     } else {
-        msg.channel_id
-            .send_message(ctx, |m| m.content("Couldn't execute query!"))
-            .await?;
+        msg.channel_id.say(ctx, "Couldn't execute query!").await?;
     }
+    Ok(())
+}
+
+// ---------------- ADMIN COMMANDS -------------
+
+#[command]
+#[owner_privilege(true)]
+#[max_args(1)]
+async fn prefix(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+    if args.is_empty() {
+        let prefix = get_prefix(ctx, msg.guild_id).await;
+        msg.channel_id
+            .say(ctx, format!("My prefix here is \"{}\"", prefix))
+            .await?;
+    } else {
+        let admins = get_admins(ctx, msg.guild_id).await.unwrap_or_default();
+        if admins.contains(&msg.author.id) || msg.author.id == OWNER_ID {
+            let new_prefix = args.single::<String>();
+            if let Ok(p) = new_prefix {
+                if !p.contains("<@!") && set_prefix(ctx, msg.guild_id, &p, true).await.is_ok() {
+                    msg.channel_id
+                        .say(ctx, format!("Set the new prefix to \"{}\"", p))
+                        .await?;
+                } else {
+                    msg.channel_id
+                        .say(ctx, "Failed to set the new prefix!")
+                        .await?;
+                }
+            } else {
+                msg.channel_id.say(ctx, "Invalid new prefix!").await?;
+            }
+        } else {
+            msg.channel_id
+                .say(ctx, "You are not an admin on this server!")
+                .await?;
+            msg.react(ctx, ReactionType::from('❌')).await?;
+        }
+    }
+    Ok(())
+}
+
+#[command]
+#[max_args(1)]
+#[min_args(1)]
+async fn add(ctx: &Context, msg: &Message) -> CommandResult {
+    let admins = get_admins(ctx, msg.guild_id).await.unwrap_or_default();
+    if (admins.contains(&msg.author.id) || msg.author.id == OWNER_ID) && !msg.mentions.is_empty() {
+        if let Some(user) = msg
+            .mentions
+            .iter()
+            .find(|&user| user.id != BOT_ID && user.id != OWNER_ID)
+        {
+            if !admins.contains(&user.id) {
+                add_admin(ctx, msg.guild_id, user.id).await?;
+            } else {
+                msg.channel_id
+                    .say(ctx, "This user is already a bot admin on this server!")
+                    .await?;
+            }
+        } else {
+            msg.channel_id
+                .say(
+                    ctx,
+                    "Mention a user you wish to promote to bot admin for this server.",
+                )
+                .await?;
+        }
+    }
+    Ok(())
+}
+
+#[command]
+#[max_args(1)]
+#[min_args(1)]
+async fn remove(ctx: &Context, msg: &Message) -> CommandResult {
+    let admins = get_admins(ctx, msg.guild_id).await.unwrap_or_default();
+    if (admins.contains(&msg.author.id) || msg.author.id == OWNER_ID) && !msg.mentions.is_empty() {
+        if let Some(user) = msg
+            .mentions
+            .iter()
+            .find(|&user| user.id != BOT_ID && user.id != OWNER_ID)
+        {
+            if admins.contains(&user.id) {
+                remove_admin(ctx, msg.guild_id, user.id).await?;
+            } else {
+                msg.channel_id
+                    .say(ctx, "This user is not a bot admin on this server!")
+                    .await?;
+            }
+        } else {
+            msg.channel_id
+                .say(
+                    ctx,
+                    "Mention a user you wish to remove from bot admins for this server.",
+                )
+                .await?;
+        }
+    }
+    Ok(())
+}
+
+#[command]
+#[max_args(0)]
+async fn list(ctx: &Context, msg: &Message) -> CommandResult {
+    let admins = get_admins(ctx, msg.guild_id)
+        .await
+        .unwrap_or_else(|| vec![OWNER_ID]);
+    let mut user_names: Vec<String> = vec![];
+    for user in admins.iter().map(|id| id.to_user(ctx)) {
+        let user = user.await?;
+        user_names.push(user.name);
+    }
+    let guild_name = msg
+        .guild_id
+        .unwrap_or(LOTR_DISCORD)
+        .to_partial_guild(ctx)
+        .await?
+        .name;
+    msg.channel_id
+        .send_message(ctx, |m| {
+            m.embed(|e| {
+                e.title("List of bot admins");
+                e.field(format!("On {}", guild_name), user_names.join("\n"), false);
+                e
+            })
+        })
+        .await?;
     Ok(())
 }

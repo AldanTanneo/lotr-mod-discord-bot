@@ -1,11 +1,13 @@
 use mysql_async::prelude::*;
 use mysql_async::*;
 use serenity::client::Context;
-use serenity::model::id::GuildId;
+use serenity::framework::standard::CommandResult;
+use serenity::model::id::{GuildId, UserId};
 use serenity::prelude::TypeMapKey;
 use std::sync::Arc;
 
 const TABLE_PREFIX: &str = "lotr_mod_bot_prefix";
+const TABLE_ADMINS: &str = "bot_admins";
 
 pub struct DatabasePool;
 
@@ -42,6 +44,9 @@ pub async fn get_prefix(ctx: &Context, guild_id: Option<GuildId>) -> String {
             TABLE_PREFIX, server_id
         ))
         .await;
+
+    drop(conn);
+
     if let Ok(Some(prefix)) = res {
         prefix
     } else {
@@ -55,7 +60,7 @@ pub async fn set_prefix(
     guild_id: Option<GuildId>,
     prefix: &str,
     update: bool,
-) -> Result<()> {
+) -> CommandResult {
     let pool = {
         let data_read = ctx.data.read().await;
         data_read
@@ -83,20 +88,122 @@ pub async fn set_prefix(
             TABLE_PREFIX
         )
     };
-    conn.exec_batch(
+    conn.exec_drop(
         req.as_str(),
-        vec![ServerPrefix {
-            server_id,
-            prefix: Some(prefix.to_string()),
-        }]
-        .iter()
-        .map(|p| {
-            params! {
-                "server_id" => p.server_id,
-                "prefix" => &p.prefix,
-            }
-        }),
+        params! {
+            "server_id" => server_id,
+            "prefix" => prefix,
+        },
     )
     .await?;
+
+    drop(conn);
+
+    Ok(())
+}
+
+pub async fn get_admins(ctx: &Context, guild_id: Option<GuildId>) -> Option<Vec<UserId>> {
+    let pool = {
+        let data_read = ctx.data.read().await;
+        data_read
+            .get::<DatabasePool>()
+            .expect("Expected DatabasePool in TypeMap")
+            .clone()
+    };
+    let mut conn = pool
+        .get_conn()
+        .await
+        .expect("Could not connect to database");
+    let server_id: u64 = if let Some(id) = guild_id {
+        id.into()
+    } else {
+        0
+    };
+
+    let res = conn
+        .exec_map(
+            format!(
+                "SELECT user_id FROM {} WHERE server_id={}",
+                TABLE_ADMINS, server_id
+            )
+            .as_str(),
+            (),
+            UserId,
+        )
+        .await
+        .ok()?;
+
+    drop(conn);
+
+    Some(res)
+}
+
+pub async fn add_admin(ctx: &Context, guild_id: Option<GuildId>, user_id: UserId) -> CommandResult {
+    let pool = {
+        let data_read = ctx.data.read().await;
+        data_read
+            .get::<DatabasePool>()
+            .expect("Expected DatabasePool in TypeMap")
+            .clone()
+    };
+    let mut conn = pool
+        .get_conn()
+        .await
+        .expect("Could not connect to database");
+    let server_id: u64 = if let Some(id) = guild_id { id.0 } else { 0 };
+
+    conn.exec_drop(
+        format!(
+            "INSERT INTO {} (server_id, user_id) VALUES (:server_id, :user_id)",
+            TABLE_ADMINS
+        )
+        .as_str(),
+        params! {
+            "server_id" => server_id,
+            "user_id" => user_id.0,
+        },
+    )
+    .await?;
+
+    drop(conn);
+
+    Ok(())
+}
+
+pub async fn remove_admin(
+    ctx: &Context,
+    guild_id: Option<GuildId>,
+    user_id: UserId,
+) -> CommandResult {
+    let pool = {
+        let data_read = ctx.data.read().await;
+        data_read
+            .get::<DatabasePool>()
+            .expect("Expected DatabasePool in TypeMap")
+            .clone()
+    };
+    let mut conn = pool
+        .get_conn()
+        .await
+        .expect("Could not connect to database");
+    let server_id: u64 = if let Some(id) = guild_id {
+        *id.as_u64()
+    } else {
+        0
+    };
+
+    conn.exec_drop(
+        format!(
+            "DELETE FROM {} WHERE server_id = :server_id AND user_id = :user_id",
+            TABLE_ADMINS
+        )
+        .as_str(),
+        params! {
+            "server_id" => server_id,
+            "user_id" => user_id.as_u64(),
+        },
+    )
+    .await?;
+
     Ok(())
 }
