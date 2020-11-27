@@ -27,6 +27,7 @@ const LOTR_DISCORD: GuildId = GuildId(405091134327619587);
 const WIKI_DOMAIN: &str = "lotrminecraftmod.fandom.com";
 
 #[group]
+#[default_command(prefix)]
 #[commands(help, renewed, tos, curseforge, prefix, floppa)]
 struct General;
 
@@ -51,16 +52,6 @@ impl EventHandler for Handler {
         let game =
             Activity::playing("The Lord of the Rings Mod: Bringing Middle-earth to Minecraft");
         ctx.set_activity(game).await;
-    }
-
-    async fn message(&self, ctx: Context, msg: Message) {
-        if msg.mentions_user_id(BOT_ID) && !msg.content.contains("prefix") {
-            let prefix = get_prefix(&ctx, msg.guild_id).await;
-            msg.channel_id
-                .say(ctx, format!("My prefix here is \"{}\"", prefix))
-                .await
-                .expect("Failed to send message");
-        }
     }
 }
 
@@ -316,7 +307,7 @@ async fn prefix(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
         if admins.contains(&msg.author.id) || msg.author.id == OWNER_ID {
             let new_prefix = args.single::<String>();
             if let Ok(p) = new_prefix {
-                if !p.contains("<@!") && set_prefix(ctx, msg.guild_id, &p, true).await.is_ok() {
+                if !p.contains("<@") && set_prefix(ctx, msg.guild_id, &p, true).await.is_ok() {
                     msg.channel_id
                         .say(ctx, format!("Set the new prefix to \"{}\"", p))
                         .await?;
@@ -431,10 +422,10 @@ async fn list(ctx: &Context, msg: &Message) -> CommandResult {
 #[command]
 async fn floppa(ctx: &Context, msg: &Message) -> CommandResult {
     let url = if let Some(url) = get_floppa(ctx).await { 
-        url 
+        url
     } else {
-         String::from("https://i.kym-cdn.com/photos/images/original/001/878/839/c6f.jpeg") 
+        "https://i.kym-cdn.com/photos/images/original/001/878/839/c6f.jpeg".to_string()
     };
-    msg.channel_id.send_message(ctx, |m| m.content(url)).await?;
+    msg.channel_id.send_message(ctx, |m| m.add_files(vec![url.as_str()])).await?;
     Ok(())
 }

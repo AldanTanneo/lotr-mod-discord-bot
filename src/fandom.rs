@@ -158,10 +158,8 @@ pub async fn search(
         .text()
         .await
         .ok()?;
-    println!("Search: {}", res);
 
     let body: SearchRes = serde_json::from_str(res.as_str()).ok()?;
-    println!("Parsed successfully");
     Some(body.query.search.into_iter().next()?.into())
 }
 
@@ -192,10 +190,7 @@ pub async fn random(ctx: &Context, wiki: &Wikis) -> Option<GenericPage> {
         .await
         .ok()?;
 
-    println!("Random: {}", res);
-
     let body: RandomRes = serde_json::from_str(res.as_str()).ok()?;
-    println!("Parsed successfully!");
     Some(body.query.random.into_iter().next()?.into())
 }
 
@@ -229,11 +224,8 @@ pub async fn display(
         .text()
         .await?;
 
-    println!("Display: {}", res);
-
     let body: Result<ImageRes, _> = serde_json::from_str(res.as_str());
     let img = if let Ok(body) = body {
-        println!("Parsed successfully");
         body.image.imageserving
     } else {
         String::from("https://static.wikia.nocookie.net/lotrminecraftmod/images/8/8e/GrukRenewedLogo.png/revision/latest")
