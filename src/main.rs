@@ -421,14 +421,14 @@ async fn list(ctx: &Context, msg: &Message) -> CommandResult {
         .send_message(ctx, |m| {
             m.embed(|e| {
                 e.title("List of bot admins");
-                e.field(format!("On {}", guild_name), user_names.join("\n"), false);
+                e.description(format!("On {}", guild_name));
+                e.fields(user_names.iter().map(|name| (name, "--", false)));
                 println!("Returning embed");
                 e
             });
             println!("Returning message");
             m
         })
-        .await
-        .expect("couldn't send message!");
+        .await?;
     Ok(())
 }
