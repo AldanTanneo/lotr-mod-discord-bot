@@ -256,7 +256,7 @@ pub async fn display(
     Ok(())
 }
 
-pub async fn tolkiengateway(query: &str) -> Option<Vec<(String, String)>> {
+pub async fn tolkiengateway(query: &str) -> Option<Vec<String>> {
     let results = search_with_google::search(
         format!("site:{} {}", TOLKIEN_GATEWAY, query).as_str(),
         3,
@@ -264,10 +264,5 @@ pub async fn tolkiengateway(query: &str) -> Option<Vec<(String, String)>> {
     )
     .await
     .ok()?;
-    Some(
-        results
-            .iter()
-            .map(|hit| (hit.title.clone(), hit.description.clone()))
-            .collect(),
-    )
+    Some(results.iter().map(|hit| hit.title.clone()).collect())
 }

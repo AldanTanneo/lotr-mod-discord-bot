@@ -307,7 +307,7 @@ async fn tolkien(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let query = args.rest();
     let results = tolkiengateway(query).await.unwrap_or_default();
     if !results.is_empty() {
-        let (ftitle, desc) = &results[0];
+        let ftitle = &results[0];
         let title = if let Some(title) = ftitle.split(" - ").into_iter().next() {
             title
         } else {
@@ -320,7 +320,6 @@ async fn tolkien(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
             .send_message(ctx, |m| {
                 m.embed(|e| {
                     e.title(title);
-                    e.description(desc);
                     e.url(format!(
                         "http://www.tolkiengateway.net/wiki/{}",
                         join(title.split_whitespace(), "_")
