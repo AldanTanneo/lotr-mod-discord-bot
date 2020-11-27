@@ -399,22 +399,24 @@ async fn remove(ctx: &Context, msg: &Message) -> CommandResult {
 }
 
 #[command]
-#[max_args(0)]
 async fn list(ctx: &Context, msg: &Message) -> CommandResult {
     let admins = get_admins(ctx, msg.guild_id)
         .await
         .unwrap_or_else(|| vec![OWNER_ID]);
+    println!("Retrieved admins");
     let mut user_names: Vec<String> = vec![];
     for user in admins.iter().map(|id| id.to_user(ctx)) {
         let user = user.await?;
         user_names.push(user.name);
     }
+    println!("Built admin names");
     let guild_name = msg
         .guild_id
         .unwrap_or(LOTR_DISCORD)
         .to_partial_guild(ctx)
         .await?
         .name;
+    println!("Retrieved guild name: {}", guild_name);
     msg.channel_id
         .send_message(ctx, |m| {
             m.embed(|e| {
