@@ -30,7 +30,7 @@ const LOTR_DISCORD: GuildId = GuildId(405091134327619587);
 const WIKI_DOMAIN: &str = "lotrminecraftmod.fandom.com";
 
 #[group]
-#[commands(help, renewed, tos, curseforge, prefix, floppa)]
+#[commands(help, renewed, tos, curseforge, prefix, floppa, aeugh)]
 struct General;
 
 #[group]
@@ -381,6 +381,7 @@ async fn add(ctx: &Context, msg: &Message) -> CommandResult {
         {
             if !admins.contains(&user.id) {
                 add_admin(ctx, msg.guild_id, user.id).await?;
+                msg.react(ctx, ReactionType::from('✅')).await?;
             } else {
                 msg.channel_id
                     .say(ctx, "This user is already a bot admin on this server!")
@@ -411,6 +412,7 @@ async fn remove(ctx: &Context, msg: &Message) -> CommandResult {
         {
             if admins.contains(&user.id) {
                 remove_admin(ctx, msg.guild_id, user.id).await?;
+                msg.react(ctx, ReactionType::from('✅')).await?;
             } else {
                 msg.channel_id
                     .say(ctx, "This user is not a bot admin on this server!")
@@ -468,5 +470,15 @@ async fn floppadd(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
                 .await?;
         }
     }
+    Ok(())
+}
+
+#[command]
+async fn aeugh(ctx: &Context, msg: &Message) -> CommandResult {
+    msg.channel_id
+        .send_message(ctx, |m| {
+            m.add_file("https://static.wikia.nocookie.net/lotrminecraftmod/images/6/65/Say_Orc.ogg")
+        })
+        .await?;
     Ok(())
 }
