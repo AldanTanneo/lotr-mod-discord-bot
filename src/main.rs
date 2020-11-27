@@ -27,7 +27,6 @@ const LOTR_DISCORD: GuildId = GuildId(405091134327619587);
 const WIKI_DOMAIN: &str = "lotrminecraftmod.fandom.com";
 
 #[group]
-#[default_command(prefix)]
 #[commands(help, renewed, tos, curseforge, prefix, floppa)]
 struct General;
 
