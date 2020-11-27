@@ -459,6 +459,7 @@ async fn list(ctx: &Context, msg: &Message) -> CommandResult {
 
 #[command]
 async fn floppadd(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+    let admins = get_admins(ctx, msg.guild_id).await.unwrap_or_default();
     if (admins.contains(&msg.author.id) || msg.author.id == OWNER_ID) {
         let url = args.single::<String>();
         if let Ok(floppa_url) = url {
