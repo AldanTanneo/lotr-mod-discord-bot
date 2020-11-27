@@ -18,7 +18,7 @@ use serenity::model::{
 };
 use std::{env, sync::Arc};
 
-use database::{add_admin, get_admins, get_prefix, remove_admin, set_prefix, DatabasePool};
+use database::{add_admin, get_admins, get_prefix, remove_admin, set_prefix, DatabasePool, get_floppa};
 use fandom::ReqwestClient;
 
 const BOT_ID: UserId = UserId(780858391383638057);
@@ -27,7 +27,7 @@ const LOTR_DISCORD: GuildId = GuildId(405091134327619587);
 const WIKI_DOMAIN: &str = "lotrminecraftmod.fandom.com";
 
 #[group]
-#[commands(help, renewed, tos, curseforge, prefix)]
+#[commands(help, renewed, tos, curseforge, prefix, floppa)]
 struct General;
 
 #[group]
@@ -430,5 +430,16 @@ async fn list(ctx: &Context, msg: &Message) -> CommandResult {
             m
         })
         .await?;
+    Ok(())
+}
+
+#[command]
+async fn floppa(ctx: &Context, msg: &Message) -> CommandResult {
+    let url = if let Some(url) = get_floppa(ctx).await { 
+        url 
+    } else {
+         String::from("https://i.kym-cdn.com/photos/images/original/001/878/839/c6f.jpeg") 
+    };
+    msg.channel_id.send_message(ctx, |m| m.add_file(url.as_str())).await?;
     Ok(())
 }

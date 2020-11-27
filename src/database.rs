@@ -1,5 +1,6 @@
 use mysql_async::prelude::*;
 use mysql_async::*;
+use rand::seq::IteratorRandom;
 use serenity::client::Context;
 use serenity::framework::standard::CommandResult;
 use serenity::model::id::{GuildId, UserId};
@@ -8,6 +9,7 @@ use std::sync::Arc;
 
 const TABLE_PREFIX: &str = "lotr_mod_bot_prefix";
 const TABLE_ADMINS: &str = "bot_admins";
+const TABLE_FLOPPA: &str = "floppa_images";
 
 pub struct DatabasePool;
 
@@ -206,4 +208,51 @@ pub async fn remove_admin(
     .await?;
 
     Ok(())
+}
+
+fn choose_from_ids(vec: Vec<u32>) -> u32 {
+    let mut rng = rand::thread_rng();
+    let id = vec.iter().choose(&mut rng).unwrap_or(&1);
+    drop(rng);
+    *id
+}
+
+pub async fn get_floppa(ctx: &Context) -> Option<String> {
+    let pool = {
+        let data_read = ctx.data.read().await;
+        data_read
+            .get::<DatabasePool>()
+            .expect("Expected DatabasePool in TypeMap")
+            .clone()
+    };
+    let mut conn = pool
+        .get_conn()
+        .await
+        .expect("Could not connect to database");
+
+    let ids: Vec<u32> = conn
+        .exec_map(
+            format!("SELECT id FROM {}", TABLE_FLOPPA).as_str(),
+            (),
+            |id| id,
+        )
+        .await
+        .ok()?;
+
+    let floppa_id = choose_from_ids(ids);
+
+    let res = conn
+        .query_first(format!(
+            "SELECT image_url FROM {} WHERE id={}",
+            TABLE_FLOPPA, floppa_id
+        ))
+        .await;
+
+    drop(conn);
+
+    if let Ok(url) = res {
+        url
+    } else {
+        None
+    }
 }
