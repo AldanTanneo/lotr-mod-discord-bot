@@ -18,7 +18,9 @@ use serenity::model::{
 };
 use std::{env, sync::Arc};
 
-use database::{add_admin, get_admins, get_prefix, remove_admin, set_prefix, DatabasePool, get_floppa};
+use database::{
+    add_admin, get_admins, get_floppa, get_prefix, remove_admin, set_prefix, DatabasePool,
+};
 use fandom::ReqwestClient;
 
 const BOT_ID: UserId = UserId(780858391383638057);
@@ -184,7 +186,7 @@ async fn help(ctx: &Context, msg: &Message) -> CommandResult {
 #[command]
 async fn tos(ctx: &Context, msg: &Message) -> CommandResult {
     msg.channel_id
-        .say(ctx, 
+        .say(ctx,
             "This is the Discord server of the **Lord of the Rings Mod**, not the official Minecraft server of the mod.
 Their Discord can be found here: https://discord.gg/gMNKaX6",
         )
@@ -420,11 +422,13 @@ async fn list(ctx: &Context, msg: &Message) -> CommandResult {
 
 #[command]
 async fn floppa(ctx: &Context, msg: &Message) -> CommandResult {
-    let url = if let Some(url) = get_floppa(ctx).await { 
+    let url = if let Some(url) = get_floppa(ctx).await {
         url
     } else {
         "https://i.kym-cdn.com/photos/images/original/001/878/839/c6f.jpeg".to_string()
     };
-    msg.channel_id.send_message(ctx, |m| m.add_files(vec![url.as_str()])).await?;
+    msg.channel_id
+        .send_message(ctx, |m| m.add_files(vec![url.as_str()]))
+        .await?;
     Ok(())
 }

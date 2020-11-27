@@ -213,7 +213,6 @@ pub async fn remove_admin(
 fn choose_from_ids(vec: Vec<u32>) -> u32 {
     let mut rng = rand::thread_rng();
     let id = vec.iter().choose(&mut rng).unwrap_or(&1);
-    drop(rng);
     *id
 }
 
