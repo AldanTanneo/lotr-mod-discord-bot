@@ -145,7 +145,12 @@ pub async fn search(
             .clone()
     };
 
-    let title = google_titles(srsearch, Wikis::LOTRMod).await?;
+    let title = &google_titles(srsearch, Wikis::LOTRMod).await?;
+
+    let query = match ns {
+        Namespace::Page => title.split(" | ").into_iter().next()?,
+        _ => srsearch,
+    };
 
     let ns: u32 = ns.into();
 
@@ -155,7 +160,7 @@ pub async fn search(
         ("list", "search"),
         ("srwhat", "text"),
         ("srlimit", "3"),
-        ("srsearch", &title.split(" - ").into_iter().next()?),
+        ("srsearch", query),
         ("srnamespace", &ns.to_string()),
     ];
 
@@ -238,7 +243,9 @@ pub async fn display(
     let img = if let Ok(body) = body {
         body.image.imageserving
     } else {
-        String::from("https://static.wikia.nocookie.net/lotrminecraftmod/images/8/8e/GrukRenewedLogo.png/revision/latest")
+        String::from(
+            "https://static.wikia.nocookie.net/lotrminecraftmod/images/8/8e/GrukRenewedLogo.png",
+        )
     };
 
     let bot_icon = BOT_ID.to_user(ctx).await?.face();
