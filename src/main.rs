@@ -60,24 +60,23 @@ impl EventHandler for Handler {
 #[tokio::main]
 async fn main() {
     let db_name: String = env::var("DB_NAME").expect("Expected an environment variable DB_NAME");
-    let db_userdb_password: String =
-        env::var("DB_USER").expect("Expected an environment variable DB_USER");
+    let db_user: String = env::var("DB_USER").expect("Expected an environment variable DB_USER");
     let db_password: String =
         env::var("DB_PASSWORD").expect("Expected an environment variable DB_PASSWORD");
     let db_server: String =
         env::var("DB_SERVER").expect("Expected an environment variable DB_SERVER");
-    let db_portdb_server: u16 = env::var("DB_PORT")
+    let db_port: u16 = env::var("DB_PORT")
         .expect("Expected an environment variable DB_PORT")
         .parse()
         .unwrap();
 
     let pool: Pool = Pool::new(
         OptsBuilder::default()
-            .user(Some(db_userdb_password))
+            .user(Some(db_user))
             .db_name(Some(db_name))
             .ip_or_hostname(db_server)
             .pass(Some(db_password))
-            .tcp_port(db_portdb_server),
+            .tcp_port(db_port),
     );
 
     let custom_redirect_policy = redirect::Policy::custom(|attempt| {

@@ -258,7 +258,7 @@ pub async fn display(
                     a.url("https://lotrminecraftmod.fandom.com/")
                 });
                 e.title(title);
-                e.thumbnail(img);
+                e.image(img);
                 e.url(format!(
                     "https://lotrminecraftmod.fandom.com/wiki/{}",
                     title.replace(" ", "_")
