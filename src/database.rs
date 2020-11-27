@@ -269,6 +269,7 @@ pub async fn add_floppa(ctx: &Context, floppa_url: String) -> CommandResult {
         .get_conn()
         .await
         .expect("Could not connect to database");
+
     let images: Vec<String> = conn
         .exec_map(
             format!("SELECT image_url FROM {}", TABLE_FLOPPA).as_str(),
@@ -277,14 +278,21 @@ pub async fn add_floppa(ctx: &Context, floppa_url: String) -> CommandResult {
         )
         .await?;
 
+    println!("Retrieved floppa urls");
+
     if !images.contains(&floppa_url) {
         conn.exec_drop(
-            format!("INSERT INTO {} image_url VALUES (:image_url)", TABLE_FLOPPA).as_str(),
+            format!(
+                "INSERT INTO {} (image_url) VALUES (:image_url)",
+                TABLE_FLOPPA
+            )
+            .as_str(),
             params! {
                 "image_url" => floppa_url,
             },
         )
         .await?;
+        println!("Successfully executed query!");
     } else {
         OWNER_ID
             .to_user(ctx)
