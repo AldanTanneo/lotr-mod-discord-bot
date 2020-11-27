@@ -307,13 +307,24 @@ async fn tolkien(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let query = args.rest();
     let results = tolkiengateway(query).await.unwrap_or_default();
     if !results.is_empty() {
-        let (title, link) = &results[0];
+        let (ftitle, desc) = &results[0];
+        let title = if let Some(title) = ftitle.split(" - ").into_iter().next() {
+            title
+        } else {
+            msg.channel_id
+                .say(ctx, "Could not find page with the given query")
+                .await?;
+            "Main Page"
+        };
         msg.channel_id
             .send_message(ctx, |m| {
                 m.embed(|e| {
                     e.title(title);
-                    e.url(link);
-                    println!("{}", link);
+                    e.description(desc);
+                    e.url(format!(
+                        "http://www.tolkiengateway.net/wiki/{}",
+                        join(title.split_whitespace(), "_")
+                    ));
                     e.author(|a| {
                         a.name("Tolkien Gateway");
                         a.url("http://www.tolkiengateway.net");

@@ -267,7 +267,7 @@ pub async fn tolkiengateway(query: &str) -> Option<Vec<(String, String)>> {
     Some(
         results
             .iter()
-            .map(|hit| (hit.title.clone(), hit.link.clone()))
+            .map(|hit| (hit.title.clone(), hit.description.clone()))
             .collect(),
     )
 }
