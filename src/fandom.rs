@@ -1,4 +1,3 @@
-use search_with_google;
 use serde::{Deserialize, Serialize};
 use serenity::client::Context;
 use serenity::framework::standard::CommandResult;
@@ -259,7 +258,7 @@ pub async fn display(
                     a.url("https://lotrminecraftmod.fandom.com/")
                 });
                 e.title(title);
-                e.image(img);
+                e.thumbnail(img);
                 e.url(format!(
                     "https://lotrminecraftmod.fandom.com/wiki/{}",
                     title.replace(" ", "_")

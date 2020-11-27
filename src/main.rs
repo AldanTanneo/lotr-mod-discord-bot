@@ -163,7 +163,7 @@ async fn help(ctx: &Context, msg: &Message) -> CommandResult {
                 );
                 e.field(
                     "Wiki commands",
-                    "`wiki`, `wiki user`, `wiki category`, `wiki template`, `wiki random`",
+                    "`wiki`, `wiki user`, `wiki category`, `wiki template`, `wiki random`, `wiki tolkien`",
                     false,
                 );
                 e.field(
@@ -303,7 +303,7 @@ async fn tolkien(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let query = args.rest();
     let result = google_titles(query, Wikis::TolkienGateway)
         .await
-        .unwrap_or("Main Page".into());
+        .unwrap_or_else(|| "Main Page".into());
     let title = if let Some(title) = result.split(" - ").into_iter().next() {
         title
     } else {
