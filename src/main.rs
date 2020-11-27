@@ -213,9 +213,7 @@ async fn floppa(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     } else {
         "https://i.kym-cdn.com/photos/images/original/001/878/839/c6f.jpeg".to_string()
     };
-    msg.channel_id
-        .send_message(ctx, |m| m.add_file(url.as_str()))
-        .await?;
+    msg.channel_id.send_message(ctx, |m| m.content(url)).await?;
     Ok(())
 }
 
