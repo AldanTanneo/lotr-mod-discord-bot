@@ -22,7 +22,7 @@ use database::{
     add_admin, add_floppa, get_admins, get_floppa, get_prefix, remove_admin, set_prefix,
     DatabasePool,
 };
-use fandom::{tolkiengateway, GenericPage, Namespace, ReqwestClient, Wikis};
+use fandom::{google_titles, GenericPage, Namespace, ReqwestClient, Wikis};
 
 const BOT_ID: UserId = UserId(780858391383638057);
 const OWNER_ID: UserId = UserId(405421991777009678);
@@ -217,10 +217,6 @@ async fn floppa(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
 
 // --------------------- Wiki Commands -------------------------
 
-fn wiki_query(args: Args, del: &str) -> String {
-    join(args.rest().split_whitespace(), del)
-}
-
 async fn wiki_search(
     ctx: &Context,
     msg: &Message,
@@ -228,7 +224,7 @@ async fn wiki_search(
     namespace: Namespace,
     wiki: &Wikis,
 ) -> CommandResult {
-    let srsearch = &wiki_query(args, "_");
+    let srsearch = args.rest();
     let p = fandom::search(ctx, &namespace, srsearch, wiki).await;
     if let Some(page) = p {
         fandom::display(ctx, msg, &page, wiki).await?;
@@ -305,34 +301,33 @@ async fn random(ctx: &Context, msg: &Message) -> CommandResult {
 #[command]
 async fn tolkien(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let query = args.rest();
-    let results = tolkiengateway(query).await.unwrap_or_default();
-    if !results.is_empty() {
-        let ftitle = &results[0];
-        let title = if let Some(title) = ftitle.split(" - ").into_iter().next() {
-            title
-        } else {
-            msg.channel_id
-                .say(ctx, "Could not find page with the given query")
-                .await?;
-            "Main Page"
-        };
+    let result = google_titles(query, Wikis::TolkienGateway)
+        .await
+        .unwrap_or("Main Page".into());
+    let title = if let Some(title) = result.split(" - ").into_iter().next() {
+        title
+    } else {
         msg.channel_id
-            .send_message(ctx, |m| {
-                m.embed(|e| {
-                    e.title(title);
-                    e.url(format!(
-                        "http://www.tolkiengateway.net/wiki/{}",
-                        join(title.split_whitespace(), "_")
-                    ));
-                    e.author(|a| {
-                        a.name("Tolkien Gateway");
-                        a.url("http://www.tolkiengateway.net");
-                        a.icon_url("https://i.ibb.co/VYKWK7V/favicon.png")
-                    })
+            .say(ctx, "Could not find a page with the given query!")
+            .await?;
+        return Ok(());
+    };
+    msg.channel_id
+        .send_message(ctx, |m| {
+            m.embed(|e| {
+                e.title(&title);
+                e.url(format!(
+                    "http://www.tolkiengateway.net/wiki/{}",
+                    join(title.split_whitespace(), "_")
+                ));
+                e.author(|a| {
+                    a.name("Tolkien Gateway");
+                    a.url("http://www.tolkiengateway.net");
+                    a.icon_url("https://i.ibb.co/VYKWK7V/favicon.png")
                 })
             })
-            .await?;
-    }
+        })
+        .await?;
     Ok(())
 }
 

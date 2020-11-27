@@ -7,7 +7,6 @@ use serenity::prelude::TypeMapKey;
 use std::sync::Arc;
 
 const BOT_ID: UserId = UserId(780858391383638057);
-const TOLKIEN_GATEWAY: &str = "tolkiengateway.net";
 
 pub struct ReqwestClient;
 
@@ -82,14 +81,21 @@ impl From<RandomPage> for GenericPage {
 
 pub enum Wikis {
     LOTRMod,
-    // TolkienGateway,
+    TolkienGateway,
 }
 
 impl Wikis {
     fn get_api(&self) -> &str {
         match self {
             Wikis::LOTRMod => "https://lotrminecraftmod.fandom.com/api.php?",
-            /* Wikis::TolkienGateway => "http://tolkiengateway.net/w/api.php?", */ // Their api is too messy
+            Wikis::TolkienGateway => "http://tolkiengateway.net/w/api.php?",
+        }
+    }
+
+    fn site(&self) -> &str {
+        match self {
+            Wikis::LOTRMod => "lotrminecraftmod.fandom.com",
+            Wikis::TolkienGateway => "tolkiengateway.net",
         }
     }
 }
@@ -139,6 +145,8 @@ pub async fn search(
             .clone()
     };
 
+    let title = google_titles(srsearch, Wikis::LOTRMod).await?;
+
     let ns: u32 = ns.into();
 
     let req = [
@@ -147,7 +155,7 @@ pub async fn search(
         ("list", "search"),
         ("srwhat", "text"),
         ("srlimit", "3"),
-        ("srsearch", srsearch),
+        ("srsearch", &title.split(" - ").into_iter().next()?),
         ("srnamespace", &ns.to_string()),
     ];
 
@@ -256,13 +264,14 @@ pub async fn display(
     Ok(())
 }
 
-pub async fn tolkiengateway(query: &str) -> Option<Vec<String>> {
-    let results = search_with_google::search(
-        format!("site:{} {}", TOLKIEN_GATEWAY, query).as_str(),
-        3,
-        None,
-    )
-    .await
-    .ok()?;
-    Some(results.iter().map(|hit| hit.title.clone()).collect())
+pub async fn google_titles(query: &str, wiki: Wikis) -> Option<String> {
+    let results =
+        search_with_google::search(format!("site:{} {}", wiki.site(), query).as_str(), 1, None)
+            .await
+            .ok()?;
+    if !results.is_empty() {
+        Some(results[0].title.clone())
+    } else {
+        None
+    }
 }
