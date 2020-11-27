@@ -313,10 +313,11 @@ async fn tolkien(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
                 m.embed(|e| {
                     e.title(title);
                     e.url(link);
+                    println!("{}", link);
                     e.author(|a| {
                         a.name("Tolkien Gateway");
                         a.url("http://www.tolkiengateway.net");
-                        a.icon_url("http://www.tolkiengateway.net/favicon")
+                        a.icon_url("https://i.ibb.co/VYKWK7V/favicon.png")
                     })
                 })
             })
