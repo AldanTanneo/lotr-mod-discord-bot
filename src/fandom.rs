@@ -1,9 +1,11 @@
 use serde::{Deserialize, Serialize};
 use serenity::client::Context;
 use serenity::framework::standard::CommandResult;
-use serenity::model::prelude::Message;
+use serenity::model::{id::UserId, prelude::Message};
 use serenity::prelude::TypeMapKey;
 use std::sync::Arc;
+
+const BOT_ID: UserId = UserId(780858391383638057);
 
 pub struct ReqwestClient;
 
@@ -237,11 +239,13 @@ pub async fn display(
         String::from("https://static.wikia.nocookie.net/lotrminecraftmod/images/8/8e/GrukRenewedLogo.png/revision/latest")
     };
 
+    let bot_icon = BOT_ID.to_user(ctx).await?.face();
+
     msg.channel_id
         .send_message(ctx, |m| {
             m.embed(|e| {
                 e.author(|a| {
-                    a.icon_url("https://static.wikia.nocookie.net/lotrminecraftmod/images/b/bc/WikiIcon_About.png/revision/20160507175049");
+                    a.icon_url(bot_icon);
                     a.name("The Lord of the Rings Minecraft Mod Wiki");
                     a.url("https://lotrminecraftmod.fandom.com/");
                     a
