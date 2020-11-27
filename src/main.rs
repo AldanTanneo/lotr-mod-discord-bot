@@ -422,8 +422,7 @@ async fn list(ctx: &Context, msg: &Message) -> CommandResult {
         .send_message(ctx, |m| {
             m.embed(|e| {
                 e.title("List of bot admins");
-                e.description(format!("On {}", guild_name));
-                e.fields(user_names.iter().map(|name| (name, "--", false)));
+                e.description(format!("On **{}**\n\n{}", guild_name, user_names.join("\n")));
                 println!("Returning embed");
                 e
             });
