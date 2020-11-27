@@ -22,7 +22,7 @@ use database::{
     add_admin, add_floppa, get_admins, get_floppa, get_prefix, remove_admin, set_prefix,
     DatabasePool,
 };
-use fandom::{GenericPage, Namespace, ReqwestClient, Wikis};
+use fandom::{tolkiengateway, GenericPage, Namespace, ReqwestClient, Wikis};
 
 const BOT_ID: UserId = UserId(780858391383638057);
 const OWNER_ID: UserId = UserId(405421991777009678);
@@ -36,7 +36,7 @@ struct General;
 #[group]
 #[default_command(wiki)]
 #[prefixes("wiki")]
-#[commands(user, category, template, file, random)]
+#[commands(user, category, template, file, random, tolkien)]
 struct Wiki;
 
 #[group]
@@ -138,8 +138,7 @@ async fn renewed(ctx: &Context, msg: &Message) -> CommandResult {
                 e.description(
                     "The 1.15.2 version of the mod is a work in progress, missing many features.
 You can find those in the full 1.7.10 Legacy edition [here](https://lotrminecraftmod.fandom.com/wiki/Template:Main_Version)",
-                );
-                e
+                )
             });
 
             m
@@ -198,8 +197,7 @@ Their Discord can be found here: https://discord.gg/gMNKaX6",
 async fn curseforge(ctx: &Context, msg: &Message) -> CommandResult {
     msg.channel_id.send_message(ctx, |m| m.embed(|e|{
         e.title("Link to the Renewed version");
-        e.description("The Renewed edition of the mod can be found on [Curseforge](https://www.curseforge.com/minecraft/mc-mods/the-lord-of-the-rings-mod-renewed)");
-        e
+        e.description("The Renewed edition of the mod can be found on [Curseforge](https://www.curseforge.com/minecraft/mc-mods/the-lord-of-the-rings-mod-renewed)")
     })).await?;
     Ok(())
 }
@@ -213,7 +211,7 @@ async fn floppa(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     } else {
         "https://i.kym-cdn.com/photos/images/original/001/878/839/c6f.jpeg".to_string()
     };
-    msg.channel_id.send_message(ctx, |m| m.content(url)).await?;
+    msg.channel_id.say(ctx, url).await?;
     Ok(())
 }
 
@@ -300,6 +298,29 @@ async fn random(ctx: &Context, msg: &Message) -> CommandResult {
         fandom::display(ctx, msg, &page, wiki).await?;
     } else {
         msg.channel_id.say(ctx, "Couldn't execute query!").await?;
+    }
+    Ok(())
+}
+
+#[command]
+async fn tolkien(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
+    let query = args.rest();
+    let results = tolkiengateway(query).await.unwrap_or_default();
+    if !results.is_empty() {
+        let (title, link) = &results[0];
+        msg.channel_id
+            .send_message(ctx, |m| {
+                m.embed(|e| {
+                    e.title(title);
+                    e.url(link);
+                    e.author(|a| {
+                        a.name("Tolkien Gateway");
+                        a.url("http://www.tolkiengateway.net");
+                        a.icon_url("http://www.tolkiengateway.net/favicon")
+                    })
+                })
+            })
+            .await?;
     }
     Ok(())
 }
@@ -423,8 +444,7 @@ async fn list(ctx: &Context, msg: &Message) -> CommandResult {
         .send_message(ctx, |m| {
             m.embed(|e| {
                 e.title("List of bot admins");
-                e.description(format!("On **{}**\n{}", guild_name, user_names.join("\n")));
-                e
+                e.description(format!("On **{}**\n{}", guild_name, user_names.join("\n")))
             });
             m
         })
@@ -438,6 +458,9 @@ async fn floppadd(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
         let url = args.single::<String>();
         if let Ok(floppa_url) = url {
             add_floppa(ctx, floppa_url).await?;
+            msg.channel_id
+                .say(ctx, "Successfully added floppa to the database")
+                .await?;
         }
     }
     Ok(())

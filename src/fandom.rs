@@ -1,3 +1,4 @@
+use search_with_google;
 use serde::{Deserialize, Serialize};
 use serenity::client::Context;
 use serenity::framework::standard::CommandResult;
@@ -6,6 +7,7 @@ use serenity::prelude::TypeMapKey;
 use std::sync::Arc;
 
 const BOT_ID: UserId = UserId(780858391383638057);
+const TOLKIEN_GATEWAY: &str = "tolkiengateway.net";
 
 pub struct ReqwestClient;
 
@@ -239,19 +241,33 @@ pub async fn display(
                 e.author(|a| {
                     a.icon_url(bot_icon);
                     a.name("The Lord of the Rings Minecraft Mod Wiki");
-                    a.url("https://lotrminecraftmod.fandom.com/");
-                    a
+                    a.url("https://lotrminecraftmod.fandom.com/")
                 });
                 e.title(title);
                 e.image(img);
                 e.url(format!(
                     "https://lotrminecraftmod.fandom.com/wiki/{}",
                     title.replace(" ", "_")
-                ));
-                e
+                ))
             })
         })
         .await?;
 
     Ok(())
+}
+
+pub async fn tolkiengateway(query: &str) -> Option<Vec<(String, String)>> {
+    let results = search_with_google::search(
+        format!("site:{} {}", TOLKIEN_GATEWAY, query).as_str(),
+        3,
+        None,
+    )
+    .await
+    .ok()?;
+    Some(
+        results
+            .iter()
+            .map(|hit| (hit.title.clone(), hit.link.clone()))
+            .collect(),
+    )
 }
