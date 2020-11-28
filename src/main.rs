@@ -247,37 +247,42 @@ async fn wiki_search(
     Ok(())
 }
 
-fn lang(mut args: Args) -> (Option<Lang>, Args) {
-    if let Ok(a) = args.single::<String>() {
-        (
-            Some(match a.to_lowercase().as_str() {
-                "fr" | "french" => Fr,
-                "es" | "spanish" => Es,
-                "de" | "german" => De,
-                "nl" | "dutch" => Nl,
-                "zh" | "chinese" => Zh,
-                "ru" | "russian" => Ru,
-                "ja" | "japanese" => Ja,
-                _ => En,
-            }),
-            args,
-        )
-    } else {
-        (None, args)
-    }
+fn lang(mut args: Args) -> (Lang, Args, bool) {
+    let mut default = false;
+    let lang = match args
+        .single::<String>()
+        .unwrap_or_default()
+        .to_lowercase()
+        .as_str()
+    {
+        "en" | "english" => En,
+        "fr" | "french" => Fr,
+        "es" | "spanish" => Es,
+        "de" | "german" => De,
+        "nl" | "dutch" => Nl,
+        "zh" | "chinese" => Zh,
+        "ru" | "russian" => Ru,
+        "ja" | "japanese" => Ja,
+        _ => {
+            default = true;
+            En
+        }
+    };
+    (lang, args, default)
 }
 
 async fn lotr_wiki(ctx: &Context, msg: &Message, args: Args, ns: Namespace) -> CommandResult {
     let res = lang(args);
-    let lang = res.0.unwrap_or(En);
-    let lang_log = lang.to_string();
+    let lang = res.0;
     let mut args = res.1;
+    let default = res.2;
     let wiki = Wikis::LOTRMod(lang);
-    if !args.is_empty() {
+    if default {
         args.rewind();
-        wiki_search(ctx, msg, args, ns, &wiki).await?;
+    }
+    if !args.is_empty() {
+        wiki_search(ctx, msg, args, ns, &Wikis::LOTRMod(En)).await?;
     } else {
-        println!("Main page {} {}", lang_log, ns);
         fandom::display(ctx, msg, &ns.main_page(&wiki, &msg.author.name), &wiki).await?;
     }
     Ok(())
@@ -285,7 +290,19 @@ async fn lotr_wiki(ctx: &Context, msg: &Message, args: Args, ns: Namespace) -> C
 
 #[command]
 async fn wiki(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-    lotr_wiki(ctx, msg, args, Page).await?;
+    let res = lang(args);
+    let lang = res.0;
+    let mut args = res.1;
+    let default = res.2;
+    let wiki = Wikis::LOTRMod(lang);
+    if default {
+        args.rewind();
+    }
+    if !args.is_empty() {
+        wiki_search(ctx, msg, args, Page, &wiki).await?;
+    } else {
+        fandom::display(ctx, msg, &Page.main_page(&wiki, &msg.author.name), &wiki).await?;
+    }
     Ok(())
 }
 
@@ -342,7 +359,7 @@ the J.R.R. Tolkien encyclopedia that anyone can edit."
         t
     } else {
         msg.channel_id
-            .say(ctx, "Could not find a page with the given query!")
+            .say(ctx, "Could not find a page with the given name!")
             .await?;
         return Ok(());
     };

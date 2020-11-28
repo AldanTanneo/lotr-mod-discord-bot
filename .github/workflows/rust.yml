@@ -21,6 +21,4 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Check
-      run: |
-        cargo check
-        cargo clippy
+      run: cargo check

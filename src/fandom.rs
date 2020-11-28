@@ -217,10 +217,11 @@ impl Wikis {
         }
     }
 
-    fn get_api(&self) -> &str {
+    fn get_api(&self) -> String {
         match self {
-            LOTRMod(_) => "https://lotrminecraftmod.fandom.com/api.php?",
-            TolkienGateway => "http://tolkiengateway.net/w/api.php?",
+            LOTRMod(En) => "https://lotrminecraftmod.fandom.com/api.php?".to_string(),
+            LOTRMod(lang) => format!("https://lotrminecraftmod.fandom.com/{}/api.php?", lang),
+            TolkienGateway => "http://tolkiengateway.net/w/api.php?".to_string(),
         }
     }
 
@@ -280,31 +281,31 @@ impl Namespace {
             },
             User => GenericPage {
                 title: lang.users(),
-                link: format!("https://{}Special:Listusers", wiki.site()),
+                link: format!("{}Special:Listusers", wiki.site()),
                 desc: None,
                 id: None,
             },
             File => GenericPage {
                 title: lang.files(),
-                link: format!("https://{}Special:ListFiles", wiki.site()),
+                link: format!("{}Special:ListFiles", wiki.site()),
                 desc: None,
                 id: None,
             },
             Template => GenericPage {
                 title: lang.templates(),
-                link: format!("https://{}Special:PrefixIndex?namespace=10", wiki.site()),
+                link: format!("{}Special:PrefixIndex?namespace=10", wiki.site()),
                 desc: None,
                 id: None,
             },
             Category => GenericPage {
                 title: lang.categories(),
-                link: format!("https://{}Special:Categories", wiki.site()),
+                link: format!("{}Special:Categories", wiki.site()),
                 desc: None,
                 id: None,
             },
             Blog => GenericPage {
                 title: lang.blogs(),
-                link: format!("https://{}Blog:Recent_posts", wiki.site()),
+                link: format!("{}Blog:Recent_posts", wiki.site()),
                 desc: None,
                 id: None,
             },
@@ -326,6 +327,7 @@ pub async fn search(
             .clone()
     };
 
+    // searches with google
     let [title, link, desc] = google_search(srsearch, &wiki).await?;
 
     let possible_query = format!("{}:{}", ns, srsearch);
@@ -362,7 +364,7 @@ pub async fn search(
         ];
 
         let res = fclient
-            .get(wiki.get_api())
+            .get(&wiki.get_api())
             .query(&req)
             .send()
             .await
@@ -373,11 +375,6 @@ pub async fn search(
 
         let body: SearchRes = serde_json::from_str(&res).ok()?;
         let page = body.query.search.into_iter().next()?;
-
-        println!(
-            "Search: {} -> {} -> {} -> {}",
-            srsearch, title, query, page.title
-        );
 
         if page.title == query {
             Some(GenericPage {
@@ -419,7 +416,7 @@ pub async fn random(ctx: &Context, wiki: &Wikis) -> Option<GenericPage> {
     ];
 
     let res = fclient
-        .get(wiki.get_api())
+        .get(&wiki.get_api())
         .query(&req)
         .send()
         .await
@@ -446,15 +443,15 @@ pub async fn display(
             .clone()
     };
 
-    let img = if let Some(id) = page.id {
+    let img = {
         let req = [
             ("format", "json"),
             ("action", "imageserving"),
-            ("wisId", &id.to_string()),
+            ("wisTitle", &page.title),
         ];
 
         let res = fclient
-            .get(wiki.get_api())
+            .get(&wiki.get_api())
             .query(&req)
             .send()
             .await?
@@ -467,8 +464,6 @@ pub async fn display(
         } else {
             None
         }
-    } else {
-        None
     }
     .unwrap_or_else(|| {
         "https://static.wikia.nocookie.net/lotrminecraftmod/images/8/8e/GrukRenewedLogo.png".into()
