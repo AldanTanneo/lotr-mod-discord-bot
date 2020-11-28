@@ -1,7 +1,6 @@
 mod database;
 mod fandom;
 
-use itertools::free::join;
 use mysql_async::*;
 use reqwest::redirect;
 use serenity::async_trait;
@@ -22,7 +21,7 @@ use database::{
     add_admin, add_floppa, get_admins, get_floppa, get_prefix, remove_admin, set_prefix,
     DatabasePool,
 };
-use fandom::{google_titles, GenericPage, Namespace, ReqwestClient, Wikis};
+use fandom::{google_search, Lang, Lang::*, Namespace, Namespace::*, ReqwestClient, Wikis};
 
 const BOT_ID: UserId = UserId(780858391383638057);
 const OWNER_ID: UserId = UserId(405421991777009678);
@@ -248,56 +247,74 @@ async fn wiki_search(
     Ok(())
 }
 
+fn lang(mut args: Args) -> (Option<Lang>, Args) {
+    if let Ok(a) = args.single::<String>() {
+        (
+            Some(match a.to_lowercase().as_str() {
+                "fr" | "french" => Fr,
+                "es" | "spanish" => Es,
+                "de" | "german" => De,
+                "nl" | "dutch" => Nl,
+                "zh" | "chinese" => Zh,
+                "ru" | "russian" => Ru,
+                "ja" | "japanese" => Ja,
+                _ => En,
+            }),
+            args,
+        )
+    } else {
+        (None, args)
+    }
+}
+
+async fn lotr_wiki(ctx: &Context, msg: &Message, args: Args, ns: Namespace) -> CommandResult {
+    let res = lang(args);
+    let lang = res.0.unwrap_or(En);
+    let lang_log = lang.to_string();
+    let mut args = res.1;
+    let wiki = Wikis::LOTRMod(lang);
+    if !args.is_empty() {
+        args.rewind();
+        wiki_search(ctx, msg, args, ns, &wiki).await?;
+    } else {
+        println!("Main page {} {}", lang_log, ns);
+        fandom::display(ctx, msg, &ns.main_page(&wiki, &msg.author.name), &wiki).await?;
+    }
+    Ok(())
+}
+
 #[command]
 async fn wiki(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-    let wiki = &Wikis::LOTRMod;
-    if args.is_empty() {
-        fandom::display(
-            ctx,
-            msg,
-            &GenericPage {
-                id: 331703,
-                title: "The Lord of the Rings Minecraft Mod Wiki".into(),
-            },
-            &Wikis::LOTRMod,
-        )
-        .await?;
-        return Ok(());
-    }
-    wiki_search(ctx, msg, args, Namespace::Page, wiki).await?;
+    lotr_wiki(ctx, msg, args, Page).await?;
     Ok(())
 }
 
 #[command]
 async fn user(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-    let wiki = &Wikis::LOTRMod;
-    wiki_search(ctx, msg, args, Namespace::User, wiki).await?;
+    lotr_wiki(ctx, msg, args, User).await?;
     Ok(())
 }
 
 #[command]
 async fn category(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-    let wiki = &Wikis::LOTRMod;
-    wiki_search(ctx, msg, args, Namespace::Category, wiki).await?;
+    lotr_wiki(ctx, msg, args, Category).await?;
     Ok(())
 }
 #[command]
 async fn template(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-    let wiki = &Wikis::LOTRMod;
-    wiki_search(ctx, msg, args, Namespace::Template, wiki).await?;
+    lotr_wiki(ctx, msg, args, Template).await?;
     Ok(())
 }
 
 #[command]
 async fn file(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-    let wiki = &Wikis::LOTRMod;
-    wiki_search(ctx, msg, args, Namespace::File, wiki).await?;
+    lotr_wiki(ctx, msg, args, File).await?;
     Ok(())
 }
 
 #[command]
 async fn random(ctx: &Context, msg: &Message) -> CommandResult {
-    let wiki = &Wikis::LOTRMod;
+    let wiki = &Wikis::LOTRMod(En);
     let p = fandom::random(ctx, wiki).await;
     if let Some(page) = p {
         fandom::display(ctx, msg, &page, wiki).await?;
@@ -310,11 +327,19 @@ async fn random(ctx: &Context, msg: &Message) -> CommandResult {
 #[command]
 async fn tolkien(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let query = args.rest();
-    let result = google_titles(query, Wikis::TolkienGateway)
+    let [title, link, description] = google_search(query, &Wikis::TolkienGateway)
         .await
-        .unwrap_or_else(|| "Main Page".into());
-    let title = if let Some(title) = result.split(" - ").into_iter().next() {
-        title
+        .unwrap_or_else(|| {
+            [
+                "Main Page".into(),
+                "http://www.tolkiengateway.net/".into(),
+                "Welcome to Tolkien Gateway,
+the J.R.R. Tolkien encyclopedia that anyone can edit."
+                    .into(),
+            ]
+        });
+    let title = if let Some(t) = title.split(" - ").into_iter().next() {
+        t
     } else {
         msg.channel_id
             .say(ctx, "Could not find a page with the given query!")
@@ -325,10 +350,8 @@ async fn tolkien(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
         .send_message(ctx, |m| {
             m.embed(|e| {
                 e.title(&title);
-                e.url(format!(
-                    "http://www.tolkiengateway.net/wiki/{}",
-                    join(title.split_whitespace(), "_")
-                ));
+                e.url(link);
+                e.description(description);
                 e.author(|a| {
                     a.name("Tolkien Gateway");
                     a.url("http://www.tolkiengateway.net");
