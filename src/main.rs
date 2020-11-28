@@ -214,6 +214,16 @@ async fn floppa(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     Ok(())
 }
 
+#[command]
+async fn aeugh(ctx: &Context, msg: &Message) -> CommandResult {
+    msg.channel_id
+        .send_message(ctx, |m| {
+            m.add_file("https://cdn.discordapp.com/attachments/405122337139064834/782087543046668319/aeugh.mp4")
+        })
+        .await?;
+    Ok(())
+}
+
 // --------------------- Wiki Commands -------------------------
 
 async fn wiki_search(
@@ -470,15 +480,5 @@ async fn floppadd(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
                 .await?;
         }
     }
-    Ok(())
-}
-
-#[command]
-async fn aeugh(ctx: &Context, msg: &Message) -> CommandResult {
-    msg.channel_id
-        .send_message(ctx, |m| {
-            m.add_file("https://static.wikia.nocookie.net/lotrminecraftmod/images/6/65/Say_Orc.ogg")
-        })
-        .await?;
     Ok(())
 }
