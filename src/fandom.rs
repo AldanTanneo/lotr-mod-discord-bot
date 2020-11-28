@@ -91,10 +91,6 @@ pub enum Lang {
 }
 
 impl Lang {
-    fn to_string(&self) -> String {
-        format!("{}", self)
-    }
-
     fn main(&self) -> String {
         match self {
             En => "The Lord of the Rings Minecraft Mod Wiki",
@@ -112,7 +108,7 @@ impl Lang {
     fn maindesc(&self, username: &str) -> String {
         match self {
             En => format!("Welcome, {}, to The Lord of the Rings Minecraft Mod Wiki, the official public wiki for everything related to the Lord of the Rings Mod.", username),
-            Fr => format!("Bienvenue, {}, sur le Wiki du Mod Le Seigneur des Anneaux pour Minecraft, un wiki public pour tout ce qui concerne le Mod Seigneur des Anneaux.", username),
+            Fr => format!("Bienvenue, {}, sur le Wiki du Mod Seigneur des Anneaux pour Minecraft, un wiki public pour tout ce qui concerne le Mod Seigneur des Anneaux.", username),
             De => format!("Willkommen, {}, im Der Herr der Ringe Minecraft Mod Wiki, einem öffentlichem Wiki für alles, was sich auf die Der Herr der Ringe Mod bezieht.", username),
             Nl => format!("Welkom, {}, op de In de ban van de Ring Minecraft Mod wiki, de officiële openbare Nederlandstalige wiki voor alles in verband met de In de ban van de Ring Mod.", username),
             Zh => "欢迎你来到魔戒我的世界模组百科！".into(),
@@ -278,7 +274,7 @@ impl Namespace {
         match self {
             Page => GenericPage {
                 title: lang.main(),
-                link: wiki.site().to_string(),
+                link: wiki.site(),
                 desc: Some(lang.maindesc(username)),
                 id: None,
             },
@@ -336,10 +332,10 @@ pub async fn search(
 
     let query = match ns {
         Page => {
-            if title.contains("|") {
-                title.split(" | ").into_iter().next()?
+            if title.contains('|') {
+                title.split('|').into_iter().next()?.trim()
             } else {
-                title.split(" - ").into_iter().next()?
+                title.split('-').into_iter().next()?.trim()
             }
         }
         _ => possible_query.as_str(),
@@ -349,7 +345,7 @@ pub async fn search(
         .split("//")
         .into_iter()
         .nth(1)?
-        .split("/")
+        .split('/')
         .into_iter()
         .nth(1)?;
 
@@ -383,7 +379,7 @@ pub async fn search(
             srsearch, title, query, page.title
         );
 
-        if &page.title == query {
+        if page.title == query {
             Some(GenericPage {
                 title: page.title,
                 link,
@@ -474,9 +470,9 @@ pub async fn display(
     } else {
         None
     }
-    .unwrap_or(
-        "https://static.wikia.nocookie.net/lotrminecraftmod/images/8/8e/GrukRenewedLogo.png".into(),
-    );
+    .unwrap_or_else(|| {
+        "https://static.wikia.nocookie.net/lotrminecraftmod/images/8/8e/GrukRenewedLogo.png".into()
+    });
 
     let bot_icon = BOT_ID.to_user(ctx).await?.face();
 
@@ -509,7 +505,7 @@ pub async fn google_search(query: &str, wiki: &Wikis) -> Option<[String; 3]> {
     let results = search_with_google::search(&format!("site:{} {}", wiki.site(), query), 1, None)
         .await
         .ok()?;
-    if let Some(hit) = results.iter().next() {
+    if let Some(hit) = results.get(0) {
         Some([hit.title.clone(), hit.link.clone(), hit.description.clone()])
     } else {
         None
