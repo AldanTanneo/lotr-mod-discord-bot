@@ -334,10 +334,15 @@ pub async fn search(
 
     let query = match ns {
         Page => {
-            if title.contains('|') {
-                title.split('|').into_iter().next()?.trim()
+            let mut hit_title = if title.contains('|') {
+                title.split('|')
             } else {
-                title.split('-').into_iter().next()?.trim()
+                title.split('-')
+            }
+            .into_iter();
+            match hit_title.next()? {
+                "Fandom" => hit_title.next()?,
+                other => other,
             }
         }
         _ => possible_query.as_str(),
