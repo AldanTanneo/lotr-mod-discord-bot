@@ -36,12 +36,8 @@ pub async fn search(
         println!("page-lang {}", lang);
 
         let query = {
-            let mut hit_title = if title.contains('|') {
-                title.split('|')
-            } else {
-                title.split('-')
-            };
-            match hit_title.next()? {
+            let mut hit_title = title.split(|c| ['|', '-'].contains(&c));
+            match hit_title.next()?.trim() {
                 "Fandom" => hit_title.next()?,
                 other => other,
             }
