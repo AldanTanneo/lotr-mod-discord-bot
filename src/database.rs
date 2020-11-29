@@ -205,10 +205,7 @@ fn choose_from_ids(vec: Vec<u32>) -> u32 {
 pub async fn get_floppa(ctx: &Context, n: Option<u32>) -> Option<String> {
     let pool = {
         let data_read = ctx.data.read().await;
-        data_read
-            .get::<DatabasePool>()
-            .expect("Expected DatabasePool in TypeMap")
-            .clone()
+        data_read.get::<DatabasePool>()?.clone()
     };
     let mut conn = pool.get_conn().await.ok()?;
 

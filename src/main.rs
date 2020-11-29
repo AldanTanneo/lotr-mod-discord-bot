@@ -31,8 +31,12 @@ const LOTR_DISCORD: GuildId = GuildId(405091134327619587);
 const WIKI_DOMAIN: &str = "lotrminecraftmod.fandom.com";
 
 #[group]
-#[commands(help, renewed, tos, curseforge, prefix, floppa, aeugh, forge, coremod)]
+#[commands(help, renewed, tos, curseforge, prefix, forge, coremod)]
 struct General;
+
+#[group]
+#[commands(floppa, aeugh, dagohon)]
+struct Meme;
 
 #[group]
 #[default_command(wiki)]
@@ -113,6 +117,7 @@ async fn main() {
                 .owners(vec![OWNER_ID].into_iter().collect())
         })
         .group(&GENERAL_GROUP)
+        .group(&MEME_GROUP)
         .group(&WIKI_GROUP)
         .group(&ADMIN_GROUP);
 
@@ -134,6 +139,8 @@ async fn main() {
         println!("An error occurred while running the client: {:?}", why);
     }
 }
+
+// ------------------ GENERAL COMMANDS --------------------
 
 #[command]
 async fn renewed(ctx: &Context, msg: &Message) -> CommandResult {
@@ -164,20 +171,20 @@ async fn help(ctx: &Context, msg: &Message) -> CommandResult {
                 e.title("Available commands");
                 e.field(
                     "General commands",
-                    "`renewed`, `forge`, `coremod`, `tos`, `curseforge`, `help`",
+                    "`renewed`, `forge`, `coremod`, `tos`, `curseforge`, `help`\n",
                     false,
                 );
                 e.field(
                     "Wiki commands",
                     "`wiki`, `wiki user`, `wiki category`, `wiki template`, `wiki random`, `wiki file`, `wiki tolkien`\n
 Syntax: `wiki [language|subcommand] [search terms]`\n
-Available languages: `en` (default), `de`, `fr`, `es`, `nl`, `ja`, `zh`, `ru`",
-                    false,
+Available languages: `en` (default), `de`, `fr`, `es`, `nl`, `ja`, `zh`, `ru`\n",
+                    true,
                 );
                 e.field(
                     "Admin commands",
-                    "`prefix`, `admin add`, `admin remove`, `admin list`",
-                    false,
+                    "`prefix`, `admin add`, `admin remove`, `admin list`\n",
+                    true,
                 );
                 e
             });
@@ -247,6 +254,8 @@ To fix this, go to your `/.minecraft/mods` folder and change the file extension!
     Ok(())
 }
 
+// ------------------ MEME COMMANDS -----------------
+
 #[command]
 #[max_args(1)]
 async fn floppa(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
@@ -270,7 +279,17 @@ async fn aeugh(ctx: &Context, msg: &Message) -> CommandResult {
     Ok(())
 }
 
-// --------------------- Wiki Commands -------------------------
+#[command]
+async fn dagohon(ctx: &Context, msg: &Message) -> CommandResult {
+    msg.channel_id
+        .send_message(ctx, |m| {
+            m.add_file("https://cdn.discordapp.com/attachments/405097997970702337/782656209987043358/dagohon.mp4")
+        })
+        .await?;
+    Ok(())
+}
+
+// --------------------- WIKI COMMANDS -------------------------
 
 async fn wiki_search(
     ctx: &Context,
