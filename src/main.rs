@@ -31,7 +31,7 @@ const LOTR_DISCORD: GuildId = GuildId(405091134327619587);
 const WIKI_DOMAIN: &str = "lotrminecraftmod.fandom.com";
 
 #[group]
-#[commands(help, renewed, tos, curseforge, prefix, floppa, aeugh)]
+#[commands(help, renewed, tos, curseforge, prefix, floppa, aeugh, forge, coremod)]
 struct General;
 
 #[group]
@@ -164,12 +164,14 @@ async fn help(ctx: &Context, msg: &Message) -> CommandResult {
                 e.title("Available commands");
                 e.field(
                     "General commands",
-                    "`renewed`, `tos`, `curseforge`, `help`",
+                    "`renewed`, `forge`, `coremod`, `tos`, `curseforge`, `help`",
                     false,
                 );
                 e.field(
                     "Wiki commands",
-                    "`wiki`, `wiki user`, `wiki category`, `wiki template`, `wiki random`, `wiki tolkien`",
+                    "`wiki`, `wiki user`, `wiki category`, `wiki template`, `wiki random`, `wiki file`, `wiki tolkien`\n
+Syntax: `wiki [language|subcommand] [search terms]`\n
+Available languages: `en` (default), `de`, `fr`, `es`, `nl`, `ja`, `zh`, `ru`",
                     false,
                 );
                 e.field(
@@ -205,6 +207,43 @@ async fn curseforge(ctx: &Context, msg: &Message) -> CommandResult {
         e.title("Link to the Renewed version");
         e.description("The Renewed edition of the mod can be found on [Curseforge](https://www.curseforge.com/minecraft/mc-mods/the-lord-of-the-rings-mod-renewed)")
     })).await?;
+    Ok(())
+}
+
+#[command]
+async fn forge(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+    let (version, mc) = if args.single::<String>().unwrap_or_default() == "legacy" {
+        ("1558", "1.7.10")
+    } else {
+        ("31.2.31", "1.15.2")
+    };
+    msg.channel_id.send_message(ctx, |m| {
+        m.embed(|e| {
+            e.title("Have you checked your Forge version?");
+            e.description(format!("To function properly, the mod needs to run with Forge {} or later for Minecraft {}", version, mc));
+            e.author(|a| {
+                a.name("Minecraft Forge");
+                a.icon_url("https://pbs.twimg.com/profile_images/778706890914095109/fhMDH9o6_400x400.jpg");
+                a.url("http://files.minecraftforge.net/")
+            })
+        })
+    })
+    .await?;
+
+    Ok(())
+}
+
+#[command]
+async fn coremod(ctx: &Context, msg: &Message) -> CommandResult {
+    msg.channel_id
+        .send_message(ctx, |m| m.embed(|e| {
+            e.title("Check your mod file extension!");
+            e.description("Sometimes when downloading the mod with a browser like Firefox, the mod file is saved with a `.zip` extension instead of a `.jar`
+When this happens, the mod will not function properly: among other things that will happen, mod fences and fence gates will not connect, and horses will go very slowly.
+
+To fix this, go to your `/.minecraft/mods` folder and change the file extension!")
+        }))
+        .await?;
     Ok(())
 }
 
@@ -530,9 +569,7 @@ async fn floppadd(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
         let url = args.single::<String>();
         if let Ok(floppa_url) = url {
             add_floppa(ctx, floppa_url).await?;
-            msg.channel_id
-                .say(ctx, "Successfully added floppa to the database")
-                .await?;
+            msg.react(ctx, ReactionType::from('✅')).await?;
         }
     }
     Ok(())
