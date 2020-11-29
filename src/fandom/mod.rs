@@ -84,7 +84,7 @@ pub async fn search(
 
             println!("page-en-title {}.", page.title);
 
-            if page.title == query {
+            if page.title.contains(query) || query.contains(&page.title) {
                 println!("returning");
                 return Some(GenericPage {
                     title: page.title,
