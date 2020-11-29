@@ -24,18 +24,12 @@ struct ServerPrefix {
     prefix: Option<String>,
 }
 
-pub async fn get_prefix(ctx: &Context, guild_id: Option<GuildId>) -> String {
+pub async fn get_prefix(ctx: &Context, guild_id: Option<GuildId>) -> Option<String> {
     let pool = {
         let data_read = ctx.data.read().await;
-        data_read
-            .get::<DatabasePool>()
-            .expect("Expected DatabasePool in TypeMap")
-            .clone()
+        data_read.get::<DatabasePool>()?.clone()
     };
-    let mut conn = pool
-        .get_conn()
-        .await
-        .expect("Could not connect to database");
+    let mut conn = pool.get_conn().await.ok()?;
     let server_id: u64 = if let Some(id) = guild_id {
         id.into()
     } else {
@@ -50,11 +44,11 @@ pub async fn get_prefix(ctx: &Context, guild_id: Option<GuildId>) -> String {
 
     drop(conn);
 
-    if let Ok(Some(prefix)) = res {
+    if let Ok(prefix) = res {
         prefix
     } else {
-        set_prefix(ctx, guild_id, "!", false).await.unwrap();
-        "!".to_string()
+        set_prefix(ctx, guild_id, "!", false).await.ok()?;
+        Some("!".to_string())
     }
 }
 
@@ -66,15 +60,14 @@ pub async fn set_prefix(
 ) -> CommandResult {
     let pool = {
         let data_read = ctx.data.read().await;
-        data_read
-            .get::<DatabasePool>()
-            .expect("Expected DatabasePool in TypeMap")
-            .clone()
+        if let Some(p) = data_read.get::<DatabasePool>() {
+            p.clone()
+        } else {
+            println!("Could not retrieve the database pool");
+            return Ok(());
+        }
     };
-    let mut conn = pool
-        .get_conn()
-        .await
-        .expect("Could not connect to database");
+    let mut conn = pool.get_conn().await?;
     let server_id: u64 = if let Some(id) = guild_id {
         id.into()
     } else {
@@ -108,15 +101,9 @@ pub async fn set_prefix(
 pub async fn get_admins(ctx: &Context, guild_id: Option<GuildId>) -> Option<Vec<UserId>> {
     let pool = {
         let data_read = ctx.data.read().await;
-        data_read
-            .get::<DatabasePool>()
-            .expect("Expected DatabasePool in TypeMap")
-            .clone()
+        data_read.get::<DatabasePool>()?.clone()
     };
-    let mut conn = pool
-        .get_conn()
-        .await
-        .expect("Could not connect to database");
+    let mut conn = pool.get_conn().await.ok()?;
     let server_id: u64 = if let Some(id) = guild_id {
         id.into()
     } else {
@@ -144,15 +131,14 @@ pub async fn get_admins(ctx: &Context, guild_id: Option<GuildId>) -> Option<Vec<
 pub async fn add_admin(ctx: &Context, guild_id: Option<GuildId>, user_id: UserId) -> CommandResult {
     let pool = {
         let data_read = ctx.data.read().await;
-        data_read
-            .get::<DatabasePool>()
-            .expect("Expected DatabasePool in TypeMap")
-            .clone()
+        if let Some(p) = data_read.get::<DatabasePool>() {
+            p.clone()
+        } else {
+            println!("Could not retrieve the database pool");
+            return Ok(());
+        }
     };
-    let mut conn = pool
-        .get_conn()
-        .await
-        .expect("Could not connect to database");
+    let mut conn = pool.get_conn().await?;
     let server_id: u64 = if let Some(id) = guild_id { id.0 } else { 0 };
 
     conn.exec_drop(
@@ -185,10 +171,7 @@ pub async fn remove_admin(
             .expect("Expected DatabasePool in TypeMap")
             .clone()
     };
-    let mut conn = pool
-        .get_conn()
-        .await
-        .expect("Could not connect to database");
+    let mut conn = pool.get_conn().await?;
     let server_id: u64 = if let Some(id) = guild_id {
         *id.as_u64()
     } else {
@@ -208,6 +191,8 @@ pub async fn remove_admin(
     )
     .await?;
 
+    drop(conn);
+
     Ok(())
 }
 
@@ -225,10 +210,7 @@ pub async fn get_floppa(ctx: &Context, n: Option<u32>) -> Option<String> {
             .expect("Expected DatabasePool in TypeMap")
             .clone()
     };
-    let mut conn = pool
-        .get_conn()
-        .await
-        .expect("Could not connect to database");
+    let mut conn = pool.get_conn().await.ok()?;
 
     let ids: Vec<u32> = conn
         .exec_map(
@@ -269,10 +251,7 @@ pub async fn add_floppa(ctx: &Context, floppa_url: String) -> CommandResult {
             .expect("Expected DatabasePool in TypeMap")
             .clone()
     };
-    let mut conn = pool
-        .get_conn()
-        .await
-        .expect("Could not connect to database");
+    let mut conn = pool.get_conn().await?;
 
     let images: Vec<String> = conn
         .exec_map(

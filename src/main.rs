@@ -21,7 +21,9 @@ use database::{
     add_admin, add_floppa, get_admins, get_floppa, get_prefix, remove_admin, set_prefix,
     DatabasePool,
 };
-use fandom::{google_search, Lang, Lang::*, Namespace, Namespace::*, ReqwestClient, Wikis};
+use fandom::*;
+use structures::*;
+use structures::{Lang::*, Namespace::*};
 
 const BOT_ID: UserId = UserId(780858391383638057);
 const OWNER_ID: UserId = UserId(405421991777009678);
@@ -98,7 +100,13 @@ async fn main() {
         .configure(|c| {
             c.prefix("")
                 .dynamic_prefix(|ctx, msg| {
-                    Box::pin(async move { Some(get_prefix(ctx, msg.guild_id).await) })
+                    Box::pin(async move {
+                        Some(
+                            get_prefix(ctx, msg.guild_id)
+                                .await
+                                .unwrap_or_else(|| "!".into()),
+                        )
+                    })
                 })
                 .allow_dm(false)
                 .on_mention(Some(BOT_ID))
@@ -151,7 +159,7 @@ async fn help(ctx: &Context, msg: &Message) -> CommandResult {
     let prefix = get_prefix(ctx, msg.guild_id).await;
     msg.author
         .direct_message(ctx, |m| {
-            m.content(format!("My prefix here is \"{}\"", prefix));
+            m.content(format!("My prefix here is \"{}\"", prefix.unwrap_or_else(|| "!".into())));
             m.embed(|e| {
                 e.title("Available commands");
                 e.field(
@@ -263,7 +271,8 @@ fn lang(mut args: Args) -> (Lang, Args, bool) {
         "zh" | "chinese" => Zh,
         "ru" | "russian" => Ru,
         "ja" | "japanese" => Ja,
-        _ => {
+        a => {
+            println!("{}", a);
             default = true;
             En
         }
@@ -344,7 +353,7 @@ async fn random(ctx: &Context, msg: &Message) -> CommandResult {
 #[command]
 async fn tolkien(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let query = args.rest();
-    let [title, link, description] = google_search(query, &Wikis::TolkienGateway)
+    let [title, link, description] = google_search(ctx, query, &Wikis::TolkienGateway)
         .await
         .unwrap_or_else(|| {
             [
@@ -389,7 +398,13 @@ async fn prefix(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     if args.is_empty() {
         let prefix = get_prefix(ctx, msg.guild_id).await;
         msg.channel_id
-            .say(ctx, format!("My prefix here is \"{}\"", prefix))
+            .say(
+                ctx,
+                format!(
+                    "My prefix here is \"{}\"",
+                    prefix.unwrap_or_else(|| "!".into())
+                ),
+            )
             .await?;
     } else {
         let admins = get_admins(ctx, msg.guild_id).await.unwrap_or_default();

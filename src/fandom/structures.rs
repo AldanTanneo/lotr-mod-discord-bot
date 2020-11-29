@@ -1,60 +1,51 @@
 use serde::{Deserialize, Serialize};
-use serenity::client::Context;
-use serenity::framework::standard::CommandResult;
-use serenity::model::{id::UserId, prelude::Message};
 use serenity::prelude::TypeMapKey;
 use std::sync::Arc;
 
-use crate::{Lang::*, Namespace::*, Wikis::*};
+use Lang::*;
+use Namespace::*;
+use Wikis::*;
 
-const BOT_ID: UserId = UserId(780858391383638057);
-
-pub struct ReqwestClient;
-
-impl TypeMapKey for ReqwestClient {
-    type Value = Arc<reqwest::Client>;
+#[derive(Serialize, Deserialize)]
+pub(crate) struct SearchPage {
+    pub(crate) pageid: u64,
+    pub(crate) title: String,
 }
 
 #[derive(Serialize, Deserialize)]
-struct SearchPage {
-    pageid: u64,
-    title: String,
+pub(crate) struct SearchQuery {
+    pub(crate) search: Vec<SearchPage>,
 }
 
 #[derive(Serialize, Deserialize)]
-struct SearchQuery {
-    search: Vec<SearchPage>,
+pub(crate) struct SearchRes {
+    pub(crate) query: SearchQuery,
 }
 
 #[derive(Serialize, Deserialize)]
-struct SearchRes {
-    query: SearchQuery,
+pub(crate) struct RandomPage {
+    pub(crate) id: u64,
+    pub(crate) title: String,
 }
 
 #[derive(Serialize, Deserialize)]
-struct RandomPage {
-    id: u64,
-    title: String,
+pub(crate) struct RandomQuery {
+    pub(crate) random: Vec<RandomPage>,
 }
 
 #[derive(Serialize, Deserialize)]
-struct RandomQuery {
-    random: Vec<RandomPage>,
+pub(crate) struct RandomRes {
+    pub(crate) query: RandomQuery,
 }
 
 #[derive(Serialize, Deserialize)]
-struct RandomRes {
-    query: RandomQuery,
+pub(crate) struct ImageServing {
+    pub(crate) imageserving: String,
 }
 
 #[derive(Serialize, Deserialize)]
-struct ImageServing {
-    imageserving: String,
-}
-
-#[derive(Serialize, Deserialize)]
-struct ImageRes {
-    image: ImageServing,
+pub(crate) struct ImageRes {
+    pub(crate) image: ImageServing,
 }
 
 pub struct GenericPage {
@@ -62,6 +53,12 @@ pub struct GenericPage {
     pub desc: Option<String>,
     pub link: String,
     pub id: Option<u64>,
+}
+
+pub struct ReqwestClient;
+
+impl TypeMapKey for ReqwestClient {
+    type Value = Arc<reqwest::Client>;
 }
 
 impl From<RandomPage> for GenericPage {
@@ -79,6 +76,7 @@ impl From<RandomPage> for GenericPage {
     }
 }
 
+#[derive(std::cmp::PartialEq)]
 pub enum Lang {
     En,
     Fr,
@@ -91,7 +89,7 @@ pub enum Lang {
 }
 
 impl Lang {
-    fn main(&self) -> String {
+    pub(crate) fn main(&self) -> String {
         match self {
             En => "The Lord of the Rings Minecraft Mod Wiki",
             Fr => "Wiki du Mod Minecraft Seigneur des Anneaux",
@@ -204,20 +202,21 @@ impl std::fmt::Display for Lang {
     }
 }
 
+#[derive(std::cmp::PartialEq)]
 pub enum Wikis {
     LOTRMod(Lang),
     TolkienGateway,
 }
 
 impl Wikis {
-    fn get_lang(&self) -> Option<&Lang> {
+    pub(crate) fn get_lang(&self) -> Option<&Lang> {
         match self {
             LOTRMod(l) => Some(l),
             _ => None,
         }
     }
 
-    fn get_api(&self) -> String {
+    pub(crate) fn get_api(&self) -> String {
         match self {
             LOTRMod(En) => "https://lotrminecraftmod.fandom.com/api.php?".to_string(),
             LOTRMod(lang) => format!("https://lotrminecraftmod.fandom.com/{}/api.php?", lang),
@@ -227,12 +226,13 @@ impl Wikis {
 
     pub fn site(&self) -> String {
         match self {
-            LOTRMod(lang) => format!("https://lotrminecraftmod.fandom.com/{}/", lang),
+            LOTRMod(lang) => format!("https://lotrminecraftmod.fandom.com/{}", lang),
             TolkienGateway => "https://tolkiengateway.net".to_string(),
         }
     }
 }
 
+#[derive(std::cmp::PartialEq)]
 pub enum Namespace {
     Page,
     User,
@@ -281,233 +281,34 @@ impl Namespace {
             },
             User => GenericPage {
                 title: lang.users(),
-                link: format!("{}Special:Listusers", wiki.site()),
+                link: format!("{}/Special:Listusers", wiki.site()),
                 desc: None,
                 id: None,
             },
             File => GenericPage {
                 title: lang.files(),
-                link: format!("{}Special:ListFiles", wiki.site()),
+                link: format!("{}/Special:ListFiles", wiki.site()),
                 desc: None,
                 id: None,
             },
             Template => GenericPage {
                 title: lang.templates(),
-                link: format!("{}Special:PrefixIndex?namespace=10", wiki.site()),
+                link: format!("{}/Special:PrefixIndex?namespace=10", wiki.site()),
                 desc: None,
                 id: None,
             },
             Category => GenericPage {
                 title: lang.categories(),
-                link: format!("{}Special:Categories", wiki.site()),
+                link: format!("{}/Special:Categories", wiki.site()),
                 desc: None,
                 id: None,
             },
             Blog => GenericPage {
                 title: lang.blogs(),
-                link: format!("{}Blog:Recent_posts", wiki.site()),
+                link: format!("{}/Blog:Recent_posts", wiki.site()),
                 desc: None,
                 id: None,
             },
         }
-    }
-}
-
-pub async fn search(
-    ctx: &Context,
-    ns: &Namespace,
-    srsearch: &str,
-    wiki: &Wikis,
-) -> Option<GenericPage> {
-    let fclient = {
-        let data_read = ctx.data.read().await;
-        data_read
-            .get::<ReqwestClient>()
-            .expect("Expected DatabasePool in TypeMap")
-            .clone()
-    };
-
-    // searches with google
-    let [title, link, desc] = google_search(srsearch, &wiki).await?;
-
-    let possible_query = format!("{}:{}", ns, srsearch);
-
-    let query = match ns {
-        Page => {
-            let mut hit_title = if title.contains('|') {
-                title.split('|')
-            } else {
-                title.split('-')
-            }
-            .into_iter();
-            match hit_title.next()? {
-                "Fandom" => hit_title.next()?,
-                other => other,
-            }
-        }
-        _ => possible_query.as_str(),
-    };
-
-    let lang = link
-        .split("//")
-        .into_iter()
-        .nth(1)?
-        .split('/')
-        .into_iter()
-        .nth(1)?;
-
-    if lang == "wiki" {
-        let ns_code: String = ns.into();
-
-        let req = [
-            ("format", "json"),
-            ("action", "query"),
-            ("list", "search"),
-            ("srlimit", "3"),
-            ("srsearch", query),
-            ("srnamespace", &ns_code),
-        ];
-
-        let res = fclient
-            .get(&wiki.get_api())
-            .query(&req)
-            .send()
-            .await
-            .ok()?
-            .text()
-            .await
-            .ok()?;
-
-        let body: SearchRes = serde_json::from_str(&res).ok()?;
-        let page = body.query.search.into_iter().next()?;
-
-        if page.title == query {
-            Some(GenericPage {
-                title: page.title,
-                link,
-                desc: Some(desc),
-                id: Some(page.pageid),
-            })
-        } else {
-            None
-        }
-    } else if lang == wiki.get_lang()?.to_string() {
-        Some(GenericPage {
-            title: query.into(),
-            link,
-            desc: Some(desc),
-            id: None,
-        })
-    } else {
-        None
-    }
-}
-
-pub async fn random(ctx: &Context, wiki: &Wikis) -> Option<GenericPage> {
-    let fclient = {
-        let data_read = ctx.data.read().await;
-        data_read
-            .get::<ReqwestClient>()
-            .expect("Expected DatabasePool in TypeMap")
-            .clone()
-    };
-
-    let req = [
-        ("format", "json"),
-        ("action", "query"),
-        ("list", "random"),
-        ("rnnamespace", "0"),
-        ("rnlimit", "3"),
-    ];
-
-    let res = fclient
-        .get(&wiki.get_api())
-        .query(&req)
-        .send()
-        .await
-        .ok()?
-        .text()
-        .await
-        .ok()?;
-
-    let body: RandomRes = serde_json::from_str(&res).ok()?;
-    Some(body.query.random.into_iter().next()?.into())
-}
-
-pub async fn display(
-    ctx: &Context,
-    msg: &Message,
-    page: &GenericPage,
-    wiki: &Wikis,
-) -> CommandResult {
-    let fclient = {
-        let data_read = ctx.data.read().await;
-        data_read
-            .get::<ReqwestClient>()
-            .expect("Expected DatabasePool in TypeMap")
-            .clone()
-    };
-
-    let img = {
-        let req = [
-            ("format", "json"),
-            ("action", "imageserving"),
-            ("wisTitle", &page.title),
-        ];
-
-        let res = fclient
-            .get(&wiki.get_api())
-            .query(&req)
-            .send()
-            .await?
-            .text()
-            .await?;
-
-        let body: Result<ImageRes, _> = serde_json::from_str(&res);
-        if let Ok(body) = body {
-            Some(body.image.imageserving)
-        } else {
-            None
-        }
-    }
-    .unwrap_or_else(|| {
-        "https://static.wikia.nocookie.net/lotrminecraftmod/images/8/8e/GrukRenewedLogo.png".into()
-    });
-
-    let bot_icon = BOT_ID.to_user(ctx).await?.face();
-
-    let lang = wiki.get_lang().unwrap_or(&En);
-
-    msg.channel_id
-        .send_message(ctx, |m| {
-            m.embed(|e| {
-                e.author(|a| {
-                    a.icon_url(bot_icon);
-                    a.name(lang.main());
-                    a.url(format!("https://lotrminecraftmod.fandom.com/{}", lang))
-                });
-                e.title(&page.title);
-                if let Some(desc) = &page.desc {
-                    e.description(desc);
-                };
-                e.image(&img);
-                e.url(&page.link);
-                e
-            });
-            m
-        })
-        .await?;
-
-    Ok(())
-}
-
-pub async fn google_search(query: &str, wiki: &Wikis) -> Option<[String; 3]> {
-    let results = search_with_google::search(&format!("site:{} {}", wiki.site(), query), 1, None)
-        .await
-        .ok()?;
-    if let Some(hit) = results.get(0) {
-        Some([hit.title.clone(), hit.link.clone(), hit.description.clone()])
-    } else {
-        None
     }
 }
