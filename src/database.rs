@@ -75,7 +75,7 @@ pub async fn set_prefix(
     };
     let mut conn = pool.get_conn().await?;
 
-    let server_id: u64 = guild_id.unwrap_or_else(|| GuildId(0)).0;
+    let server_id: u64 = guild_id.unwrap_or(GuildId(0)).0;
 
     let req = if update {
         format!(
@@ -141,7 +141,7 @@ pub async fn add_admin(ctx: &Context, guild_id: Option<GuildId>, user_id: UserId
         }
     };
     let mut conn = pool.get_conn().await?;
-    let server_id: u64 = guild_id.unwrap_or_else(|| GuildId(0)).0;
+    let server_id: u64 = guild_id.unwrap_or(GuildId(0)).0;
 
     conn.exec_drop(
         format!(
@@ -175,7 +175,7 @@ pub async fn remove_admin(
     };
     let mut conn = pool.get_conn().await?;
 
-    let server_id: u64 = guild_id.unwrap_or_else(|| GuildId(0)).0;
+    let server_id: u64 = guild_id.unwrap_or(GuildId(0)).0;
 
     conn.exec_drop(
         format!(
@@ -328,7 +328,7 @@ pub async fn check_blacklist(ctx: &Context, msg: &Message, get_list: bool) -> Op
             params! {
                 "server_id" => server_id,
             },
-            |id| UserId(id),
+            UserId,
         )
         .await
         .ok()?;
@@ -343,7 +343,7 @@ pub async fn check_blacklist(ctx: &Context, msg: &Message, get_list: bool) -> Op
             params! {
                 "server_id" => server_id,
             },
-            |id| ChannelId(id),
+            ChannelId,
         )
         .await
         .ok()?;
@@ -369,10 +369,10 @@ pub async fn update_blacklist(ctx: &Context, msg: &Message, mut args: Args) -> C
     };
     let mut conn = pool.get_conn().await?;
 
-    let server_id: u64 = msg.guild_id.unwrap_or_else(|| GuildId(0)).0;
+    let server_id: u64 = msg.guild_id.unwrap_or(GuildId(0)).0;
     let (users, channels) = check_blacklist(ctx, msg, true)
         .await
-        .unwrap_or_else(|| IsBlacklisted(true))
+        .unwrap_or(IsBlacklisted(true))
         .get_list();
 
     for user in &msg.mentions {
@@ -420,7 +420,7 @@ pub async fn update_blacklist(ctx: &Context, msg: &Message, mut args: Args) -> C
     let mentioned_channels = args
         .trimmed()
         .iter()
-        .map(|a| serenity::utils::parse_channel(a.unwrap_or(String::new())))
+        .map(|a| serenity::utils::parse_channel(a.unwrap_or_else(|_| "".to_string())))
         .filter(|c| c.is_some())
         .map(|c| ChannelId(c.unwrap()));
 

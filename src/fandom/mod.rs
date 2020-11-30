@@ -150,8 +150,7 @@ pub async fn random(ctx: &Context, wiki: &Wikis) -> Option<GenericPage> {
         body.query
             .random
             .into_iter()
-            .filter(|p| !p.title.contains("/Recipes"))
-            .next()?
+            .find(|p| !p.title.contains("/Recipes"))?
             .into(),
     )
 }

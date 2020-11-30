@@ -571,9 +571,7 @@ async fn remove(ctx: &Context, msg: &Message) -> CommandResult {
 
 #[command]
 async fn list(ctx: &Context, msg: &Message) -> CommandResult {
-    let admins = get_admins(ctx, msg.guild_id)
-        .await
-        .unwrap_or_else(|| vec![]);
+    let admins = get_admins(ctx, msg.guild_id).await.unwrap_or_else(Vec::new);
 
     let mut user_names: Vec<String> = admins.iter().map(|&id| id.mention()).collect();
     user_names.push(OWNER_ID.mention());
@@ -616,7 +614,7 @@ async fn blacklist(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
         if args.is_empty() && msg.mentions.is_empty() {
             let (users, channels) = check_blacklist(ctx, msg, true)
                 .await
-                .unwrap_or_else(|| IsBlacklisted(true))
+                .unwrap_or(IsBlacklisted(true))
                 .get_list();
 
             let mut user_names: Vec<String> = users.iter().map(|&u| u.mention()).collect();
