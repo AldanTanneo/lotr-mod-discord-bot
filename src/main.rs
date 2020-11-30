@@ -231,7 +231,7 @@ async fn forge(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
             e.author(|a| {
                 a.name("Minecraft Forge");
                 a.icon_url("https://pbs.twimg.com/profile_images/778706890914095109/fhMDH9o6_400x400.jpg");
-                a.url("http://files.minecraftforge.net/")
+                a.url("http://files.minecraftforge.net/maven/net/minecraftforge/forge/index_1.15.2.html")
             })
         })
     })
