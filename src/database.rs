@@ -5,6 +5,7 @@ use serenity::client::Context;
 use serenity::framework::standard::{Args, CommandResult};
 use serenity::model::{
     id::{ChannelId, GuildId, UserId},
+    misc::Mentionable,
     prelude::Message,
 };
 use serenity::prelude::TypeMapKey;
@@ -421,56 +422,50 @@ pub async fn update_blacklist(ctx: &Context, msg: &Message, mut args: Args) -> C
         .iter()
         .map(|a| serenity::utils::parse_channel(a.unwrap_or(String::new())))
         .filter(|c| c.is_some())
-        .map(|c| ChannelId(c.unwrap()).to_channel(ctx));
+        .map(|c| ChannelId(c.unwrap()));
 
-    for chan in mentioned_channels {
+    for channel in mentioned_channels {
         println!("channel...");
-        let channel = chan.await?.guild();
-        if let Some(channel) = channel {
-            if channels.contains(&channel.id) {
-                println!("deleting");
-                conn.exec_drop(
-                    format!(
-                        "DELETE FROM {} WHERE server_id = :server_id AND channel_id = :channel_id",
-                        TABLE_CHANNEL_BLACKLIST
-                    )
-                    .as_str(),
-                    params! {
-                        "server_id" => server_id,
-                        "channel_id" => channel.id.0,
-                    },
+        if channels.contains(&channel) {
+            println!("deleting");
+            conn.exec_drop(
+                format!(
+                    "DELETE FROM {} WHERE server_id = :server_id AND channel_id = :channel_id",
+                    TABLE_CHANNEL_BLACKLIST
+                )
+                .as_str(),
+                params! {
+                    "server_id" => server_id,
+                    "channel_id" => channel.0,
+                },
+            )
+            .await?;
+            msg.channel_id
+                .say(
+                    ctx,
+                    format!("Removed channel #{} from the blacklist", channel.mention()),
                 )
                 .await?;
-                msg.channel_id
-                    .say(
-                        ctx,
-                        format!("Removed channel #{} from the blacklist", channel.name),
-                    )
-                    .await?;
-            } else {
-                println!("adding");
-                conn.exec_drop(
-                    format!(
-                        "INSERT INTO {} (server_id, channel_id) VALUES (:server_id, :channel_id)",
-                        TABLE_CHANNEL_BLACKLIST
-                    )
-                    .as_str(),
-                    params! {
-                        "server_id" => server_id,
-                        "channel_id" => channel.id.0,
-                    },
-                )
-                .await?;
-                msg.channel_id
-                    .say(
-                        ctx,
-                        format!("Added channel #{} to the blacklist", channel.name),
-                    )
-                    .await?;
-            }
         } else {
-            println!("A channel failed");
-            continue;
+            println!("adding");
+            conn.exec_drop(
+                format!(
+                    "INSERT INTO {} (server_id, channel_id) VALUES (:server_id, :channel_id)",
+                    TABLE_CHANNEL_BLACKLIST
+                )
+                .as_str(),
+                params! {
+                    "server_id" => server_id,
+                    "channel_id" => channel.0,
+                },
+            )
+            .await?;
+            msg.channel_id
+                .say(
+                    ctx,
+                    format!("Added channel #{} to the blacklist", channel.mention()),
+                )
+                .await?;
         }
     }
 
