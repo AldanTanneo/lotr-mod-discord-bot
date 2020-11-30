@@ -183,18 +183,21 @@ async fn help(ctx: &Context, msg: &Message) -> CommandResult {
                 e.field(
                     "General commands",
                     "`renewed`,\n`forge`,\n`coremod`,\n`tos`,\n`curseforge`,\n`help`\n",
-                    false,
-                );
-                e.field(
-                    "Admin commands",
-                    "`prefix`,\n`admin add`,\n`admin remove`,\n`admin list`\n",
-                    false,
+                    true,
                 );
                 e.field(
                     "Wiki commands",
-                    "`wiki`,\n`wiki user`,\n`wiki category`,\n`wiki template`,\n`wiki random`,\n`wiki file`,\n`wiki tolkien`,\n`wiki minecraft`\n
-Syntax: `wiki [subcommand] [language] [search terms]`\n
-Available languages: `en` (default), `de`, `fr`, `es`, `nl`, `ja`, `zh`, `ru`\n",
+                    "`wiki`\n`wiki user`\n`wiki category`\n`wiki template`\n`wiki random`\n`wiki file`\n`wiki tolkien`\n`wiki minecraft`\n",
+                    true
+                );
+                e.field(
+                    "Admin commands",
+                    "`prefix`\n`admin add`\n`admin remove`\n`admin list`\n`blacklist`\n",
+                    true,
+                );
+                e.field(
+                    "Syntax: `wiki [subcommand] [language] [search terms]`",
+                    "Available languages: `en` (default), `de`, `fr`, `es`, `nl`, `ja`, `zh`, `ru`\n",
                     false,
                 );
                 e
