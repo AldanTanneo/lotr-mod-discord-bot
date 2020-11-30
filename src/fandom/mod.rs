@@ -2,13 +2,11 @@ pub mod structures;
 
 use serenity::client::Context;
 use serenity::framework::standard::CommandResult;
-use serenity::model::{id::UserId, prelude::Message};
+use serenity::model::prelude::Message;
 
 use structures::*;
 
-use structures::{Lang::*, Namespace::*};
-
-const BOT_ID: UserId = UserId(780858391383638057);
+use structures::{Lang::*, Namespace::*, Wikis::*};
 
 pub async fn search(
     ctx: &Context,
@@ -16,27 +14,12 @@ pub async fn search(
     srsearch: &str,
     wiki: &Wikis,
 ) -> Option<GenericPage> {
-    println!("srsearch {}", srsearch);
-    println!("namespace {}", ns);
-    if !(wiki.get_lang()? == &En) || ns == &Page {
+    let lang = wiki.get_lang();
+    if !(lang == Some(&En)) || ns == &Page {
         let [title, link, desc] = google_search(ctx, srsearch, &wiki).await?;
-        println!(
-            "page-title {}\npage-link {}\npage-desc {}",
-            title, link, desc
-        );
-
-        let lang = link
-            .split("//")
-            .into_iter()
-            .nth(1)?
-            .split('/')
-            .into_iter()
-            .nth(1)?;
-
-        println!("page-lang {}", lang);
 
         let query = {
-            let mut hit_title = title.split(|c| ['|', '-'].contains(&c));
+            let mut hit_title = title.split(|c| ['|', '-', '–'].contains(&c));
             match hit_title.next()?.trim() {
                 "Fandom" => hit_title.next()?,
                 other => other,
@@ -44,9 +27,7 @@ pub async fn search(
             .trim()
         };
 
-        println!("page-query {}", query);
-
-        if wiki.get_lang()? == &En {
+        if lang == Some(&En) {
             let fclient = {
                 let data_read = ctx.data.read().await;
                 data_read
@@ -56,8 +37,6 @@ pub async fn search(
             };
 
             let ns_code: String = ns.into();
-
-            println!("page-en-query {}.", query);
 
             let req = [
                 ("format", "json"),
@@ -82,15 +61,11 @@ pub async fn search(
             let body: SearchRes = serde_json::from_str(&res).ok()?;
             let page = body.query.search.into_iter().next()?;
 
-            println!("page-en-title {}.", page.title);
-
             if page.title.contains(query) || query.contains(&page.title) {
-                println!("returning");
                 return Some(GenericPage {
                     title: page.title,
                     link,
                     desc: Some(desc),
-                    id: Some(page.pageid),
                 });
             } else {
                 return None;
@@ -100,7 +75,6 @@ pub async fn search(
                 title: query.into(),
                 link,
                 desc: Some(desc),
-                id: None,
             });
         }
     } else {
@@ -113,8 +87,6 @@ pub async fn search(
         };
 
         let ns_code: String = ns.into();
-
-        println!("srsearch {}", srsearch);
 
         let req = [
             ("format", "json"),
@@ -143,7 +115,6 @@ pub async fn search(
             link: format!("{}/{}", wiki.site(), page.title.replace(" ", "_")),
             title: page.title,
             desc: None,
-            id: Some(page.pageid),
         });
     };
 }
@@ -185,7 +156,6 @@ pub async fn display(
     page: &GenericPage,
     wiki: &Wikis,
 ) -> CommandResult {
-    println!("display");
     let fclient = {
         let data_read = ctx.data.read().await;
         data_read
@@ -194,53 +164,47 @@ pub async fn display(
             .clone()
     };
 
-    let img = {
-        let req = [
-            ("format", "json"),
-            ("action", "imageserving"),
-            ("wisTitle", &page.title),
-        ];
+    let img = match wiki {
+        LOTRMod(_) | Minecraft => {
+            let req = [
+                ("format", "json"),
+                ("action", "imageserving"),
+                ("wisTitle", &page.title),
+            ];
 
-        let res = fclient
-            .get(&wiki.get_api())
-            .query(&req)
-            .send()
-            .await?
-            .text()
-            .await?;
+            let res = fclient
+                .get(&wiki.get_api())
+                .query(&req)
+                .send()
+                .await?
+                .text()
+                .await?;
 
-        let body: Result<ImageRes, _> = serde_json::from_str(&res);
-        if let Ok(body) = body {
-            Some(body.image.imageserving)
-        } else {
-            None
+            let body: Result<ImageRes, _> = serde_json::from_str(&res);
+            if let Ok(body) = body {
+                Some(body.image.imageserving)
+            } else {
+                None
+            }
+            .unwrap_or_else(|| wiki.default_img())
         }
-    }
-    .unwrap_or_else(|| {
-        "https://static.wikia.nocookie.net/lotrminecraftmod/images/8/8e/GrukRenewedLogo.png".into()
-    });
-
-    let bot_icon = BOT_ID.to_user(ctx).await?.face();
-
-    let lang = wiki.get_lang().unwrap_or(&En);
+        TolkienGateway => wiki.default_img(),
+    };
 
     msg.channel_id
         .send_message(ctx, |m| {
             m.embed(|e| {
                 e.author(|a| {
-                    a.icon_url(bot_icon);
-                    a.name(lang.main());
+                    a.icon_url(wiki.icon());
+                    a.name(wiki.name());
                     a.url(wiki.site())
                 });
                 e.title(&page.title);
                 if let Some(desc) = &page.desc {
                     e.description(desc);
-                    println!("embed-desc {}", desc);
                 };
                 e.image(&img);
-                println!("embed-image {}", &img);
                 e.url(&page.link);
-                println!("embed-link {}", &page.link);
                 e
             });
             m
@@ -251,7 +215,6 @@ pub async fn display(
 }
 
 pub async fn google_search(ctx: &Context, query: &str, wiki: &Wikis) -> Option<[String; 3]> {
-    println!("google-search {}", query);
     let fclient = {
         let data_read = ctx.data.read().await;
         search_with_google::Client {
@@ -259,7 +222,7 @@ pub async fn google_search(ctx: &Context, query: &str, wiki: &Wikis) -> Option<[
         }
     };
     let results = fclient
-        .search(&format!("site:{} {}", wiki.site(), query), 3, None)
+        .search(&format!("site:{} {}", wiki.site(), query), 1, None)
         .await;
 
     if let Ok(hits) = results {

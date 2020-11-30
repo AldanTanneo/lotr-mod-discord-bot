@@ -13,17 +13,16 @@ use serenity::model::{
     channel::Message,
     gateway::{Activity, Ready},
     id::{GuildId, UserId},
+    misc::Mentionable,
     prelude::ReactionType,
 };
 use std::{env, sync::Arc};
 
-use database::{
-    add_admin, add_floppa, get_admins, get_floppa, get_prefix, remove_admin, set_prefix,
-    DatabasePool,
-};
+use database::*;
 use fandom::*;
 use structures::*;
 use structures::{Lang::*, Namespace::*};
+use Blacklist::*;
 
 const BOT_ID: UserId = UserId(780858391383638057);
 const OWNER_ID: UserId = UserId(405421991777009678);
@@ -41,15 +40,20 @@ struct Meme;
 #[group]
 #[default_command(wiki)]
 #[prefixes("wiki")]
-#[commands(user, category, template, file, random, tolkien)]
+#[commands(user, category, template, file, random, tolkien, minecraft)]
 struct Wiki;
 
 #[group]
 #[only_in(guilds)]
 #[prefixes("admin")]
 #[default_command(list)]
-#[commands(add, remove, list, floppadd)]
+#[commands(add, remove, list)]
 struct Admin;
+
+#[group]
+#[only_in(guilds)]
+#[commands(floppadd, blacklist)]
+struct Moderation;
 
 struct Handler;
 
@@ -119,7 +123,8 @@ async fn main() {
         .group(&GENERAL_GROUP)
         .group(&MEME_GROUP)
         .group(&WIKI_GROUP)
-        .group(&ADMIN_GROUP);
+        .group(&ADMIN_GROUP)
+        .group(&MODERATION_GROUP);
 
     let token = env::var("DISCORD_TOKEN").expect("Expected a token in the environment");
     let mut client = Client::builder(token)
@@ -171,20 +176,20 @@ async fn help(ctx: &Context, msg: &Message) -> CommandResult {
                 e.title("Available commands");
                 e.field(
                     "General commands",
-                    "`renewed`, `forge`, `coremod`, `tos`, `curseforge`, `help`\n",
+                    "`renewed`,\n`forge`,\n`coremod`,\n`tos`,\n`curseforge`,\n`help`\n",
+                    false,
+                );
+                e.field(
+                    "Admin commands",
+                    "`prefix`,\n`admin add`,\n`admin remove`,\n`admin list`\n",
                     false,
                 );
                 e.field(
                     "Wiki commands",
-                    "`wiki`, `wiki user`, `wiki category`, `wiki template`, `wiki random`, `wiki file`, `wiki tolkien`\n
+                    "`wiki`,\n`wiki user`,\n`wiki category`,\n`wiki template`,\n`wiki random`,\n`wiki file`,\n`wiki tolkien`,\n`wiki minecraft`\n
 Syntax: `wiki [language|subcommand] [search terms]`\n
 Available languages: `en` (default), `de`, `fr`, `es`, `nl`, `ja`, `zh`, `ru`\n",
-                    true,
-                );
-                e.field(
-                    "Admin commands",
-                    "`prefix`, `admin add`, `admin remove`, `admin list`\n",
-                    true,
+                    false,
                 );
                 e
             });
@@ -256,9 +261,31 @@ To fix this, go to your `/.minecraft/mods` folder and change the file extension!
 
 // ------------------ MEME COMMANDS -----------------
 
+macro_rules! check_allowed {
+    ($ctx:expr, $msg:expr) => {
+        let admins = get_admins($ctx, $msg.guild_id).await.unwrap_or_default();
+        if !(admins.contains(&$msg.author.id)
+            || $msg.author.id == OWNER_ID
+            || !check_blacklist($ctx, $msg, false)
+                .await
+                .unwrap_or_else(|| IsBlacklisted(true))
+                .is_blacklisted())
+        {
+            $msg.delete($ctx).await?;
+            $msg.author
+                .dm($ctx, |m| {
+                    m.content("You are not allowed to use this command here.")
+                })
+                .await?;
+            return Ok(());
+        }
+    };
+}
+
 #[command]
 #[max_args(1)]
 async fn floppa(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+    check_allowed!(ctx, msg);
     let n = args.single::<u32>().ok();
     let url = if let Some(url) = get_floppa(ctx, n).await {
         url
@@ -271,6 +298,7 @@ async fn floppa(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
 
 #[command]
 async fn aeugh(ctx: &Context, msg: &Message) -> CommandResult {
+    check_allowed!(ctx, msg);
     msg.channel_id
         .send_message(ctx, |m| {
             m.add_file("https://cdn.discordapp.com/attachments/405122337139064834/782087543046668319/aeugh.mp4")
@@ -281,6 +309,7 @@ async fn aeugh(ctx: &Context, msg: &Message) -> CommandResult {
 
 #[command]
 async fn dagohon(ctx: &Context, msg: &Message) -> CommandResult {
+    check_allowed!(ctx, msg);
     msg.channel_id
         .send_message(ctx, |m| {
             m.add_file("https://cdn.discordapp.com/attachments/405097997970702337/782656209987043358/dagohon.mp4")
@@ -410,40 +439,23 @@ async fn random(ctx: &Context, msg: &Message) -> CommandResult {
 
 #[command]
 async fn tolkien(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-    let query = args.rest();
-    let [title, link, description] = google_search(ctx, query, &Wikis::TolkienGateway)
-        .await
-        .unwrap_or_else(|| {
-            [
-                "Main Page".into(),
-                "http://www.tolkiengateway.net/".into(),
-                "Welcome to Tolkien Gateway,
-the J.R.R. Tolkien encyclopedia that anyone can edit."
-                    .into(),
-            ]
-        });
-    let title = if let Some(t) = title.split(" - ").into_iter().next() {
-        t
+    let wiki = Wikis::TolkienGateway;
+    if !args.is_empty() {
+        wiki_search(ctx, msg, args, Page, &wiki).await?;
     } else {
-        msg.channel_id
-            .say(ctx, "Could not find a page with the given name!")
-            .await?;
-        return Ok(());
-    };
-    msg.channel_id
-        .send_message(ctx, |m| {
-            m.embed(|e| {
-                e.title(&title);
-                e.url(link);
-                e.description(description);
-                e.author(|a| {
-                    a.name("Tolkien Gateway");
-                    a.url("http://www.tolkiengateway.net");
-                    a.icon_url("https://i.ibb.co/VYKWK7V/favicon.png")
-                })
-            })
-        })
-        .await?;
+        fandom::display(ctx, msg, &wiki.default(&msg.author.name), &wiki).await?;
+    }
+    Ok(())
+}
+
+#[command]
+async fn minecraft(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
+    let wiki = Wikis::Minecraft;
+    if !args.is_empty() {
+        wiki_search(ctx, msg, args, Page, &wiki).await?;
+    } else {
+        fandom::display(ctx, msg, &wiki.default(&msg.author.name), &wiki).await?;
+    }
     Ok(())
 }
 
@@ -518,6 +530,11 @@ async fn add(ctx: &Context, msg: &Message) -> CommandResult {
                 )
                 .await?;
         }
+    } else {
+        msg.channel_id
+            .say(ctx, "You are not an admin on this server!")
+            .await?;
+        msg.react(ctx, ReactionType::from('❌')).await?;
     }
     Ok(())
 }
@@ -549,6 +566,11 @@ async fn remove(ctx: &Context, msg: &Message) -> CommandResult {
                 )
                 .await?;
         }
+    } else {
+        msg.channel_id
+            .say(ctx, "You are not an admin on this server!")
+            .await?;
+        msg.react(ctx, ReactionType::from('❌')).await?;
     }
     Ok(())
 }
@@ -557,13 +579,11 @@ async fn remove(ctx: &Context, msg: &Message) -> CommandResult {
 async fn list(ctx: &Context, msg: &Message) -> CommandResult {
     let admins = get_admins(ctx, msg.guild_id)
         .await
-        .unwrap_or_else(|| vec![OWNER_ID]);
-    let mut user_names: Vec<String> = vec![];
-    for user in admins.iter().map(|id| id.to_user(ctx)) {
-        let user = user.await?;
-        user_names.push(user.name);
-    }
-    user_names.push(OWNER_ID.to_user(ctx).await?.name);
+        .unwrap_or_else(|| vec![]);
+
+    let mut user_names: Vec<String> = admins.iter().map(|&id| id.mention()).collect();
+    user_names.push(OWNER_ID.mention());
+
     let guild_name = msg
         .guild_id
         .unwrap_or(LOTR_DISCORD)
@@ -590,6 +610,57 @@ async fn floppadd(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
             add_floppa(ctx, floppa_url).await?;
             msg.react(ctx, ReactionType::from('✅')).await?;
         }
+    }
+    Ok(())
+}
+
+#[command]
+async fn blacklist(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
+    let admins = get_admins(ctx, msg.guild_id).await.unwrap_or_default();
+    if admins.contains(&msg.author.id) || msg.author.id == OWNER_ID {
+        println!("{:#?}, {:#?}", msg.mention_channels, msg.mentions);
+        if args.is_empty() && msg.mentions.is_empty() {
+            let (users, channels) = check_blacklist(ctx, msg, true)
+                .await
+                .unwrap_or_else(|| IsBlacklisted(true))
+                .get_list();
+
+            let mut user_names: Vec<String> = users.iter().map(|&u| u.mention()).collect();
+
+            let mut channel_names: Vec<String> = channels.iter().map(|&c| c.mention()).collect();
+
+            if user_names.is_empty() {
+                user_names.push("None".into());
+            }
+            if channel_names.is_empty() {
+                channel_names.push("None".into());
+            }
+
+            let guild_name = msg
+                .guild_id
+                .unwrap_or(LOTR_DISCORD)
+                .to_partial_guild(ctx)
+                .await?
+                .name;
+            msg.channel_id
+                .send_message(ctx, |m| {
+                    m.embed(|e| {
+                        e.title("Blacklist");
+                        e.description(format!("On **{}**", guild_name));
+                        e.field("Blacklisted users:", user_names.join("\n"), true);
+                        e.field("Blacklisted channels:", channel_names.join("\n"), true)
+                    });
+                    m
+                })
+                .await?;
+        } else {
+            update_blacklist(ctx, msg, args).await?;
+        }
+    } else {
+        msg.channel_id
+            .say(ctx, "You are not an admin on this server!")
+            .await?;
+        msg.react(ctx, ReactionType::from('❌')).await?;
     }
     Ok(())
 }

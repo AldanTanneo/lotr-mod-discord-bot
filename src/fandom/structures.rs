@@ -8,7 +8,6 @@ use Wikis::*;
 
 #[derive(Serialize, Deserialize)]
 pub(crate) struct SearchPage {
-    pub(crate) pageid: u64,
     pub(crate) title: String,
 }
 
@@ -24,7 +23,6 @@ pub(crate) struct SearchRes {
 
 #[derive(Serialize, Deserialize)]
 pub(crate) struct RandomPage {
-    pub(crate) id: u64,
     pub(crate) title: String,
 }
 
@@ -52,7 +50,6 @@ pub struct GenericPage {
     pub title: String,
     pub desc: Option<String>,
     pub link: String,
-    pub id: Option<u64>,
 }
 
 pub struct ReqwestClient;
@@ -71,7 +68,6 @@ impl From<RandomPage> for GenericPage {
                 LOTRMod(En).site(),
                 page.title.replace(" ", "_")
             ),
-            id: Some(page.id),
         }
     }
 }
@@ -206,13 +202,15 @@ impl std::fmt::Display for Lang {
 pub enum Wikis {
     LOTRMod(Lang),
     TolkienGateway,
+    Minecraft,
 }
 
 impl Wikis {
     pub(crate) fn get_lang(&self) -> Option<&Lang> {
         match self {
             LOTRMod(l) => Some(l),
-            _ => None,
+            Minecraft => Some(&En),
+            TolkienGateway => None,
         }
     }
 
@@ -221,6 +219,7 @@ impl Wikis {
             LOTRMod(En) => "https://lotrminecraftmod.fandom.com/api.php?".to_string(),
             LOTRMod(lang) => format!("https://lotrminecraftmod.fandom.com/{}/api.php?", lang),
             TolkienGateway => "http://tolkiengateway.net/w/api.php?".to_string(),
+            Minecraft => "https://minecraft.gamepedia.com/api.php?".to_string(),
         }
     }
 
@@ -228,6 +227,61 @@ impl Wikis {
         match self {
             LOTRMod(lang) => format!("https://lotrminecraftmod.fandom.com/{}", lang),
             TolkienGateway => "https://tolkiengateway.net".to_string(),
+            Minecraft => "https://minecraft.gamepedia.com".to_string(),
+        }
+    }
+
+    pub fn default_img(&self) -> String {
+        match self {
+            LOTRMod(_) => {
+                "https://static.wikia.nocookie.net/lotrminecraftmod/images/8/8e/GrukRenewedLogo.png"
+            }
+            TolkienGateway => "https://medias.liberation.fr/photo/1277413-author-j-r-r-tolkien.jpg",
+            Minecraft => "https://i.ytimg.com/vi/Zeh9lmHGVM4/maxresdefault.jpg",
+        }
+        .into()
+    }
+
+    pub fn icon(&self) -> String {
+        match self {
+            LOTRMod(_) => "https://i.ibb.co/v1hHg3G/test.png",
+            TolkienGateway => "https://i.ibb.co/VYKWK7V/favicon.png",
+            Minecraft => {
+                "https://toppng.com/uploads/preview/minecraft-block-icon-11531077309p00lhxolea.png"
+            }
+        }
+        .to_string()
+    }
+
+    pub fn name(&self) -> String {
+        match self {
+            LOTRMod(lang) => lang.main(),
+            TolkienGateway => "Tolkien Gateway".into(),
+            Minecraft => "Official Minecraft Wiki".into(),
+        }
+    }
+
+    pub fn default(&self, username: &str) -> GenericPage {
+        match self {
+            LOTRMod(_) => Page.main_page(self, username),
+            TolkienGateway => GenericPage {
+                title: self.name(),
+                link: self.site(),
+                desc: Some(format!(
+                    "Welcome, {}, to Tolkien Gateway,
+the J.R.R. Tolkien encyclopedia that anyone can edit.",
+                    username
+                )),
+            },
+            Minecraft => GenericPage {
+                title: self.name(),
+                link: self.site(),
+                desc: Some(format!(
+                    "Welcome, {}, to the Official Minecraft Wiki,
+a publicly accessible and editable wiki for information on Minecraft and related subjects.",
+                    username
+                )),
+            },
         }
     }
 }
@@ -271,44 +325,51 @@ impl std::fmt::Display for Namespace {
 
 impl Namespace {
     pub fn main_page(&self, wiki: &Wikis, username: &str) -> GenericPage {
-        let lang = wiki.get_lang().unwrap_or(&En);
-        match self {
-            Page => GenericPage {
-                title: lang.main(),
+        match wiki {
+            LOTRMod(lang) => {
+                match self {
+                    Page => GenericPage {
+                        title: lang.main(),
+                        link: wiki.site(),
+                        desc: Some(lang.maindesc(username)),
+                    },
+                    User => GenericPage {
+                        title: lang.users(),
+                        link: format!("{}/Special:Listusers", wiki.site()),
+                        desc: None,
+                    },
+                    File => GenericPage {
+                        title: lang.files(),
+                        link: format!("{}/Special:ListFiles", wiki.site()),
+                        desc: None,
+                    },
+                    Template => GenericPage {
+                        title: lang.templates(),
+                        link: format!("{}/Special:PrefixIndex?namespace=10", wiki.site()),
+                        desc: None,
+                    },
+                    Category => GenericPage {
+                        title: lang.categories(),
+                        link: format!("{}/Special:Categories", wiki.site()),
+                        desc: None,
+                    },
+                    Blog => GenericPage {
+                        title: lang.blogs(),
+                        link: format!("{}/Blog:Recent_posts", wiki.site()),
+                        desc: None,
+                    },
+                }
+            },
+            TolkienGateway => GenericPage {
+                title: "Tolkien Gateway".into(),
                 link: wiki.site(),
-                desc: Some(lang.maindesc(username)),
-                id: None,
+                desc: Some("Welcome to Tolkien Gateway,\nthe J.R.R. Tolkien encyclopedia that anyone can edit.".into()),
             },
-            User => GenericPage {
-                title: lang.users(),
-                link: format!("{}/Special:Listusers", wiki.site()),
-                desc: None,
-                id: None,
-            },
-            File => GenericPage {
-                title: lang.files(),
-                link: format!("{}/Special:ListFiles", wiki.site()),
-                desc: None,
-                id: None,
-            },
-            Template => GenericPage {
-                title: lang.templates(),
-                link: format!("{}/Special:PrefixIndex?namespace=10", wiki.site()),
-                desc: None,
-                id: None,
-            },
-            Category => GenericPage {
-                title: lang.categories(),
-                link: format!("{}/Special:Categories", wiki.site()),
-                desc: None,
-                id: None,
-            },
-            Blog => GenericPage {
-                title: lang.blogs(),
-                link: format!("{}/Blog:Recent_posts", wiki.site()),
-                desc: None,
-                id: None,
-            },
+            Minecraft => GenericPage {
+                title: "Official Minecraft Wiki".into(),
+                link: wiki.site(),
+                desc: Some("".into()),
+            }
         }
     }
 }
