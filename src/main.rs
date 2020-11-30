@@ -229,9 +229,9 @@ async fn forge(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
             e.title("Have you checked your Forge version?");
             e.description(format!("To function properly, the mod needs to run with Forge {} or later for Minecraft {}", version, mc));
             e.author(|a| {
-                a.name("Minecraft Forge");
+                a.name(format!("Minecraft Forge for {}", mc));
                 a.icon_url("https://pbs.twimg.com/profile_images/778706890914095109/fhMDH9o6_400x400.jpg");
-                a.url("http://files.minecraftforge.net/maven/net/minecraftforge/forge/index_1.15.2.html")
+                a.url(format!("http://files.minecraftforge.net/maven/net/minecraftforge/forge/index_{}.html", mc))
             })
         })
     })
