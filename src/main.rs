@@ -182,7 +182,7 @@ async fn help(ctx: &Context, msg: &Message) -> CommandResult {
                 e.title("Available commands");
                 e.field(
                     "General commands",
-                    "`renewed`,\n`forge`,\n`coremod`,\n`tos`,\n`curseforge`,\n`help`\n",
+                    "`renewed`\n`forge`\n`coremod`\n`tos`\n`curseforge`\n`help`\n",
                     true,
                 );
                 e.field(
