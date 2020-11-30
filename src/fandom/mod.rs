@@ -20,7 +20,8 @@ pub async fn search(
         let [hit, link, desc] = google_search(ctx, srsearch, &wiki).await?;
         println!("hit '{}'", hit);
         let query = hit
-            .split(|c| ['|', '-', '–'].contains(&c))
+            .split(" | ")
+            .flat_map(|sub| sub.split(" - "))
             .find(|part| !part.contains("Fandom"))?
             .trim();
 
