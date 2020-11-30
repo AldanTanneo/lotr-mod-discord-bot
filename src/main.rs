@@ -334,6 +334,7 @@ async fn wiki_search(
     wiki: &Wikis,
 ) -> CommandResult {
     let srsearch = args.rest();
+    println!("srsearch {}", srsearch);
     let p = fandom::search(ctx, &namespace, srsearch, wiki).await;
     if let Some(page) = p {
         fandom::display(ctx, msg, &page, wiki).await?;
@@ -380,6 +381,7 @@ async fn lotr_wiki(ctx: &Context, msg: &Message, args: Args, ns: Namespace) -> C
     let default = res.2;
     let wiki = Wikis::LOTRMod(lang);
     if default {
+        println!("rewinding");
         args.rewind();
     }
     if !args.is_empty() {

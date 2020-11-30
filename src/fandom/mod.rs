@@ -17,16 +17,14 @@ pub async fn search(
 ) -> Option<GenericPage> {
     let lang = wiki.get_lang();
     if ns == &Page {
-        let [title, link, desc] = google_search(ctx, srsearch, &wiki).await?;
+        let [hit, link, desc] = google_search(ctx, srsearch, &wiki).await?;
+        println!("hit '{}'", hit);
+        let query = hit
+            .split(|c| ['|', '-', '–'].contains(&c))
+            .find(|part| !part.contains("Fandom"))?
+            .trim();
 
-        let query = {
-            let mut hit_title = title.split(|c| ['|', '-', '–'].contains(&c));
-            match hit_title.next()?.trim() {
-                "Fandom" => hit_title.next()?,
-                other => other,
-            }
-            .trim()
-        };
+        println!("query '{}'", query);
 
         if lang.is_some() {
             let fclient = {
@@ -59,7 +57,9 @@ pub async fn search(
                 .ok()?;
 
             let body: Value = serde_json::from_str(&res).ok()?;
-            let title = body.get(1)?.get(0)?.as_str()?;
+            let title = body.get(1)?.get(0)?.as_str()?.trim();
+
+            println!("title '{}'", title);
 
             if title == query {
                 Some(GenericPage {
@@ -197,9 +197,17 @@ pub async fn display(
         }
         TolkienGateway => wiki.default_img(),
     };
-    println!("img {}", img);
-    println!("page {} {} {:?}", page.title, page.link, page.desc);
-    println!("wiki {} {} {}", wiki.name(), wiki.site(), wiki.icon());
+    println!("img '{}'", img);
+    println!(
+        "page '{}'\n   '{}'\n   '{:?}'",
+        page.title, page.link, page.desc
+    );
+    println!(
+        "wiki '{}'\n   '{}'\n   '{}'",
+        wiki.name(),
+        wiki.site(),
+        wiki.icon()
+    );
 
     msg.channel_id
         .send_message(ctx, |m| {
@@ -231,9 +239,10 @@ pub async fn google_search(ctx: &Context, query: &str, wiki: &Wikis) -> Option<[
             client: data_read.get::<ReqwestClient>()?.clone(),
         }
     };
-    let results = fclient
-        .search(&format!("site:{} {}", wiki.site(), query), 1, None)
-        .await;
+
+    let req = format!("site:{} {}", wiki.site(), query);
+    println!("google {}", req);
+    let results = fclient.search(&req, 2, None).await;
 
     if let Ok(hits) = results {
         let hit = hits.get(0)?;
