@@ -63,6 +63,12 @@ impl EventHandler for Handler {
         let game =
             Activity::playing("The Lord of the Rings Mod: Bringing Middle-earth to Minecraft");
         ctx.set_activity(game).await;
+        let _ = OWNER_ID
+            .to_user(&ctx)
+            .await
+            .unwrap()
+            .direct_message(&ctx, |m| m.content("Bot started and ready!"))
+            .await;
     }
 }
 
@@ -187,7 +193,7 @@ async fn help(ctx: &Context, msg: &Message) -> CommandResult {
                 e.field(
                     "Wiki commands",
                     "`wiki`,\n`wiki user`,\n`wiki category`,\n`wiki template`,\n`wiki random`,\n`wiki file`,\n`wiki tolkien`,\n`wiki minecraft`\n
-Syntax: `wiki [language|subcommand] [search terms]`\n
+Syntax: `wiki [subcommand] [language] [search terms]`\n
 Available languages: `en` (default), `de`, `fr`, `es`, `nl`, `ja`, `zh`, `ru`\n",
                     false,
                 );
@@ -377,7 +383,7 @@ async fn lotr_wiki(ctx: &Context, msg: &Message, args: Args, ns: Namespace) -> C
         args.rewind();
     }
     if !args.is_empty() {
-        wiki_search(ctx, msg, args, ns, &Wikis::LOTRMod(En)).await?;
+        wiki_search(ctx, msg, args, ns, &wiki).await?;
     } else {
         fandom::display(ctx, msg, &ns.main_page(&wiki, &msg.author.name), &wiki).await?;
     }
@@ -386,19 +392,7 @@ async fn lotr_wiki(ctx: &Context, msg: &Message, args: Args, ns: Namespace) -> C
 
 #[command]
 async fn wiki(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-    let res = lang(args);
-    let lang = res.0;
-    let mut args = res.1;
-    let default = res.2;
-    let wiki = Wikis::LOTRMod(lang);
-    if default {
-        args.rewind();
-    }
-    if !args.is_empty() {
-        wiki_search(ctx, msg, args, Page, &wiki).await?;
-    } else {
-        fandom::display(ctx, msg, &Page.main_page(&wiki, &msg.author.name), &wiki).await?;
-    }
+    lotr_wiki(ctx, msg, args, Page).await?;
     Ok(())
 }
 

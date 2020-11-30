@@ -7,21 +7,6 @@ use Namespace::*;
 use Wikis::*;
 
 #[derive(Serialize, Deserialize)]
-pub(crate) struct SearchPage {
-    pub(crate) title: String,
-}
-
-#[derive(Serialize, Deserialize)]
-pub(crate) struct SearchQuery {
-    pub(crate) search: Vec<SearchPage>,
-}
-
-#[derive(Serialize, Deserialize)]
-pub(crate) struct SearchRes {
-    pub(crate) query: SearchQuery,
-}
-
-#[derive(Serialize, Deserialize)]
 pub(crate) struct RandomPage {
     pub(crate) title: String,
 }
@@ -64,9 +49,9 @@ impl From<RandomPage> for GenericPage {
             title: page.title.clone(),
             desc: Some("Random page...".into()),
             link: format!(
-                "https://{}/wiki/{}",
+                "{}/{}",
                 LOTRMod(En).site(),
-                page.title.replace(" ", "_")
+                page.title.trim().replace(" ", "_")
             ),
         }
     }

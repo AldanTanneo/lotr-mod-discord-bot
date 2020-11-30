@@ -1,12 +1,13 @@
 pub mod structures;
 
+use serde_json::Value;
 use serenity::client::Context;
 use serenity::framework::standard::CommandResult;
 use serenity::model::prelude::Message;
 
 use structures::*;
 
-use structures::{Lang::*, Namespace::*, Wikis::*};
+use structures::{Namespace::*, Wikis::*};
 
 pub async fn search(
     ctx: &Context,
@@ -15,7 +16,7 @@ pub async fn search(
     wiki: &Wikis,
 ) -> Option<GenericPage> {
     let lang = wiki.get_lang();
-    if !(lang == Some(&En)) || ns == &Page {
+    if ns == &Page {
         let [title, link, desc] = google_search(ctx, srsearch, &wiki).await?;
 
         let query = {
@@ -27,7 +28,7 @@ pub async fn search(
             .trim()
         };
 
-        if lang == Some(&En) {
+        if lang.is_some() {
             let fclient = {
                 let data_read = ctx.data.read().await;
                 data_read
@@ -40,12 +41,11 @@ pub async fn search(
 
             let req = [
                 ("format", "json"),
-                ("action", "query"),
-                ("list", "search"),
-                ("srwhat", "nearmatch"),
-                ("srlimit", "3"),
-                ("srsearch", query),
-                ("srnamespace", &ns_code),
+                ("action", "opensearch"),
+                ("limit", "3"),
+                ("redirects", "resolve"),
+                ("search", query),
+                ("namespace", &ns_code),
             ];
 
             let res = fclient
@@ -58,24 +58,24 @@ pub async fn search(
                 .await
                 .ok()?;
 
-            let body: SearchRes = serde_json::from_str(&res).ok()?;
-            let page = body.query.search.into_iter().next()?;
+            let body: Value = serde_json::from_str(&res).ok()?;
+            let title = body.get(1)?.get(0)?.as_str()?;
 
-            if page.title.contains(query) || query.contains(&page.title) {
-                return Some(GenericPage {
-                    title: page.title,
+            if title == query {
+                Some(GenericPage {
+                    title: title.into(),
                     link,
                     desc: Some(desc),
-                });
+                })
             } else {
-                return None;
+                None
             }
         } else {
-            return Some(GenericPage {
+            Some(GenericPage {
                 title: query.into(),
                 link,
                 desc: Some(desc),
-            });
+            })
         }
     } else {
         let fclient = {
@@ -90,12 +90,11 @@ pub async fn search(
 
         let req = [
             ("format", "json"),
-            ("action", "query"),
-            ("list", "search"),
-            ("srwhat", "text"),
-            ("srlimit", "3"),
-            ("srsearch", srsearch),
-            ("srnamespace", &ns_code),
+            ("action", "opensearch"),
+            ("limit", "3"),
+            ("redirects", "resolve"),
+            ("search", srsearch),
+            ("namespace", &ns_code),
         ];
 
         let res = fclient
@@ -108,15 +107,15 @@ pub async fn search(
             .await
             .ok()?;
 
-        let body: SearchRes = serde_json::from_str(&res).ok()?;
-        let page = body.query.search.into_iter().next()?;
+        let body: Value = serde_json::from_str(&res).ok()?;
+        let title = body.get(1)?.get(0)?.as_str()?;
 
-        return Some(GenericPage {
-            link: format!("{}/{}", wiki.site(), page.title.replace(" ", "_")),
-            title: page.title,
+        Some(GenericPage {
+            link: format!("{}/{}", wiki.site(), title.replace(" ", "_")),
+            title: title.into(),
             desc: None,
-        });
-    };
+        })
+    }
 }
 
 pub async fn random(ctx: &Context, wiki: &Wikis) -> Option<GenericPage> {
@@ -147,7 +146,14 @@ pub async fn random(ctx: &Context, wiki: &Wikis) -> Option<GenericPage> {
         .ok()?;
 
     let body: RandomRes = serde_json::from_str(&res).ok()?;
-    Some(body.query.random.into_iter().next()?.into())
+    Some(
+        body.query
+            .random
+            .into_iter()
+            .filter(|p| !p.title.contains("/Recipes"))
+            .next()?
+            .into(),
+    )
 }
 
 pub async fn display(
@@ -156,6 +162,7 @@ pub async fn display(
     page: &GenericPage,
     wiki: &Wikis,
 ) -> CommandResult {
+    println!("display");
     let fclient = {
         let data_read = ctx.data.read().await;
         data_read
@@ -166,6 +173,7 @@ pub async fn display(
 
     let img = match wiki {
         LOTRMod(_) | Minecraft => {
+            println!("imageserving");
             let req = [
                 ("format", "json"),
                 ("action", "imageserving"),
@@ -190,6 +198,9 @@ pub async fn display(
         }
         TolkienGateway => wiki.default_img(),
     };
+    println!("img {}", img);
+    println!("page {} {} {:?}", page.title, page.link, page.desc);
+    println!("wiki {} {} {}", wiki.name(), wiki.site(), wiki.icon());
 
     msg.channel_id
         .send_message(ctx, |m| {
