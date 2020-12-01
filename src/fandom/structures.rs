@@ -21,16 +21,6 @@ pub(crate) struct RandomRes {
     pub(crate) query: RandomQuery,
 }
 
-#[derive(Serialize, Deserialize)]
-pub(crate) struct ImageServing {
-    pub(crate) imageserving: String,
-}
-
-#[derive(Serialize, Deserialize)]
-pub(crate) struct ImageRes {
-    pub(crate) image: ImageServing,
-}
-
 pub struct GenericPage {
     pub title: String,
     pub desc: Option<String>,
@@ -191,14 +181,6 @@ pub enum Wikis {
 }
 
 impl Wikis {
-    pub(crate) fn get_lang(&self) -> Option<&Lang> {
-        match self {
-            LOTRMod(l) => Some(l),
-            Minecraft => Some(&En),
-            TolkienGateway => None,
-        }
-    }
-
     pub(crate) fn get_api(&self) -> String {
         match self {
             LOTRMod(En) => "https://lotrminecraftmod.fandom.com/api.php?".to_string(),

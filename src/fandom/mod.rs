@@ -15,7 +15,6 @@ pub async fn search(
     srsearch: &str,
     wiki: &Wikis,
 ) -> Option<GenericPage> {
-    let lang = wiki.get_lang();
     if ns == &Page {
         let [hit, link, desc] = google_search(ctx, srsearch, &wiki).await?;
         println!("hit '{}'", hit);
@@ -26,57 +25,48 @@ pub async fn search(
             .trim();
 
         println!("query '{}'", query);
+        let fclient = {
+            let data_read = ctx.data.read().await;
+            data_read
+                .get::<ReqwestClient>()
+                .expect("Expected DatabasePool in TypeMap")
+                .clone()
+        };
 
-        if lang.is_some() {
-            let fclient = {
-                let data_read = ctx.data.read().await;
-                data_read
-                    .get::<ReqwestClient>()
-                    .expect("Expected DatabasePool in TypeMap")
-                    .clone()
-            };
+        let ns_code: String = ns.into();
 
-            let ns_code: String = ns.into();
+        let req = [
+            ("format", "json"),
+            ("action", "opensearch"),
+            ("limit", "3"),
+            ("redirects", "resolve"),
+            ("search", query),
+            ("namespace", &ns_code),
+        ];
 
-            let req = [
-                ("format", "json"),
-                ("action", "opensearch"),
-                ("limit", "3"),
-                ("redirects", "resolve"),
-                ("search", query),
-                ("namespace", &ns_code),
-            ];
+        let res = fclient
+            .get(&wiki.get_api())
+            .query(&req)
+            .send()
+            .await
+            .ok()?
+            .text()
+            .await
+            .ok()?;
 
-            let res = fclient
-                .get(&wiki.get_api())
-                .query(&req)
-                .send()
-                .await
-                .ok()?
-                .text()
-                .await
-                .ok()?;
+        let res: Value = serde_json::from_str(&res).ok()?;
+        let title = res[1][0].as_str()?;
 
-            let body: Value = serde_json::from_str(&res).ok()?;
-            let title = body.get(1)?.get(0)?.as_str()?.trim();
+        println!("title '{}'", title);
 
-            println!("title '{}'", title);
-
-            if title == query {
-                Some(GenericPage {
-                    title: title.into(),
-                    link,
-                    desc: Some(desc),
-                })
-            } else {
-                None
-            }
-        } else {
+        if title == query {
             Some(GenericPage {
-                title: query.into(),
+                title: title.into(),
                 link,
                 desc: Some(desc),
             })
+        } else {
+            None
         }
     } else {
         let fclient = {
@@ -108,12 +98,12 @@ pub async fn search(
             .await
             .ok()?;
 
-        let body: Value = serde_json::from_str(&res).ok()?;
-        let title = body.get(1)?.get(0)?.as_str()?;
+        let res: Value = serde_json::from_str(&res).ok()?;
+        let title = res[1][0].as_str()?;
 
         Some(GenericPage {
-            link: format!("{}/{}", wiki.site(), title.replace(" ", "_")),
             title: title.into(),
+            link: format!("{}/{}", wiki.site(), title.replace(" ", "_")),
             desc: None,
         })
     }
@@ -188,15 +178,44 @@ pub async fn display(
                 .text()
                 .await?;
 
-            let body: Result<ImageRes, _> = serde_json::from_str(&res);
-            if let Ok(body) = body {
-                Some(body.image.imageserving)
-            } else {
-                None
-            }
-            .unwrap_or_else(|| wiki.default_img())
+            let body = serde_json::from_str::<Value>(&res).unwrap_or_default();
+            body["image"]["imageserving"]
+                .as_str()
+                .map(String::from)
+                .unwrap_or_else(|| wiki.default_img())
         }
-        TolkienGateway => wiki.default_img(),
+        TolkienGateway => {
+            println!("image from tolkiengateway");
+            let req = [
+                ("format", "json"),
+                ("action", "query"),
+                ("generator", "images"),
+                ("gimlimit", "2"),
+                ("titles", &page.title),
+                ("prop", "imageinfo"),
+                ("iiprop", "url"),
+                ("indexpageids", "true"),
+            ];
+
+            let res = fclient
+                .get(&wiki.get_api())
+                .query(&req)
+                .send()
+                .await?
+                .text()
+                .await?;
+
+            let body = serde_json::from_str::<Value>(&res).unwrap_or_default();
+
+            let id = body["query"]["pageids"][0].as_str().unwrap_or("0");
+            println!("id {:?}", id);
+            let pages = &body["query"]["pages"];
+            println!("body {:?}", pages);
+            pages[id]["imageinfo"][0]["url"]
+                .as_str()
+                .map(String::from)
+                .unwrap_or_else(|| wiki.default_img())
+        }
     };
     println!("img '{}'", img);
     println!(
