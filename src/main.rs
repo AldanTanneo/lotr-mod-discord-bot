@@ -1,3 +1,4 @@
+mod announcement;
 mod database;
 mod fandom;
 
@@ -12,7 +13,7 @@ use serenity::framework::standard::{
 use serenity::model::{
     channel::Message,
     gateway::{Activity, Ready},
-    id::{GuildId, UserId},
+    id::{ChannelId, GuildId, UserId},
     misc::Mentionable,
     prelude::ReactionType,
 };
@@ -52,7 +53,7 @@ struct Admin;
 
 #[group]
 #[only_in(guilds)]
-#[commands(floppadd, blacklist)]
+#[commands(floppadd, blacklist, announce)]
 struct Moderation;
 
 struct Handler;
@@ -652,6 +653,42 @@ async fn blacklist(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
                 .await?;
         } else {
             update_blacklist(ctx, msg, args).await?;
+        }
+    } else {
+        msg.channel_id
+            .say(ctx, "You are not an admin on this server!")
+            .await?;
+        msg.react(ctx, ReactionType::from('❌')).await?;
+    }
+    Ok(())
+}
+
+#[command]
+async fn announce(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+    let admins = get_admins(ctx, msg.guild_id).await.unwrap_or_default();
+    if admins.contains(&msg.author.id) || msg.author.id == OWNER_ID {
+        let channel = serenity::utils::parse_channel(args.single::<String>()?.trim());
+        if let Some(id) = channel {
+            let content = &msg.content.split('\n').collect::<Vec<_>>()[1..]
+                .split_last()
+                .map(|(_, slice)| slice.join("\n"))
+                .unwrap_or_else(|| "".to_string());
+            if announcement::announce(ctx, ChannelId(id), &content)
+                .await
+                .is_ok()
+            {
+                msg.react(ctx, ReactionType::from('✅')).await?;
+            } else {
+                msg.channel_id
+                    .say(ctx, "Failed to parse json query!")
+                    .await?;
+                msg.react(ctx, ReactionType::from('❌')).await?;
+            };
+        } else {
+            msg.channel_id
+                .say(ctx, "The first argument must be a channel mention!")
+                .await?;
+            msg.react(ctx, ReactionType::from('❌')).await?;
         }
     } else {
         msg.channel_id

@@ -27,9 +27,9 @@ impl TypeMapKey for DatabasePool {
 }
 
 #[derive(Debug, PartialEq, Eq)]
-struct ServerPrefix {
-    server_id: u64,
-    prefix: Option<String>,
+pub(crate) struct ServerPrefix {
+    pub(crate) server_id: u64,
+    pub(crate) prefix: Option<String>,
 }
 
 pub async fn get_prefix(ctx: &Context, guild_id: Option<GuildId>) -> Option<String> {
