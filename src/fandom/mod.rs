@@ -21,6 +21,7 @@ pub async fn search(
         let query = hit
             .split(" | ")
             .flat_map(|sub| sub.split(" - "))
+            .flat_map(|sub| sub.split(" – "))
             .find(|part| !part.contains("Fandom"))?
             .trim();
 
