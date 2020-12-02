@@ -681,7 +681,7 @@ async fn announce(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
                 msg.react(ctx, ReactionType::from('✅')).await?;
             } else {
                 msg.channel_id
-                    .say(ctx, "Failed to parse json query!")
+                    .say(ctx, "Error sending the message! Check your json content and/or the bot permissions.")
                     .await?;
                 msg.react(ctx, ReactionType::from('❌')).await?;
             };
