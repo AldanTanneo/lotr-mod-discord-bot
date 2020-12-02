@@ -669,11 +669,12 @@ async fn announce(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
     if admins.contains(&msg.author.id) || msg.author.id == OWNER_ID {
         let channel = serenity::utils::parse_channel(args.single::<String>()?.trim());
         if let Some(id) = channel {
-            let content = &msg.content.split('\n').collect::<Vec<_>>()[1..]
-                .split_last()
-                .map(|(_, slice)| slice.join("\n"))
-                .unwrap_or_else(|| "".to_string());
-            if announcement::announce(ctx, ChannelId(id), &content)
+            let content = &msg.content;
+            let (a, b) = (
+                content.find('{').unwrap_or(0),
+                content.rfind('}').unwrap_or(0),
+            );
+            if announcement::announce(ctx, ChannelId(id), &content[a..=b])
                 .await
                 .is_ok()
             {
