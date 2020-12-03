@@ -126,6 +126,8 @@ async fn main() {
                 .allow_dm(false)
                 .on_mention(Some(BOT_ID))
                 .owners(vec![OWNER_ID].into_iter().collect())
+                .case_insensitivity(true)
+                .delimiters(vec![' ', '\n'])
         })
         .group(&GENERAL_GROUP)
         .group(&MEME_GROUP)
@@ -193,7 +195,7 @@ async fn help(ctx: &Context, msg: &Message) -> CommandResult {
                 );
                 e.field(
                     "Admin commands",
-                    "`prefix`\n`admin add`\n`admin remove`\n`admin list`\n`blacklist`\n",
+                    "`prefix`\n`admin add`\n`admin remove`\n`admin list`\n`blacklist`\n`announce`\n",
                     true,
                 );
                 e.field(

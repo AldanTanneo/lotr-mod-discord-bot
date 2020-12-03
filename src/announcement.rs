@@ -64,8 +64,10 @@ pub async fn announce(ctx: &Context, channel: ChannelId, content_json: &str) -> 
                             let title = field[0].as_str();
                             let content = field[1].as_str();
                             let inlined = field[2].as_bool();
-                            if title.is_some() && content.is_some() && inlined.is_some() {
-                                e.field(title.unwrap(), content.unwrap(), inlined.unwrap());
+                            if let (Some(title), Some(content), Some(inlined)) =
+                                (title, content, inlined)
+                            {
+                                e.field(title, content, inlined);
                             }
                         }
                     }
