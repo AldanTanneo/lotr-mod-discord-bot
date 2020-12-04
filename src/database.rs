@@ -130,7 +130,13 @@ pub async fn get_admins(ctx: &Context, guild_id: Option<GuildId>) -> Option<Vec<
     Some(res)
 }
 
-pub async fn add_admin(ctx: &Context, guild_id: Option<GuildId>, user_id: UserId) -> CommandResult {
+pub async fn add_admin(
+    ctx: &Context,
+    guild_id: Option<GuildId>,
+    user_id: UserId,
+    update: bool,
+    floppadmin: bool,
+) -> CommandResult {
     let pool = {
         let data_read = ctx.data.read().await;
         if let Some(p) = data_read.get::<DatabasePool>() {
@@ -143,18 +149,36 @@ pub async fn add_admin(ctx: &Context, guild_id: Option<GuildId>, user_id: UserId
     let mut conn = pool.get_conn().await?;
     let server_id: u64 = guild_id.unwrap_or(GuildId(0)).0;
 
-    conn.exec_drop(
-        format!(
-            "INSERT INTO {} (server_id, user_id) VALUES (:server_id, :user_id)",
-            TABLE_ADMINS
+    if update {
+        // UPDATE {} SET prefix = :prefix WHERE server_id = :server_id
+        conn.exec_drop(
+            format!(
+                "UPDATE {} SET floppadmin = :floppa WHERE server_id = :server_id AND user_id = :user_id",
+                TABLE_ADMINS
+            )
+            .as_str(),
+            params! {
+                "server_id" => server_id,
+                "user_id" => user_id.0,
+                "floppa" => floppadmin,
+            },
         )
-        .as_str(),
-        params! {
-            "server_id" => server_id,
-            "user_id" => user_id.0,
-        },
-    )
-    .await?;
+        .await?;
+    } else {
+        conn.exec_drop(
+            format!(
+                "INSERT INTO {} (server_id, user_id, floppadmin) VALUES (:server_id, :user_id, :floppa)",
+                TABLE_ADMINS
+            )
+            .as_str(),
+            params! {
+                "server_id" => server_id,
+                "user_id" => user_id.0,
+                "floppa" => floppadmin,
+            },
+        )
+        .await?;
+    }
 
     drop(conn);
 
@@ -470,4 +494,36 @@ pub async fn update_blacklist(ctx: &Context, msg: &Message, mut args: Args) -> C
     }
 
     Ok(())
+}
+
+pub async fn is_floppadmin(
+    ctx: &Context,
+    guild_id: Option<GuildId>,
+    user_id: UserId,
+) -> Option<bool> {
+    let pool = {
+        let data_read = ctx.data.read().await;
+        data_read.get::<DatabasePool>()?.clone()
+    };
+    let mut conn = pool.get_conn().await.ok()?;
+    let server_id: u64 = guild_id?.0;
+
+    let res = conn
+        .exec_map(
+            format!(
+                "SELECT user_id FROM {} WHERE server_id=:server_id AND floppadmin = true",
+                TABLE_ADMINS
+            )
+            .as_str(),
+            params! {
+                "server_id" => server_id
+            },
+            UserId,
+        )
+        .await
+        .ok()?;
+
+    drop(conn);
+
+    Some(res.contains(&user_id))
 }

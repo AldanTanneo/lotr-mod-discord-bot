@@ -53,7 +53,7 @@ struct Admin;
 
 #[group]
 #[only_in(guilds)]
-#[commands(floppadd, blacklist, announce)]
+#[commands(floppadd, blacklist, announce, floppadmin)]
 struct Moderation;
 
 struct Handler;
@@ -526,7 +526,7 @@ async fn add(ctx: &Context, msg: &Message) -> CommandResult {
             .find(|&user| user.id != BOT_ID && user.id != OWNER_ID)
         {
             if !admins.contains(&user.id) {
-                add_admin(ctx, msg.guild_id, user.id).await?;
+                add_admin(ctx, msg.guild_id, user.id, false, false).await?;
                 msg.react(ctx, ReactionType::from('✅')).await?;
             } else {
                 msg.channel_id
@@ -613,7 +613,11 @@ async fn list(ctx: &Context, msg: &Message) -> CommandResult {
 
 #[command]
 async fn floppadd(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    if msg.author.id == OWNER_ID {
+    if msg.author.id == OWNER_ID
+        || is_floppadmin(ctx, msg.guild_id, msg.author.id)
+            .await
+            .unwrap_or(false)
+    {
         let url = args.single::<String>();
         if let Ok(floppa_url) = url {
             add_floppa(ctx, floppa_url).await?;
@@ -705,6 +709,47 @@ async fn announce(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
     } else {
         msg.channel_id
             .say(ctx, "You are not an admin on this server!")
+            .await?;
+        msg.react(ctx, ReactionType::from('❌')).await?;
+    }
+    Ok(())
+}
+
+#[command]
+async fn floppadmin(ctx: &Context, msg: &Message) -> CommandResult {
+    let admins = get_admins(ctx, msg.guild_id).await.unwrap_or_default();
+    if msg.author.id == OWNER_ID {
+        if let Some(user) = msg
+            .mentions
+            .iter()
+            .find(|&user| user.id != BOT_ID && user.id != OWNER_ID)
+        {
+            if !is_floppadmin(ctx, msg.guild_id, user.id)
+                .await
+                .unwrap_or(false)
+            {
+                if !admins.contains(&user.id) {
+                    add_admin(ctx, msg.guild_id, user.id, false, true).await?;
+                    msg.react(ctx, ReactionType::from('✅')).await?;
+                } else {
+                    add_admin(ctx, msg.guild_id, user.id, true, true).await?;
+                    msg.react(ctx, ReactionType::from('✅')).await?;
+                }
+            } else {
+                add_admin(ctx, msg.guild_id, user.id, true, false).await?;
+                msg.react(ctx, ReactionType::from('✅')).await?;
+            }
+        } else {
+            msg.channel_id
+                .say(
+                    ctx,
+                    "Mention a user you wish to promote to floppadmin for this server.",
+                )
+                .await?;
+        }
+    } else {
+        msg.channel_id
+            .say(ctx, "You cannot add floppadmins!")
             .await?;
         msg.react(ctx, ReactionType::from('❌')).await?;
     }
