@@ -7,15 +7,15 @@ use serenity::utils::Color;
 pub async fn announce(ctx: &Context, channel: ChannelId, content_json: &str) -> CommandResult {
     let message: Value = serde_json::from_str(content_json)?;
     let content = message["content"].as_str();
-    let file = message["file"].as_str();
+    let image = message["image"].as_str();
     let embed = &message["embed"];
     channel
         .send_message(ctx, |m| {
             if let Some(content) = content {
                 m.content(content);
             }
-            if let Some(file) = file {
-                m.add_file(file);
+            if let Some(image) = image {
+                m.add_file(image);
             }
             if embed.is_object() {
                 let colour = embed["colour"].as_str();
