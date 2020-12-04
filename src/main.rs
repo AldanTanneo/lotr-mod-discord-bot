@@ -226,10 +226,19 @@ Their Discord can be found here: https://discord.gg/gMNKaX6",
 }
 
 #[command]
-async fn curseforge(ctx: &Context, msg: &Message) -> CommandResult {
+async fn curseforge(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+    let version = if args.single::<String>().unwrap_or_default() == "legacy" {
+        "Legacy"
+    } else {
+        "Renewed"
+    };
     msg.channel_id.send_message(ctx, |m| m.embed(|e|{
-        e.title("Link to the Renewed version");
-        e.description("The Renewed edition of the mod can be found on [Curseforge](https://www.curseforge.com/minecraft/mc-mods/the-lord-of-the-rings-mod-renewed)")
+        e.title(format!("Link to the {} version", version));
+        e.description(format!(
+            "The {} edition of the mod can be found on [Curseforge](https://www.curseforge.com/minecraft/mc-mods/the-lord-of-the-rings-mod-{})",
+            version,
+            version.to_lowercase()
+        ))
     })).await?;
     Ok(())
 }

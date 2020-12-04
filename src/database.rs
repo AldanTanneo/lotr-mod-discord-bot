@@ -443,7 +443,7 @@ pub async fn update_blacklist(ctx: &Context, msg: &Message, mut args: Args) -> C
             msg.channel_id
                 .say(
                     ctx,
-                    format!("Removed channel #{} from the blacklist", channel.mention()),
+                    format!("Removed channel {} from the blacklist", channel.mention()),
                 )
                 .await?;
         } else {
@@ -463,7 +463,7 @@ pub async fn update_blacklist(ctx: &Context, msg: &Message, mut args: Args) -> C
             msg.channel_id
                 .say(
                     ctx,
-                    format!("Added channel #{} to the blacklist", channel.mention()),
+                    format!("Added channel {} to the blacklist", channel.mention()),
                 )
                 .await?;
         }
