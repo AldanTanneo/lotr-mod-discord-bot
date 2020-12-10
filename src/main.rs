@@ -10,6 +10,7 @@ use serenity::framework::standard::{
     macros::{command, group},
     Args, CommandResult, StandardFramework,
 };
+use serenity::http::GuildPagination;
 use serenity::model::{
     channel::Message,
     gateway::{Activity, Ready},
@@ -64,12 +65,22 @@ impl EventHandler for Handler {
         let game =
             Activity::playing("The Lord of the Rings Mod: Bringing Middle-earth to Minecraft");
         ctx.set_activity(game).await;
-        let _ = OWNER_ID
-            .to_user(&ctx)
+        let guilds = ctx
+            .http
+            .get_guilds(&GuildPagination::After(GuildId(0)), 100)
             .await
             .unwrap()
-            .direct_message(&ctx, |m| m.content("Bot started and ready!"))
-            .await;
+            .into_iter()
+            .map(|guild| guild.name)
+            .collect::<Vec<_>>()
+            .join("\n");
+        let owner = OWNER_ID.to_user(&ctx).await.unwrap();
+        owner
+            .dm(ctx, |m| {
+                m.content(format!("Bot started and ready!\n\n**Guilds:**\n{}", guilds))
+            })
+            .await
+            .unwrap();
     }
 }
 
@@ -730,15 +741,13 @@ async fn floppadmin(ctx: &Context, msg: &Message) -> CommandResult {
             {
                 if !admins.contains(&user.id) {
                     add_admin(ctx, msg.guild_id, user.id, false, true).await?;
-                    msg.react(ctx, ReactionType::from('✅')).await?;
                 } else {
                     add_admin(ctx, msg.guild_id, user.id, true, true).await?;
-                    msg.react(ctx, ReactionType::from('✅')).await?;
                 }
             } else {
                 add_admin(ctx, msg.guild_id, user.id, true, false).await?;
-                msg.react(ctx, ReactionType::from('✅')).await?;
             }
+            msg.react(ctx, ReactionType::from('✅')).await?;
         } else {
             msg.channel_id
                 .say(
