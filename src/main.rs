@@ -624,6 +624,7 @@ async fn list(ctx: &Context, msg: &Message) -> CommandResult {
 
 #[command]
 async fn floppadd(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+    let owner = OWNER_ID.to_user(ctx);
     if msg.author.id == OWNER_ID
         || is_floppadmin(ctx, msg.guild_id, msg.author.id)
             .await
@@ -631,11 +632,9 @@ async fn floppadd(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
     {
         let url = args.single::<String>();
         if let Ok(floppa_url) = url {
-            let dm = OWNER_ID
-                .to_user(ctx)
-                .await?
-                .dm(ctx, format!("Floppa added: {}", floppa_url));
-            add_floppa(ctx, floppa_url).await?;
+            let owner = owner.await?;
+            let dm = owner.dm(ctx, |m| m.content(format!("Floppa added: {}", &floppa_url)));
+            add_floppa(ctx, floppa_url.clone()).await?;
             dm.await?.react(ctx, ReactionType::from('✅')).await?;
             msg.react(ctx, ReactionType::from('✅')).await?;
         }
