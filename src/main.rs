@@ -631,7 +631,12 @@ async fn floppadd(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
     {
         let url = args.single::<String>();
         if let Ok(floppa_url) = url {
+            let dm = OWNER_ID
+                .to_user(ctx)
+                .await?
+                .dm(ctx, format!("Floppa added: {}", floppa_url));
             add_floppa(ctx, floppa_url).await?;
+            dm.await?.react(ctx, ReactionType::from('✅')).await?;
             msg.react(ctx, ReactionType::from('✅')).await?;
         }
     }
