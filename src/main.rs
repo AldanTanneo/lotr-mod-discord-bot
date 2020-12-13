@@ -624,16 +624,23 @@ async fn list(ctx: &Context, msg: &Message) -> CommandResult {
 
 #[command]
 async fn floppadd(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    let owner = OWNER_ID.to_user(ctx);
     if msg.author.id == OWNER_ID
         || is_floppadmin(ctx, msg.guild_id, msg.author.id)
             .await
             .unwrap_or(false)
     {
+        let owner = OWNER_ID.to_user(ctx);
+        let guild = msg.guild_id.unwrap_or(GuildId(0)).to_partial_guild(ctx);
         let url = args.single::<String>();
         if let Ok(floppa_url) = url {
             let owner = owner.await?;
-            let dm = owner.dm(ctx, |m| m.content(format!("Floppa added: {}", &floppa_url)));
+            let guild = guild.await?;
+            let dm = owner.dm(ctx, |m| {
+                m.content(format!(
+                    "Floppa added by {} in {}\n{}",
+                    msg.author.name, guild.name, &floppa_url
+                ))
+            });
             add_floppa(ctx, floppa_url.clone()).await?;
             dm.await?.react(ctx, ReactionType::from('✅')).await?;
             msg.react(ctx, ReactionType::from('✅')).await?;
