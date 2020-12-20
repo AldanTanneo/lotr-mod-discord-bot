@@ -10,6 +10,7 @@ use serenity::model::{
 };
 use serenity::prelude::TypeMapKey;
 use std::sync::Arc;
+use std::cmp;
 
 use Blacklist::*;
 
@@ -240,9 +241,14 @@ pub async fn get_floppa(ctx: &Context, n: Option<u32>) -> Option<String> {
         )
         .await
         .ok()?;
-
-    let floppa_id = if n.is_some() && ids.contains(&n.unwrap()) {
-        n.unwrap()
+    
+    
+    let floppa_id = if n.is_some() && ids.len() > 0 { 
+        if ids.contains(&n.unwrap()) {
+            n.unwrap()
+        } else {
+            *ids.get(cmp::max(0, (n.unwrap() - 1) as usize % ids.len())).unwrap()
+        }
     } else {
         choose_from_ids(ids)
     };
