@@ -244,7 +244,7 @@ pub async fn get_floppa(ctx: &Context, n: Option<u32>) -> Option<String> {
     
     
     let floppa_id = if n.is_some() && ids.len() > 0 { 
-        *ids.get(cmp::max(0, n.unwrap() as usize % ids.len())).unwrap()
+        *ids.get(cmp::max(0, (n.unwrap() - 1) as usize % ids.len())).unwrap()
     } else {
         choose_from_ids(ids)
     };
