@@ -10,7 +10,6 @@ use serenity::model::{
 };
 use serenity::prelude::TypeMapKey;
 use std::sync::Arc;
-use std::cmp;
 
 use Blacklist::*;
 
@@ -150,38 +149,27 @@ pub async fn add_admin(
     let mut conn = pool.get_conn().await?;
     let server_id: u64 = guild_id.unwrap_or(GuildId(0)).0;
 
-    if update {
-        // UPDATE {} SET prefix = :prefix WHERE server_id = :server_id
-        conn.exec_drop(
-            format!(
+    let req = if update {
+        format!(
                 "UPDATE {} SET floppadmin = :floppa WHERE server_id = :server_id AND user_id = :user_id",
                 TABLE_ADMINS
             )
-            .as_str(),
-            params! {
-                "server_id" => server_id,
-                "user_id" => user_id.0,
-                "floppa" => floppadmin,
-            },
-        )
-        .await?;
     } else {
-        conn.exec_drop(
-            format!(
+        format!(
                 "INSERT INTO {} (server_id, user_id, floppadmin) VALUES (:server_id, :user_id, :floppa)",
                 TABLE_ADMINS
             )
-            .as_str(),
-            params! {
-                "server_id" => server_id,
-                "user_id" => user_id.0,
-                "floppa" => floppadmin,
-            },
-        )
-        .await?;
-    }
+    };
 
-    drop(conn);
+    conn.exec_drop(
+        req.as_str(),
+        params! {
+            "server_id" => server_id,
+            "user_id" => user_id.0,
+            "floppa" => floppadmin,
+        },
+    )
+    .await?;
 
     Ok(())
 }
@@ -241,13 +229,16 @@ pub async fn get_floppa(ctx: &Context, n: Option<u32>) -> Option<String> {
         )
         .await
         .ok()?;
-    
-    
-    let floppa_id = if n.is_some() && ids.len() > 0 { 
-        if ids.contains(&n.unwrap()) {
-            n.unwrap()
+
+    if ids.is_empty() {
+        return None;
+    }
+
+    let floppa_id = if let Some(n) = n {
+        if ids.contains(&n) {
+            n
         } else {
-            *ids.get(cmp::max(0, (n.unwrap() - 1) as usize % ids.len())).unwrap()
+            *ids.get(0.max((n - 1) as usize % ids.len()))?
         }
     } else {
         choose_from_ids(ids)
