@@ -174,7 +174,7 @@ async fn renewed(ctx: &Context, msg: &Message) -> CommandResult {
             m.embed(|e| {
                 e.title("Use the 1.7.10 version");
                 e.description(
-                    "The 1.15.2 version of the mod is a work in progress, missing many features.
+                    "The 1.15.2 version of the mod is a work in progress, missing many features such as NPCs and structures.
 You can find those in the full 1.7.10 Legacy edition [here](https://www.curseforge.com/minecraft/mc-mods/the-lord-of-the-rings-mod-legacy)",
                 )
             });
