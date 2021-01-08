@@ -7,7 +7,7 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-tokio = { version = "0.2.23", features = ["macros"] }
+tokio = { version = "1.0.1", features = ["macros", "rt-multi-thread"] }
 itertools = "0.10.0"
 mysql_async = "0.25.0"
 reqwest = "0.11.0"
