@@ -19,7 +19,6 @@ use serenity::model::{
     prelude::ReactionType,
 };
 use std::{env, sync::Arc};
-use sys_info::mem_info;
 
 use database::*;
 use fandom::*;
@@ -50,7 +49,7 @@ struct Wiki;
 #[only_in(guilds)]
 #[prefixes("admin")]
 #[default_command(list)]
-#[commands(add, remove, list, memory)]
+#[commands(add, remove, list)]
 struct Admin;
 
 #[group]
@@ -207,7 +206,7 @@ async fn help(ctx: &Context, msg: &Message) -> CommandResult {
                 );
                 e.field(
                     "Admin commands",
-                    "`prefix`\n`admin add`\n`admin remove`\n`admin list`\n`blacklist`\n`announce`\n`memory`\n",
+                    "`prefix`\n`admin add`\n`admin remove`\n`admin list`\n`blacklist`\n`announce`\n",
                     true,
                 );
                 e.field(
@@ -773,35 +772,6 @@ async fn floppadmin(ctx: &Context, msg: &Message) -> CommandResult {
     } else {
         msg.channel_id
             .say(ctx, "You cannot add floppadmins!")
-            .await?;
-        msg.react(ctx, ReactionType::from('❌')).await?;
-    }
-    Ok(())
-}
-
-#[command]
-async fn memory(ctx: &Context, msg: &Message) -> CommandResult {
-    let admins = get_admins(ctx, msg.guild_id).await.unwrap_or_default();
-    if admins.contains(&msg.author.id) || msg.author.id == OWNER_ID {
-        let mem = mem_info()?;
-        msg.channel_id
-            .send_message(ctx, |m| {
-                m.embed(|e| {
-                    e.title("Memory usage");
-                    e.field("Total ", mem.total.to_string(), true);
-                    e.field("Free ", mem.free.to_string(), true);
-                    e.field("Available ", mem.avail.to_string(), true);
-                    e.field("Buffers ", mem.buffers.to_string(), true);
-                    e.field("Cached ", mem.cached.to_string(), true);
-                    e.field("Swap total ", mem.swap_total.to_string(), true);
-                    e.field("Swap free ", mem.swap_free.to_string(), true);
-                    e
-                })
-            })
-            .await?;
-    } else {
-        msg.channel_id
-            .say(ctx, "You are not an admin on this server!")
             .await?;
         msg.react(ctx, ReactionType::from('❌')).await?;
     }
