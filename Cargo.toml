@@ -7,14 +7,22 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-tokio = { version = "1.0", features = ["macros", "rt-multi-thread"] }
 itertools = "0.10"
-mysql_async = { git = "https://github.com/blackbeam/mysql_async", branch="tokio3" }
 reqwest = "0.11"
 serde_json = "1.0"
 serde = "1.0"
 rand = "0.8"
-search_with_google = { git = "https://gitlab.com/AldanTanneo/search-with-google" }
+mysql_async = "0.26"
+
+[dependencies.tokio]
+version = "1.0"
+features = [
+    "macros", 
+    "rt-multi-thread"
+]
+
+[dependencies.search_with_google]
+git = "https://gitlab.com/AldanTanneo/search-with-google"
 
 [dependencies.serenity]
 default-features = false

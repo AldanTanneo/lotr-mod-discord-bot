@@ -86,6 +86,7 @@ impl EventHandler for Handler {
 
 #[tokio::main]
 async fn main() {
+    let token = env::var("DISCORD_TOKEN").expect("Expected a token in the environment");
     let db_name: String = env::var("DB_NAME").expect("Expected an environment variable DB_NAME");
     let db_user: String = env::var("DB_USER").expect("Expected an environment variable DB_USER");
     let db_password: String =
@@ -146,12 +147,12 @@ async fn main() {
         .group(&ADMIN_GROUP)
         .group(&MODERATION_GROUP);
 
-    let token = env::var("DISCORD_TOKEN").expect("Expected a token in the environment");
     let mut client = Client::builder(token)
         .event_handler(Handler)
         .framework(framework)
         .await
         .expect("Error creating client");
+
     {
         let mut data = client.data.write().await;
 
