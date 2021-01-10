@@ -10,7 +10,7 @@ use serenity::framework::standard::{
     macros::{command, group},
     Args, CommandResult, StandardFramework,
 };
-use serenity::http::GuildPagination;
+use serenity::futures::future::join_all;
 use serenity::model::{
     channel::Message,
     gateway::{Activity, Ready},
@@ -61,21 +61,25 @@ struct Handler;
 
 #[async_trait]
 impl EventHandler for Handler {
-    async fn ready(&self, ctx: Context, _ready: Ready) {
+    async fn ready(&self, ctx: Context, ready: Ready) {
         {
             let game =
                 Activity::playing("The Lord of the Rings Mod: Bringing Middle-earth to Minecraft");
             ctx.set_activity(game).await;
         }
-        let guilds = ctx
-            .http
-            .get_guilds(&GuildPagination::After(GuildId(0)), 100)
-            .await
-            .unwrap()
-            .into_iter()
-            .map(|guild| guild.name)
-            .collect::<Vec<_>>()
-            .join("\n");
+
+        let guilds = join_all(
+            ready
+                .guilds
+                .iter()
+                .map(|guild| guild.id().to_partial_guild(&ctx)),
+        )
+        .await
+        .iter()
+        .filter_map(|guild| guild.as_ref().map(|g| g.name.clone()).ok())
+        .collect::<Vec<_>>()
+        .join("\n");
+
         let owner = OWNER_ID.to_user(&ctx).await.unwrap();
         owner
             .dm(ctx, |m| {
