@@ -62,9 +62,11 @@ struct Handler;
 #[async_trait]
 impl EventHandler for Handler {
     async fn ready(&self, ctx: Context, _ready: Ready) {
-        let game =
-            Activity::playing("The Lord of the Rings Mod: Bringing Middle-earth to Minecraft");
-        ctx.set_activity(game).await;
+        {
+            let game =
+                Activity::playing("The Lord of the Rings Mod: Bringing Middle-earth to Minecraft");
+            ctx.set_activity(game).await;
+        }
         let guilds = ctx
             .http
             .get_guilds(&GuildPagination::After(GuildId(0)), 100)
@@ -325,7 +327,7 @@ async fn floppa(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     } else {
         "https://i.kym-cdn.com/photos/images/original/001/878/839/c6f.jpeg".to_string()
     };
-    msg.channel_id.say(ctx, url).await?;
+    msg.reply(ctx, url).await?;
     Ok(())
 }
 
@@ -366,12 +368,11 @@ async fn wiki_search(
     if let Some(page) = p {
         fandom::display(ctx, msg, &page, wiki).await?;
     } else {
-        msg.channel_id
-            .say(
-                ctx,
-                format!("Couldn't find a {} for the given name!", namespace),
-            )
-            .await?;
+        msg.reply(
+            ctx,
+            format!("Couldn't find a {} for the given name!", namespace),
+        )
+        .await?;
     }
     Ok(())
 }
@@ -490,35 +491,30 @@ async fn minecraft(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 async fn prefix(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     if args.is_empty() {
         let prefix = get_prefix(ctx, msg.guild_id).await;
-        msg.channel_id
-            .say(
-                ctx,
-                format!(
-                    "My prefix here is \"{}\"",
-                    prefix.unwrap_or_else(|| "!".into())
-                ),
-            )
-            .await?;
+        msg.reply(
+            ctx,
+            format!(
+                "My prefix here is \"{}\"",
+                prefix.unwrap_or_else(|| "!".into())
+            ),
+        )
+        .await?;
     } else {
         let admins = get_admins(ctx, msg.guild_id).await.unwrap_or_default();
         if admins.contains(&msg.author.id) || msg.author.id == OWNER_ID {
             let new_prefix = args.single::<String>();
             if let Ok(p) = new_prefix {
                 if !p.contains("<@") && set_prefix(ctx, msg.guild_id, &p, true).await.is_ok() {
-                    msg.channel_id
-                        .say(ctx, format!("Set the new prefix to \"{}\"", p))
+                    msg.reply(ctx, format!("Set the new prefix to \"{}\"", p))
                         .await?;
                 } else {
-                    msg.channel_id
-                        .say(ctx, "Failed to set the new prefix!")
-                        .await?;
+                    msg.reply(ctx, "Failed to set the new prefix!").await?;
                 }
             } else {
-                msg.channel_id.say(ctx, "Invalid new prefix!").await?;
+                msg.reply(ctx, "Invalid new prefix!").await?;
             }
         } else {
-            msg.channel_id
-                .say(ctx, "You are not an admin on this server!")
+            msg.reply(ctx, "You are not an admin on this server!")
                 .await?;
             msg.react(ctx, ReactionType::from('❌')).await?;
         }
@@ -541,21 +537,18 @@ async fn add(ctx: &Context, msg: &Message) -> CommandResult {
                 add_admin(ctx, msg.guild_id, user.id, false, false).await?;
                 msg.react(ctx, ReactionType::from('✅')).await?;
             } else {
-                msg.channel_id
-                    .say(ctx, "This user is already a bot admin on this server!")
+                msg.reply(ctx, "This user is already a bot admin on this server!")
                     .await?;
             }
         } else {
-            msg.channel_id
-                .say(
-                    ctx,
-                    "Mention a user you wish to promote to bot admin for this server.",
-                )
-                .await?;
+            msg.reply(
+                ctx,
+                "Mention a user you wish to promote to bot admin for this server.",
+            )
+            .await?;
         }
     } else {
-        msg.channel_id
-            .say(ctx, "You are not an admin on this server!")
+        msg.reply(ctx, "You are not an admin on this server!")
             .await?;
         msg.react(ctx, ReactionType::from('❌')).await?;
     }
@@ -577,21 +570,18 @@ async fn remove(ctx: &Context, msg: &Message) -> CommandResult {
                 remove_admin(ctx, msg.guild_id, user.id).await?;
                 msg.react(ctx, ReactionType::from('✅')).await?;
             } else {
-                msg.channel_id
-                    .say(ctx, "This user is not a bot admin on this server!")
+                msg.reply(ctx, "This user is not a bot admin on this server!")
                     .await?;
             }
         } else {
-            msg.channel_id
-                .say(
-                    ctx,
-                    "Mention a user you wish to remove from bot admins for this server.",
-                )
-                .await?;
+            msg.reply(
+                ctx,
+                "Mention a user you wish to remove from bot admins for this server.",
+            )
+            .await?;
         }
     } else {
-        msg.channel_id
-            .say(ctx, "You are not an admin on this server!")
+        msg.reply(ctx, "You are not an admin on this server!")
             .await?;
         msg.react(ctx, ReactionType::from('❌')).await?;
     }
@@ -695,8 +685,7 @@ async fn blacklist(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
             update_blacklist(ctx, msg, args).await?;
         }
     } else {
-        msg.channel_id
-            .say(ctx, "You are not an admin on this server!")
+        msg.reply(ctx, "You are not an admin on this server!")
             .await?;
         msg.react(ctx, ReactionType::from('❌')).await?;
     }
@@ -720,20 +709,17 @@ async fn announce(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
             {
                 msg.react(ctx, ReactionType::from('✅')).await?;
             } else {
-                msg.channel_id
-                    .say(ctx, "Error sending the message! Check your json content and/or the bot permissions.")
+                msg.reply(ctx, "Error sending the message! Check your json content and/or the bot permissions.")
                     .await?;
                 msg.react(ctx, ReactionType::from('❌')).await?;
             };
         } else {
-            msg.channel_id
-                .say(ctx, "The first argument must be a channel mention!")
+            msg.reply(ctx, "The first argument must be a channel mention!")
                 .await?;
             msg.react(ctx, ReactionType::from('❌')).await?;
         }
     } else {
-        msg.channel_id
-            .say(ctx, "You are not an admin on this server!")
+        msg.reply(ctx, "You are not an admin on this server!")
             .await?;
         msg.react(ctx, ReactionType::from('❌')).await?;
     }
@@ -763,17 +749,14 @@ async fn floppadmin(ctx: &Context, msg: &Message) -> CommandResult {
             }
             msg.react(ctx, ReactionType::from('✅')).await?;
         } else {
-            msg.channel_id
-                .say(
-                    ctx,
-                    "Mention a user you wish to promote to floppadmin for this server.",
-                )
-                .await?;
+            msg.reply(
+                ctx,
+                "Mention a user you wish to promote to floppadmin for this server.",
+            )
+            .await?;
         }
     } else {
-        msg.channel_id
-            .say(ctx, "You cannot add floppadmins!")
-            .await?;
+        msg.reply(ctx, "You cannot add floppadmins!").await?;
         msg.react(ctx, ReactionType::from('❌')).await?;
     }
     Ok(())
