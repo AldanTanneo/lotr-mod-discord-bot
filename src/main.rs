@@ -336,7 +336,8 @@ async fn aeugh(ctx: &Context, msg: &Message) -> CommandResult {
     check_allowed!(ctx, msg);
     msg.channel_id
         .send_message(ctx, |m| {
-            m.add_file("https://cdn.discordapp.com/attachments/405122337139064834/782087543046668319/aeugh.mp4")
+            m.add_file("https://cdn.discordapp.com/attachments/405122337139064834/782087543046668319/aeugh.mp4");
+            m.reference_message(msg)
         })
         .await?;
     Ok(())
@@ -347,7 +348,8 @@ async fn dagohon(ctx: &Context, msg: &Message) -> CommandResult {
     check_allowed!(ctx, msg);
     msg.channel_id
         .send_message(ctx, |m| {
-            m.add_file("https://cdn.discordapp.com/attachments/405097997970702337/782656209987043358/dagohon.mp4")
+            m.add_file("https://cdn.discordapp.com/attachments/405097997970702337/782656209987043358/dagohon.mp4");
+            m.reference_message(msg)
         })
         .await?;
     Ok(())

@@ -246,7 +246,7 @@ pub async fn display(
                 e.url(&page.link);
                 e
             });
-            m
+            m.reference_message(msg)
         })
         .await?;
 
