@@ -246,7 +246,8 @@ pub async fn display(
                 e.url(&page.link);
                 e
             });
-            m.reference_message(msg)
+            m.reference_message(msg);
+            m.allowed_mentions(|a| a.empty_parse())
         })
         .await?;
 
