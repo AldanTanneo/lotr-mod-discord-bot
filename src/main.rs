@@ -55,8 +55,7 @@ struct Wiki;
 struct Admin;
 
 #[group]
-#[only_in(guilds)]
-#[commands(floppadd, blacklist, announce, floppadmin, guilds)]
+#[commands(floppadd, blacklist, announce, floppadmin, listguilds)]
 struct Moderation;
 
 struct Handler;
@@ -671,7 +670,10 @@ async fn floppadd(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
         let url = args.single::<String>();
         if let Ok(floppa_url) = url {
             let owner = owner.await?;
-            let guild = guild.await.map(|g| g.name).unwrap_or("DMs".to_string());
+            let guild = guild
+                .await
+                .map(|g| g.name)
+                .unwrap_or_else(|_| "DMs".to_string());
             let dm = owner.dm(ctx, |m| {
                 m.content(format!(
                     "Floppa added by {} in {}\n{}",
@@ -826,7 +828,7 @@ async fn floppadmin(ctx: &Context, msg: &Message) -> CommandResult {
 }
 
 #[command]
-async fn guilds(ctx: &Context, msg: &Message) -> CommandResult {
+async fn listguilds(ctx: &Context, msg: &Message) -> CommandResult {
     if msg.author.id == OWNER_ID {
         let mut id = GuildId(0);
         let owner = OWNER_ID.to_user(&ctx).await?;
