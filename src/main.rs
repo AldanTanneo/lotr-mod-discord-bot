@@ -541,7 +541,7 @@ async fn prefix(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
 async fn has_permission(
     ctx: &Context,
     guild: GuildId,
-    user: serenity::model::user::User,
+    user: &serenity::model::user::User,
     perm: serenity::model::Permissions,
 ) -> bool {
     if let Ok(g) = guild.to_partial_guild(&ctx).await {
@@ -567,7 +567,7 @@ async fn add(ctx: &Context, msg: &Message) -> CommandResult {
         || has_permission(
             ctx,
             guild,
-            msg.author.clone(),
+            &msg.author,
             serenity::model::Permissions::MANAGE_GUILD,
         )
         .await)
