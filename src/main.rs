@@ -752,6 +752,12 @@ async fn announce(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
                 .await?
                 .contains_key(&ChannelId(id))
             {
+                msg.reply(
+                    ctx,
+                    "You can only announce in the same server as the one you are in!",
+                )
+                .await?;
+                msg.react(ctx, ReactionType::from('❌')).await?;
                 return Ok(());
             };
             let content = &msg.content;
