@@ -747,7 +747,7 @@ async fn announce(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
         let channel = serenity::utils::parse_channel(args.single::<String>()?.trim());
         if let Some(id) = channel {
             if msg.guild_id
-                == ChannelId(id)
+                != ChannelId(id)
                     .to_channel(ctx)
                     .await?
                     .guild()
