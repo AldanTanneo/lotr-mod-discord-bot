@@ -750,8 +750,7 @@ async fn announce(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
                 .await?
                 .channels(ctx)
                 .await?
-                .get(&ChannelId(id))
-                .is_none()
+                .contains_key(&ChannelId(id))
             {
                 return Ok(());
             };
