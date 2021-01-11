@@ -743,6 +743,18 @@ async fn announce(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
     if admins.contains(&msg.author.id) || msg.author.id == OWNER_ID {
         let channel = serenity::utils::parse_channel(args.single::<String>()?.trim());
         if let Some(id) = channel {
+            if msg
+                .guild_id
+                .unwrap_or(GuildId(0))
+                .to_partial_guild(ctx)
+                .await?
+                .channels(ctx)
+                .await?
+                .get(&ChannelId(id))
+                .is_none()
+            {
+                return Ok(());
+            };
             let content = &msg.content;
             let (a, b) = (
                 content.find('{').unwrap_or(0),
