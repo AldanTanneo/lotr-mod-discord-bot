@@ -17,6 +17,8 @@ use serenity::model::{
     id::{ChannelId, GuildId, UserId},
     misc::Mentionable,
     prelude::ReactionType,
+    user::User,
+    Permissions,
 };
 use std::{env, sync::Arc};
 
@@ -144,7 +146,6 @@ async fn main() {
                         )
                     })
                 })
-                .allow_dm(false)
                 .on_mention(Some(BOT_ID))
                 .owners(vec![OWNER_ID].into_iter().collect())
                 .case_insensitivity(true)
@@ -178,6 +179,7 @@ async fn main() {
 // ------------------ GENERAL COMMANDS --------------------
 
 #[command]
+#[only_in(guilds)]
 async fn renewed(ctx: &Context, msg: &Message) -> CommandResult {
     msg.channel_id
         .send_message(ctx, |m| {
@@ -196,6 +198,7 @@ You can find those in the full 1.7.10 Legacy edition [here](https://www.cursefor
     Ok(())
 }
 
+// TODO: Improve help message
 #[command]
 async fn help(ctx: &Context, msg: &Message) -> CommandResult {
     let prefix = get_prefix(ctx, msg.guild_id).await;
@@ -239,6 +242,7 @@ async fn help(ctx: &Context, msg: &Message) -> CommandResult {
 }
 
 #[command]
+#[only_in(guilds)]
 async fn tos(ctx: &Context, msg: &Message) -> CommandResult {
     if msg.guild_id.unwrap_or(GuildId(0)) == LOTR_DISCORD {
         msg.channel_id
@@ -270,6 +274,7 @@ async fn curseforge(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
 }
 
 #[command]
+#[only_in(guilds)]
 async fn forge(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let (version, mc) = if args.single::<String>().unwrap_or_default() == "legacy" {
         ("1558", "1.7.10")
@@ -293,6 +298,7 @@ async fn forge(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
 }
 
 #[command]
+#[only_in(guilds)]
 async fn coremod(ctx: &Context, msg: &Message) -> CommandResult {
     msg.channel_id
         .send_message(ctx, |m| m.embed(|e| {
@@ -330,6 +336,7 @@ macro_rules! check_allowed {
 }
 
 #[command]
+#[only_in(guilds)]
 #[max_args(1)]
 async fn floppa(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     check_allowed!(ctx, msg);
@@ -344,6 +351,7 @@ async fn floppa(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
 }
 
 #[command]
+#[only_in(guilds)]
 async fn aeugh(ctx: &Context, msg: &Message) -> CommandResult {
     check_allowed!(ctx, msg);
     msg.channel_id
@@ -357,6 +365,7 @@ async fn aeugh(ctx: &Context, msg: &Message) -> CommandResult {
 }
 
 #[command]
+#[only_in(guilds)]
 async fn dagohon(ctx: &Context, msg: &Message) -> CommandResult {
     check_allowed!(ctx, msg);
     msg.channel_id
@@ -502,7 +511,7 @@ async fn minecraft(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 // ---------------- ADMIN COMMANDS -------------
 
 #[command]
-#[owner_privilege(true)]
+#[only_in(guilds)]
 #[max_args(1)]
 async fn prefix(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     if args.is_empty() {
@@ -538,12 +547,7 @@ async fn prefix(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     Ok(())
 }
 
-async fn has_permission(
-    ctx: &Context,
-    guild: GuildId,
-    user: &serenity::model::user::User,
-    perm: serenity::model::Permissions,
-) -> bool {
+async fn has_permission(ctx: &Context, guild: GuildId, user: &User, perm: Permissions) -> bool {
     if let Ok(g) = guild.to_partial_guild(&ctx).await {
         for (role_id, role) in g.roles.iter() {
             if role.permissions.intersects(perm)
@@ -557,6 +561,7 @@ async fn has_permission(
 }
 
 #[command]
+#[only_in(guilds)]
 #[max_args(1)]
 #[min_args(1)]
 async fn add(ctx: &Context, msg: &Message) -> CommandResult {
@@ -564,13 +569,7 @@ async fn add(ctx: &Context, msg: &Message) -> CommandResult {
     let guild = msg.guild_id.unwrap_or(GuildId(0));
     if (admins.contains(&msg.author.id)
         || msg.author.id == OWNER_ID
-        || has_permission(
-            ctx,
-            guild,
-            &msg.author,
-            serenity::model::Permissions::MANAGE_GUILD,
-        )
-        .await)
+        || has_permission(ctx, guild, &msg.author, Permissions::MANAGE_GUILD).await)
         && !msg.mentions.is_empty()
     {
         if let Some(user) = msg
@@ -601,6 +600,7 @@ async fn add(ctx: &Context, msg: &Message) -> CommandResult {
 }
 
 #[command]
+#[only_in(guilds)]
 #[max_args(1)]
 #[min_args(1)]
 async fn remove(ctx: &Context, msg: &Message) -> CommandResult {
@@ -634,6 +634,7 @@ async fn remove(ctx: &Context, msg: &Message) -> CommandResult {
 }
 
 #[command]
+#[only_in(guilds)]
 async fn list(ctx: &Context, msg: &Message) -> CommandResult {
     let admins = get_admins(ctx, msg.guild_id).await.unwrap_or_else(Vec::new);
 
@@ -670,11 +671,11 @@ async fn floppadd(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
         let url = args.single::<String>();
         if let Ok(floppa_url) = url {
             let owner = owner.await?;
-            let guild = guild.await?;
+            let guild = guild.await.map(|g| g.name).unwrap_or("DMs".to_string());
             let dm = owner.dm(ctx, |m| {
                 m.content(format!(
                     "Floppa added by {} in {}\n{}",
-                    msg.author.name, guild.name, &floppa_url
+                    msg.author.name, guild, &floppa_url
                 ))
             });
             add_floppa(ctx, floppa_url.clone()).await?;
@@ -686,6 +687,7 @@ async fn floppadd(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
 }
 
 #[command]
+#[only_in(guilds)]
 async fn blacklist(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let admins = get_admins(ctx, msg.guild_id).await.unwrap_or_default();
     if admins.contains(&msg.author.id) || msg.author.id == OWNER_ID {
@@ -738,19 +740,18 @@ async fn blacklist(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 }
 
 #[command]
+#[only_in(guilds)]
 async fn announce(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let admins = get_admins(ctx, msg.guild_id).await.unwrap_or_default();
     if admins.contains(&msg.author.id) || msg.author.id == OWNER_ID {
         let channel = serenity::utils::parse_channel(args.single::<String>()?.trim());
         if let Some(id) = channel {
-            if msg
-                .guild_id
-                .unwrap_or(GuildId(0))
-                .to_partial_guild(ctx)
-                .await?
-                .channels(ctx)
-                .await?
-                .contains_key(&ChannelId(id))
+            if msg.guild_id
+                == ChannelId(id)
+                    .to_channel(ctx)
+                    .await?
+                    .guild()
+                    .map(|c| c.guild_id)
             {
                 msg.reply(
                     ctx,
