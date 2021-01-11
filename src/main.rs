@@ -10,7 +10,7 @@ use serenity::framework::standard::{
     macros::{command, group},
     Args, CommandResult, StandardFramework,
 };
-use serenity::futures::future::join_all;
+use serenity::futures::future::{join3, join_all};
 use serenity::model::{
     channel::Message,
     gateway::{Activity, Ready},
@@ -54,7 +54,7 @@ struct Admin;
 
 #[group]
 #[only_in(guilds)]
-#[commands(floppadd, blacklist, announce, floppadmin)]
+#[commands(floppadd, blacklist, announce, floppadmin, guilds)]
 struct Moderation;
 
 struct Handler;
@@ -62,28 +62,31 @@ struct Handler;
 #[async_trait]
 impl EventHandler for Handler {
     async fn ready(&self, ctx: Context, ready: Ready) {
-        {
-            let game =
-                Activity::playing("The Lord of the Rings Mod: Bringing Middle-earth to Minecraft");
-            ctx.set_activity(game).await;
-        }
-
-        let guilds = join_all(
-            ready
-                .guilds
-                .iter()
-                .map(|guild| guild.id().to_partial_guild(&ctx)),
+        let (_, guilds, owner) = join3(
+            ctx.set_activity(Activity::playing(
+                "The Lord of the Rings Mod: Bringing Middle-earth to Minecraft",
+            )),
+            join_all(
+                ready
+                    .guilds
+                    .iter()
+                    .map(|guild| guild.id().to_partial_guild(&ctx)),
+            ),
+            OWNER_ID.to_user(&ctx),
         )
-        .await
-        .iter()
-        .filter_map(|guild| guild.as_ref().map(|g| g.name.clone()).ok())
-        .collect::<Vec<_>>()
-        .join("\n");
+        .await;
 
-        let owner = OWNER_ID.to_user(&ctx).await.unwrap();
         owner
+            .unwrap()
             .dm(ctx, |m| {
-                m.content(format!("Bot started and ready!\n\n**Guilds:**\n{}", guilds))
+                m.content(format!(
+                    "Bot started and ready!\n\n**Guilds:**\n{}",
+                    guilds
+                        .iter()
+                        .filter_map(|guild| guild.as_ref().map(|g| g.name.clone()).ok())
+                        .collect::<Vec<_>>()
+                        .join("\n")
+                ))
             })
             .await
             .unwrap();
@@ -767,5 +770,40 @@ async fn floppadmin(ctx: &Context, msg: &Message) -> CommandResult {
         msg.reply(ctx, "You cannot add floppadmins!").await?;
         msg.react(ctx, ReactionType::from('❌')).await?;
     }
+    Ok(())
+}
+
+#[command]
+async fn guilds(ctx: &Context, msg: &Message) -> CommandResult {
+    if msg.author.id == OWNER_ID {
+        let mut id = GuildId(0);
+        let owner = OWNER_ID.to_user(&ctx).await?;
+        let mut first = true;
+        while let Ok(vec) = ctx
+            .http
+            .get_guilds(&serenity::http::GuildPagination::After(id), 20)
+            .await
+        {
+            if vec.is_empty() {
+                break;
+            } else {
+                let guild_names = vec
+                    .iter()
+                    .map(|g| g.name.clone())
+                    .collect::<Vec<_>>()
+                    .join("\n");
+                id = vec[vec.len() - 1].id;
+                if first {
+                    first = false;
+                    owner
+                        .dm(&ctx, |m| m.content(format!("**Guilds:**\n{}", guild_names)))
+                        .await?;
+                } else {
+                    owner.dm(&ctx, |m| m.content(guild_names)).await?;
+                }
+            }
+        }
+    }
+    msg.delete(ctx).await?;
     Ok(())
 }
