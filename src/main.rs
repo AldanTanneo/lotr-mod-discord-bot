@@ -206,7 +206,10 @@ async fn help(ctx: &Context, msg: &Message) -> CommandResult {
                 e.title("Available commands");
                 e.field(
                     "General commands",
-                    "`renewed`\n`forge`\n`coremod`\n`tos`\n`curseforge`\n`help`\n",
+                    format!("{}{}",
+                        "`renewed`\n`forge`\n`coremod`\n`curseforge`\n`help`\n",
+                        if msg.guild_id.unwrap_or(GuildId(0)) == LOTR_DISCORD { "`tos`\n"} else {""}
+                    ),
                     true,
                 );
                 e.field(
@@ -237,12 +240,14 @@ async fn help(ctx: &Context, msg: &Message) -> CommandResult {
 
 #[command]
 async fn tos(ctx: &Context, msg: &Message) -> CommandResult {
-    msg.channel_id
+    if msg.guild_id.unwrap_or(GuildId(0)) == LOTR_DISCORD {
+        msg.channel_id
         .say(ctx,
             "This is the Discord server of the **Lord of the Rings Mod**, not the official Minecraft server of the mod.
 Their Discord can be found here: https://discord.gg/gMNKaX6",
         )
         .await?;
+    }
     Ok(())
 }
 
@@ -533,12 +538,41 @@ async fn prefix(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     Ok(())
 }
 
+async fn has_permission(
+    ctx: &Context,
+    guild: GuildId,
+    user: serenity::model::user::User,
+    perm: serenity::model::Permissions,
+) -> bool {
+    if let Ok(g) = guild.to_partial_guild(&ctx).await {
+        for (role_id, role) in g.roles.iter() {
+            if role.permissions.intersects(perm)
+                && user.has_role(ctx, guild, role_id).await.unwrap_or(false)
+            {
+                return true;
+            }
+        }
+    }
+    false
+}
+
 #[command]
 #[max_args(1)]
 #[min_args(1)]
 async fn add(ctx: &Context, msg: &Message) -> CommandResult {
     let admins = get_admins(ctx, msg.guild_id).await.unwrap_or_default();
-    if (admins.contains(&msg.author.id) || msg.author.id == OWNER_ID) && !msg.mentions.is_empty() {
+    let guild = msg.guild_id.unwrap_or(GuildId(0));
+    if (admins.contains(&msg.author.id)
+        || msg.author.id == OWNER_ID
+        || has_permission(
+            ctx,
+            guild,
+            msg.author.clone(),
+            serenity::model::Permissions::MANAGE_GUILD,
+        )
+        .await)
+        && !msg.mentions.is_empty()
+    {
         if let Some(user) = msg
             .mentions
             .iter()
