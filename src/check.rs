@@ -1,0 +1,103 @@
+use crate::database::*;
+use crate::{LOTR_DISCORD, OWNER_ID};
+use serenity::framework::standard::{
+    macros::{check, hook},
+    DispatchError, Reason,
+};
+use serenity::futures::future::join;
+use serenity::model::{
+    channel::Message, id::GuildId, prelude::ReactionType, user::User, Permissions,
+};
+use serenity::prelude::*;
+
+#[check]
+pub async fn allowed_blacklist(ctx: &Context, msg: &Message) -> Result<(), Reason> {
+    let admins = get_admins(ctx, msg.guild_id).await.unwrap_or_default();
+    if !(admins.contains(&msg.author.id)
+        || msg.author.id == OWNER_ID
+        || !check_blacklist(ctx, msg, false)
+            .await
+            .unwrap_or_else(|| Blacklist::IsBlacklisted(true))
+            .is_blacklisted())
+    {
+        msg.delete(ctx)
+            .await
+            .map_err(|_| Reason::Log("Blacklisted".to_string()))?;
+        Err(Reason::UserAndLog {
+            user: "You are not allowed to use this command here.".to_string(),
+            log: "Sending DM warning".to_string(),
+        })
+    } else {
+        Ok(())
+    }
+}
+
+#[check]
+pub async fn is_lotr_discord(_: &Context, msg: &Message) -> Result<(), Reason> {
+    if msg.guild_id.unwrap_or(GuildId(0)) != LOTR_DISCORD {
+        Err(Reason::Log(
+            "Tried to use !tos on another discord".to_string(),
+        ))
+    } else {
+        Ok(())
+    }
+}
+
+async fn has_permission(ctx: &Context, guild: GuildId, user: &User, perm: Permissions) -> bool {
+    if let Ok(g) = guild.to_partial_guild(&ctx).await {
+        for (role_id, role) in g.roles.iter() {
+            if role.permissions.intersects(perm)
+                && user.has_role(ctx, guild, role_id).await.unwrap_or(false)
+            {
+                return true;
+            }
+        }
+    }
+    false
+}
+
+#[check]
+pub async fn is_admin(ctx: &Context, msg: &Message) -> Result<(), Reason> {
+    let admins = get_admins(ctx, msg.guild_id).await.unwrap_or_default();
+    let guild = msg.guild_id.unwrap_or(GuildId(0));
+    if msg.author.id == OWNER_ID
+        || admins.contains(&msg.author.id)
+        || has_permission(ctx, guild, &msg.author, Permissions::MANAGE_GUILD).await
+    {
+        Ok(())
+    } else {
+        Err(Reason::User(
+            "You are not an admin on this server!".to_string(),
+        ))
+    }
+}
+
+#[hook]
+pub async fn dispatch_error_hook(ctx: &Context, msg: &Message, error: DispatchError) {
+    match error {
+        DispatchError::CheckFailed(s, reason) => {
+            println!("{}", s);
+            match reason {
+                Reason::User(err_message) => {
+                    match join(
+                        msg.reply(ctx, err_message),
+                        msg.react(ctx, ReactionType::from('❌')),
+                    )
+                    .await
+                    {
+                        (Err(_), _) | (_, Err(_)) => println!("Error sending failure message"),
+                        _ => (),
+                    };
+                }
+                Reason::UserAndLog { user, log: _ } => {
+                    match msg.author.dm(ctx, |m| m.content(user)).await {
+                        Err(_) => println!("Error sending blacklist warning"),
+                        _ => (),
+                    }
+                }
+                _ => (),
+            }
+        }
+        _ => (),
+    }
+}

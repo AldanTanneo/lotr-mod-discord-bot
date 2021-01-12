@@ -1,4 +1,5 @@
 mod announcement;
+mod check;
 mod database;
 mod fandom;
 
@@ -17,11 +18,10 @@ use serenity::model::{
     id::{ChannelId, GuildId, UserId},
     misc::Mentionable,
     prelude::ReactionType,
-    user::User,
-    Permissions,
 };
 use std::{env, sync::Arc};
 
+use check::{dispatch_error_hook, ALLOWED_BLACKLIST_CHECK, IS_ADMIN_CHECK, IS_LOTR_DISCORD_CHECK};
 use database::*;
 use fandom::*;
 use structures::*;
@@ -150,11 +150,14 @@ async fn main() {
                 .case_insensitivity(true)
                 .delimiters(vec![' ', '\n'])
         })
+        .on_dispatch_error(dispatch_error_hook)
         .group(&GENERAL_GROUP)
         .group(&MEME_GROUP)
         .group(&WIKI_GROUP)
         .group(&ADMIN_GROUP)
-        .group(&MODERATION_GROUP);
+        .group(&MODERATION_GROUP)
+        .bucket("basic", |b| b.delay(2).time_span(10).limit(3))
+        .await;
 
     let mut client = Client::builder(token)
         .event_handler(Handler)
@@ -242,6 +245,7 @@ async fn help(ctx: &Context, msg: &Message) -> CommandResult {
 
 #[command]
 #[only_in(guilds)]
+#[checks(is_lotr_discord)]
 async fn tos(ctx: &Context, msg: &Message) -> CommandResult {
     if msg.guild_id.unwrap_or(GuildId(0)) == LOTR_DISCORD {
         msg.channel_id
@@ -313,32 +317,11 @@ To fix this, go to your `/.minecraft/mods` folder and change the file extension!
 
 // ------------------ MEME COMMANDS -----------------
 
-macro_rules! check_allowed {
-    ($ctx:expr, $msg:expr) => {
-        let admins = get_admins($ctx, $msg.guild_id).await.unwrap_or_default();
-        if !(admins.contains(&$msg.author.id)
-            || $msg.author.id == OWNER_ID
-            || !check_blacklist($ctx, $msg, false)
-                .await
-                .unwrap_or_else(|| IsBlacklisted(true))
-                .is_blacklisted())
-        {
-            $msg.delete($ctx).await?;
-            $msg.author
-                .dm($ctx, |m| {
-                    m.content("You are not allowed to use this command here.")
-                })
-                .await?;
-            return Ok(());
-        }
-    };
-}
-
 #[command]
 #[only_in(guilds)]
+#[checks(allowed_blacklist)]
 #[max_args(1)]
 async fn floppa(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    check_allowed!(ctx, msg);
     let n = args.single::<u32>().ok();
     let url = if let Some(url) = get_floppa(ctx, n).await {
         url
@@ -351,8 +334,8 @@ async fn floppa(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
 
 #[command]
 #[only_in(guilds)]
+#[checks(allowed_blacklist)]
 async fn aeugh(ctx: &Context, msg: &Message) -> CommandResult {
-    check_allowed!(ctx, msg);
     msg.channel_id
         .send_message(ctx, |m| {
             m.add_file("https://cdn.discordapp.com/attachments/405122337139064834/782087543046668319/aeugh.mp4");
@@ -365,8 +348,8 @@ async fn aeugh(ctx: &Context, msg: &Message) -> CommandResult {
 
 #[command]
 #[only_in(guilds)]
+#[checks(allowed_blacklist)]
 async fn dagohon(ctx: &Context, msg: &Message) -> CommandResult {
-    check_allowed!(ctx, msg);
     msg.channel_id
         .send_message(ctx, |m| {
             m.add_file("https://cdn.discordapp.com/attachments/405097997970702337/782656209987043358/dagohon.mp4");
@@ -510,6 +493,7 @@ async fn minecraft(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 // ---------------- ADMIN COMMANDS -------------
 
 #[command]
+#[checks(is_admin)]
 #[only_in(guilds)]
 #[max_args(1)]
 async fn prefix(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
@@ -524,116 +508,82 @@ async fn prefix(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
         )
         .await?;
     } else {
-        let admins = get_admins(ctx, msg.guild_id).await.unwrap_or_default();
-        if admins.contains(&msg.author.id) || msg.author.id == OWNER_ID {
-            let new_prefix = args.single::<String>();
-            if let Ok(p) = new_prefix {
-                if !p.contains("<@") && set_prefix(ctx, msg.guild_id, &p, true).await.is_ok() {
-                    msg.reply(ctx, format!("Set the new prefix to \"{}\"", p))
-                        .await?;
-                } else {
-                    msg.reply(ctx, "Failed to set the new prefix!").await?;
-                }
+        let new_prefix = args.single::<String>();
+        if let Ok(p) = new_prefix {
+            if !p.contains("<@") && set_prefix(ctx, msg.guild_id, &p, true).await.is_ok() {
+                msg.reply(ctx, format!("Set the new prefix to \"{}\"", p))
+                    .await?;
             } else {
-                msg.reply(ctx, "Invalid new prefix!").await?;
+                msg.reply(ctx, "Failed to set the new prefix!").await?;
             }
         } else {
-            msg.reply(ctx, "You are not an admin on this server!")
-                .await?;
-            msg.react(ctx, ReactionType::from('❌')).await?;
+            msg.reply(ctx, "Invalid new prefix!").await?;
         }
     }
     Ok(())
 }
 
-async fn has_permission(ctx: &Context, guild: GuildId, user: &User, perm: Permissions) -> bool {
-    if let Ok(g) = guild.to_partial_guild(&ctx).await {
-        for (role_id, role) in g.roles.iter() {
-            if role.permissions.intersects(perm)
-                && user.has_role(ctx, guild, role_id).await.unwrap_or(false)
-            {
-                return true;
-            }
-        }
-    }
-    false
-}
-
 #[command]
 #[only_in(guilds)]
+#[checks(is_admin)]
 #[max_args(1)]
 #[min_args(1)]
 async fn add(ctx: &Context, msg: &Message) -> CommandResult {
-    let admins = get_admins(ctx, msg.guild_id).await.unwrap_or_default();
-    let guild = msg.guild_id.unwrap_or(GuildId(0));
-    if (admins.contains(&msg.author.id)
-        || msg.author.id == OWNER_ID
-        || has_permission(ctx, guild, &msg.author, Permissions::MANAGE_GUILD).await)
-        && !msg.mentions.is_empty()
+    if let Some(user) = msg
+        .mentions
+        .iter()
+        .find(|&user| user.id != BOT_ID && user.id != OWNER_ID)
     {
-        if let Some(user) = msg
-            .mentions
-            .iter()
-            .find(|&user| user.id != BOT_ID && user.id != OWNER_ID)
-        {
-            if !admins.contains(&user.id) {
-                add_admin(ctx, msg.guild_id, user.id, false, false).await?;
-                msg.react(ctx, ReactionType::from('✅')).await?;
-            } else {
-                msg.reply(ctx, "This user is already a bot admin on this server!")
-                    .await?;
-            }
+        let admins = get_admins(ctx, msg.guild_id).await.unwrap_or_default();
+        if !admins.contains(&user.id) {
+            add_admin(ctx, msg.guild_id, user.id, false, false).await?;
+            msg.react(ctx, ReactionType::from('✅')).await?;
         } else {
-            msg.reply(
-                ctx,
-                "Mention a user you wish to promote to bot admin for this server.",
-            )
-            .await?;
+            msg.reply(ctx, "This user is already a bot admin on this server!")
+                .await?;
         }
     } else {
-        msg.reply(ctx, "You are not an admin on this server!")
-            .await?;
-        msg.react(ctx, ReactionType::from('❌')).await?;
+        msg.reply(
+            ctx,
+            "Mention a user you wish to promote to bot admin for this server.",
+        )
+        .await?;
     }
     Ok(())
 }
 
 #[command]
 #[only_in(guilds)]
+#[checks(is_admin)]
 #[max_args(1)]
 #[min_args(1)]
 async fn remove(ctx: &Context, msg: &Message) -> CommandResult {
-    let admins = get_admins(ctx, msg.guild_id).await.unwrap_or_default();
-    if (admins.contains(&msg.author.id) || msg.author.id == OWNER_ID) && !msg.mentions.is_empty() {
-        if let Some(user) = msg
-            .mentions
-            .iter()
-            .find(|&user| user.id != BOT_ID && user.id != OWNER_ID)
-        {
-            if admins.contains(&user.id) {
-                remove_admin(ctx, msg.guild_id, user.id).await?;
-                msg.react(ctx, ReactionType::from('✅')).await?;
-            } else {
-                msg.reply(ctx, "This user is not a bot admin on this server!")
-                    .await?;
-            }
+    if let Some(user) = msg
+        .mentions
+        .iter()
+        .find(|&user| user.id != BOT_ID && user.id != OWNER_ID)
+    {
+        let admins = get_admins(ctx, msg.guild_id).await.unwrap_or_default();
+        if admins.contains(&user.id) {
+            remove_admin(ctx, msg.guild_id, user.id).await?;
+            msg.react(ctx, ReactionType::from('✅')).await?;
         } else {
-            msg.reply(
-                ctx,
-                "Mention a user you wish to remove from bot admins for this server.",
-            )
-            .await?;
+            msg.reply(ctx, "This user is not a bot admin on this server!")
+                .await?;
         }
     } else {
-        msg.reply(ctx, "You are not an admin on this server!")
-            .await?;
-        msg.react(ctx, ReactionType::from('❌')).await?;
+        msg.reply(
+            ctx,
+            "Mention a user you wish to remove from bot admins for this server.",
+        )
+        .await?;
     }
     Ok(())
 }
 
 #[command]
 #[only_in(guilds)]
+#[checks(allowed_blacklist)]
 async fn list(ctx: &Context, msg: &Message) -> CommandResult {
     let admins = get_admins(ctx, msg.guild_id).await.unwrap_or_else(Vec::new);
 
@@ -690,174 +640,160 @@ async fn floppadd(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
 
 #[command]
 #[only_in(guilds)]
+#[checks(is_admin, allowed_blacklist)]
 async fn blacklist(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-    let admins = get_admins(ctx, msg.guild_id).await.unwrap_or_default();
-    if admins.contains(&msg.author.id) || msg.author.id == OWNER_ID {
-        println!("{:#?}, {:#?}", msg.mention_channels, msg.mentions);
-        if args.is_empty() && msg.mentions.is_empty() {
-            let (users, channels) = check_blacklist(ctx, msg, true)
-                .await
-                .unwrap_or(IsBlacklisted(true))
-                .get_list();
+    if args.is_empty() && msg.mentions.is_empty() {
+        let (users, channels) = check_blacklist(ctx, msg, true)
+            .await
+            .unwrap_or(IsBlacklisted(true))
+            .get_list();
 
-            let mut user_names: Vec<String> =
-                users.iter().map(|&u| u.mention().to_string()).collect();
+        let mut user_names: Vec<String> = users.iter().map(|&u| u.mention().to_string()).collect();
 
-            let mut channel_names: Vec<String> =
-                channels.iter().map(|&c| c.mention().to_string()).collect();
+        let mut channel_names: Vec<String> =
+            channels.iter().map(|&c| c.mention().to_string()).collect();
 
-            if user_names.is_empty() {
-                user_names.push("None".into());
-            }
-            if channel_names.is_empty() {
-                channel_names.push("None".into());
-            }
-
-            let guild_name = msg
-                .guild_id
-                .unwrap_or(LOTR_DISCORD)
-                .to_partial_guild(ctx)
-                .await?
-                .name;
-            msg.channel_id
-                .send_message(ctx, |m| {
-                    m.embed(|e| {
-                        e.title("Blacklist");
-                        e.description(format!("On **{}**", guild_name));
-                        e.field("Blacklisted users:", user_names.join("\n"), true);
-                        e.field("Blacklisted channels:", channel_names.join("\n"), true)
-                    });
-                    m
-                })
-                .await?;
-        } else {
-            update_blacklist(ctx, msg, args).await?;
+        if user_names.is_empty() {
+            user_names.push("None".into());
         }
-    } else {
-        msg.reply(ctx, "You are not an admin on this server!")
+        if channel_names.is_empty() {
+            channel_names.push("None".into());
+        }
+
+        let guild_name = msg
+            .guild_id
+            .unwrap_or(LOTR_DISCORD)
+            .to_partial_guild(ctx)
+            .await?
+            .name;
+        msg.channel_id
+            .send_message(ctx, |m| {
+                m.embed(|e| {
+                    e.title("Blacklist");
+                    e.description(format!("On **{}**", guild_name));
+                    e.field("Blacklisted users:", user_names.join("\n"), true);
+                    e.field("Blacklisted channels:", channel_names.join("\n"), true)
+                });
+                m
+            })
             .await?;
-        msg.react(ctx, ReactionType::from('❌')).await?;
+    } else {
+        update_blacklist(ctx, msg, args).await?;
     }
     Ok(())
 }
 
 #[command]
 #[only_in(guilds)]
+#[checks(is_admin)]
 async fn announce(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    let admins = get_admins(ctx, msg.guild_id).await.unwrap_or_default();
-    if admins.contains(&msg.author.id) || msg.author.id == OWNER_ID {
-        let channel = serenity::utils::parse_channel(args.single::<String>()?.trim());
-        if let Some(id) = channel {
-            if msg.guild_id
-                != ChannelId(id)
-                    .to_channel(ctx)
-                    .await?
-                    .guild()
-                    .map(|c| c.guild_id)
-            {
-                msg.reply(
-                    ctx,
-                    "You can only announce in the same server as the one you are in!",
-                )
-                .await?;
-                msg.react(ctx, ReactionType::from('❌')).await?;
-                return Ok(());
-            };
-            let content = &msg.content;
-            let (a, b) = (
-                content.find('{').unwrap_or(0),
-                content.rfind('}').unwrap_or(0),
-            );
-            if announcement::announce(ctx, ChannelId(id), &content[a..=b])
-                .await
-                .is_ok()
-            {
-                msg.react(ctx, ReactionType::from('✅')).await?;
-            } else {
-                msg.reply(ctx, "Error sending the message! Check your json content and/or the bot permissions.")
-                    .await?;
-                msg.react(ctx, ReactionType::from('❌')).await?;
-            };
-        } else {
-            msg.reply(ctx, "The first argument must be a channel mention!")
-                .await?;
-            msg.react(ctx, ReactionType::from('❌')).await?;
-        }
-    } else {
-        msg.reply(ctx, "You are not an admin on this server!")
-            .await?;
-        msg.react(ctx, ReactionType::from('❌')).await?;
-    }
-    Ok(())
-}
-
-#[command]
-async fn floppadmin(ctx: &Context, msg: &Message) -> CommandResult {
-    let admins = get_admins(ctx, msg.guild_id).await.unwrap_or_default();
-    if msg.author.id == OWNER_ID {
-        if let Some(user) = msg
-            .mentions
-            .iter()
-            .find(|&user| user.id != BOT_ID && user.id != OWNER_ID)
+    let channel = serenity::utils::parse_channel(args.single::<String>()?.trim());
+    if let Some(id) = channel {
+        if msg.guild_id
+            != ChannelId(id)
+                .to_channel(ctx)
+                .await?
+                .guild()
+                .map(|c| c.guild_id)
         {
-            if !is_floppadmin(ctx, msg.guild_id, user.id)
-                .await
-                .unwrap_or(false)
-            {
-                if !admins.contains(&user.id) {
-                    add_admin(ctx, msg.guild_id, user.id, false, true).await?;
-                } else {
-                    add_admin(ctx, msg.guild_id, user.id, true, true).await?;
-                }
-            } else {
-                add_admin(ctx, msg.guild_id, user.id, true, false).await?;
-            }
+            msg.reply(
+                ctx,
+                "You can only announce in the same server as the one you are in!",
+            )
+            .await?;
+            msg.react(ctx, ReactionType::from('❌')).await?;
+            return Ok(());
+        };
+        let content = &msg.content;
+        let (a, b) = (
+            content.find('{').unwrap_or(0),
+            content.rfind('}').unwrap_or(0),
+        );
+        if announcement::announce(ctx, ChannelId(id), &content[a..=b])
+            .await
+            .is_ok()
+        {
             msg.react(ctx, ReactionType::from('✅')).await?;
         } else {
             msg.reply(
                 ctx,
-                "Mention a user you wish to promote to floppadmin for this server.",
+                "Error sending the message! Check your json content and/or the bot permissions.",
             )
             .await?;
-        }
+            msg.react(ctx, ReactionType::from('❌')).await?;
+        };
     } else {
-        msg.reply(ctx, "You cannot add floppadmins!").await?;
+        msg.reply(ctx, "The first argument must be a channel mention!")
+            .await?;
         msg.react(ctx, ReactionType::from('❌')).await?;
     }
     Ok(())
 }
 
 #[command]
-async fn listguilds(ctx: &Context, msg: &Message) -> CommandResult {
-    if msg.author.id == OWNER_ID {
-        let mut id = GuildId(0);
-        let owner = OWNER_ID.to_user(&ctx).await?;
-        let mut first = true;
-        while let Ok(vec) = ctx
-            .http
-            .get_guilds(&serenity::http::GuildPagination::After(id), 20)
+#[owners_only]
+async fn floppadmin(ctx: &Context, msg: &Message) -> CommandResult {
+    if let Some(user) = msg
+        .mentions
+        .iter()
+        .find(|&user| user.id != BOT_ID && user.id != OWNER_ID)
+    {
+        let admins = get_admins(ctx, msg.guild_id).await.unwrap_or_default();
+        if !is_floppadmin(ctx, msg.guild_id, user.id)
             .await
+            .unwrap_or(false)
         {
-            if vec.is_empty() {
-                break;
+            if !admins.contains(&user.id) {
+                add_admin(ctx, msg.guild_id, user.id, false, true)
             } else {
-                let guild_names = vec
-                    .iter()
-                    .map(|g| g.name.clone())
-                    .collect::<Vec<_>>()
-                    .join("\n");
-                id = vec[vec.len() - 1].id;
-                if first {
-                    first = false;
-                    owner
-                        .dm(&ctx, |m| m.content(format!("**Guilds:**\n{}", guild_names)))
-                        .await?;
-                } else {
-                    owner.dm(&ctx, |m| m.content(guild_names)).await?;
-                }
+                add_admin(ctx, msg.guild_id, user.id, true, true)
+            }
+        } else {
+            add_admin(ctx, msg.guild_id, user.id, true, false)
+        }
+        .await?;
+        msg.react(ctx, ReactionType::from('✅')).await?;
+    } else {
+        msg.reply(
+            ctx,
+            "Mention a user you wish to promote to floppadmin for this server.",
+        )
+        .await?;
+    }
+    Ok(())
+}
+
+#[command]
+#[only_in(dms)]
+#[owners_only]
+#[aliases("guilds")]
+async fn listguilds(ctx: &Context) -> CommandResult {
+    let mut id = GuildId(0);
+    let owner = OWNER_ID.to_user(&ctx).await?;
+    let mut first = true;
+    while let Ok(vec) = ctx
+        .http
+        .get_guilds(&serenity::http::GuildPagination::After(id), 20)
+        .await
+    {
+        if vec.is_empty() {
+            break;
+        } else {
+            let guild_names = vec
+                .iter()
+                .map(|g| g.name.clone())
+                .collect::<Vec<_>>()
+                .join("\n");
+            id = vec[vec.len() - 1].id;
+            if first {
+                first = false;
+                owner
+                    .dm(&ctx, |m| m.content(format!("**Guilds:**\n{}", guild_names)))
+                    .await?;
+            } else {
+                owner.dm(&ctx, |m| m.content(guild_names)).await?;
             }
         }
     }
-    msg.delete(ctx).await?;
     Ok(())
 }
