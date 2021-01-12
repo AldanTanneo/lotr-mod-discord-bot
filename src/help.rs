@@ -8,10 +8,23 @@ use crate::{LOTR_DISCORD, OWNER_ID};
 
 #[command]
 pub async fn help(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    if !args.is_empty() && args.single().unwrap_or("".to_string()) == "json" {
-        msg.reply(
+    let admins = get_admins(ctx, msg.guild_id).await.unwrap_or_default();
+    let guild = msg.guild_id.unwrap_or(GuildId(0));
+    let is_admin = msg.author.id == OWNER_ID
+        || admins.contains(&msg.author.id)
+        || has_permission(
             ctx,
-            r#"**Documentation for the announcement command**
+            guild,
+            &msg.author,
+            Permissions::MANAGE_GUILD | Permissions::ADMINISTRATOR,
+        )
+        .await;
+
+    if is_admin && !args.is_empty() && args.single().unwrap_or_else(|_| "".to_string()) == "json" {
+        msg.author
+            .direct_message(ctx, |m| {
+                m.content(
+                    r#"**Documentation for the announcement command**
 ```json
 {
     "content": "the message content",
@@ -46,20 +59,15 @@ pub async fn help(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
 ```
 Almost all fields are optional. Try it out!
 "#,
-        )
-        .await?;
+                )
+            })
+            .await?;
         return Ok(());
     }
 
     let prefix = get_prefix(ctx, msg.guild_id)
         .await
         .unwrap_or_else(|| "!".into());
-
-    let admins = get_admins(ctx, msg.guild_id).await.unwrap_or_default();
-    let guild = msg.guild_id.unwrap_or(GuildId(0));
-    let is_admin = msg.author.id == OWNER_ID
-        || admins.contains(&msg.author.id)
-        || has_permission(ctx, guild, &msg.author, Permissions::MANAGE_GUILD).await;
 
     msg.author
         .direct_message(ctx, |m| {
@@ -90,7 +98,7 @@ Almost all fields are optional. Try it out!
                 e.field(
                     "Wiki commands",
                     format!(
-"`{prefix}wiki [language] <query>` Display search result from the [LOTR Mod Wiki](https://lotrminecraftmod.fandom.com/)
+"`{prefix}wiki [language] <query>`  Display search result from the [LOTR Mod Wiki](https://lotrminecraftmod.fandom.com/)
 (default language: `en`)
 Available languages: `en`, `de`, `fr`, `es`, `nl`, `ja`, `zh`, `ru`
 
@@ -100,10 +108,10 @@ Available languages: `en`, `de`, `fr`, `es`, `nl`, `ja`, `zh`, `ru`
 `{prefix}wiki template [language] <template name>`
 `{prefix}wiki file [language] <file name>`
 
-`{prefix}wiki random` Display a random wiki page (from the English wiki only)
+`{prefix}wiki random`  Display a random wiki page (from the English wiki only)
 
-`{prefix}wiki tolkien <query>` Display search result from [TolkienGateway](http://www.tolkiengateway.net/)
-`{prefix}wiki minecraft <query>` Display search result from the [Official Minecraft Wiki](https://minecraft.gamepedia.com/)
+`{prefix}wiki tolkien <query>`  Display search result from [TolkienGateway](http://www.tolkiengateway.net/)
+`{prefix}wiki minecraft <query>`  Display search result from the [Official Minecraft Wiki](https://minecraft.gamepedia.com/)
 ",
                         prefix = prefix
                     ),
@@ -113,12 +121,12 @@ Available languages: `en`, `de`, `fr`, `es`, `nl`, `ja`, `zh`, `ru`
                     e.field(
                         "Admin commands",
                         format!(
-"`{prefix}prefix [new prefix]` Display or change the bot prefix for your server
-`{prefix}admin add <user mention>` Give a user admin rights for the bot
-`{prefix}admin remove <user mention>` Removes admin rights for a user
-`{prefix}admin list` Display a list of bot admins
-`{prefix}blacklist [<user or channel mention>]` Prevent some commands to be used by the user or in the channel (except for bot admins). When used without arguments, displays the blacklist.
-`{prefix}announce <channel mention> <json message contents>` Make the bot send a message to the mentioned channel. For the JSON argument documentation, type `{prefix}help json`
+"`{prefix}prefix [new prefix]`  Display or change the bot prefix for your server
+`{prefix}admin add <user mention>`  Give a user admin rights for the bot
+`{prefix}admin remove <user mention>`  Removes admin rights for a user
+`{prefix}admin list`  Display a list of bot admins
+`{prefix}blacklist [<user or channel mention>]`  Prevent some commands to be used by the user or in the channel (except for bot admins). When used without arguments, displays the blacklist.
+`{prefix}announce <channel mention> <json message contents>`  Make the bot send a message to the mentioned channel. For the JSON argument documentation, type `{prefix}help json`
 
 *Only bot admins can use these commands*
 ", prefix=prefix),

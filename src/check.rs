@@ -17,7 +17,7 @@ pub async fn allowed_blacklist(ctx: &Context, msg: &Message) -> Result<(), Reaso
         || msg.author.id == OWNER_ID
         || !check_blacklist(ctx, msg, false)
             .await
-            .unwrap_or_else(|| Blacklist::IsBlacklisted(true))
+            .unwrap_or(Blacklist::IsBlacklisted(true))
             .is_blacklisted())
     {
         msg.delete(ctx)
@@ -62,7 +62,13 @@ pub async fn is_admin(ctx: &Context, msg: &Message) -> Result<(), Reason> {
     let guild = msg.guild_id.unwrap_or(GuildId(0));
     if msg.author.id == OWNER_ID
         || admins.contains(&msg.author.id)
-        || has_permission(ctx, guild, &msg.author, Permissions::MANAGE_GUILD).await
+        || has_permission(
+            ctx,
+            guild,
+            &msg.author,
+            Permissions::MANAGE_GUILD | Permissions::ADMINISTRATOR,
+        )
+        .await
     {
         Ok(())
     } else {
@@ -74,30 +80,26 @@ pub async fn is_admin(ctx: &Context, msg: &Message) -> Result<(), Reason> {
 
 #[hook]
 pub async fn dispatch_error_hook(ctx: &Context, msg: &Message, error: DispatchError) {
-    match error {
-        DispatchError::CheckFailed(s, reason) => {
-            println!("{}", s);
-            match reason {
-                Reason::User(err_message) => {
-                    match join(
-                        msg.reply(ctx, err_message),
-                        msg.react(ctx, ReactionType::from('❌')),
-                    )
-                    .await
-                    {
-                        (Err(_), _) | (_, Err(_)) => println!("Error sending failure message"),
-                        _ => (),
-                    };
-                }
-                Reason::UserAndLog { user, log: _ } => {
-                    match msg.author.dm(ctx, |m| m.content(user)).await {
-                        Err(_) => println!("Error sending blacklist warning"),
-                        _ => (),
-                    }
-                }
-                _ => (),
+    if let DispatchError::CheckFailed(s, reason) = error {
+        println!("{}", s);
+        match reason {
+            Reason::User(err_message) => {
+                match join(
+                    msg.reply(ctx, err_message),
+                    msg.react(ctx, ReactionType::from('❌')),
+                )
+                .await
+                {
+                    (Err(_), _) | (_, Err(_)) => println!("Error sending failure message"),
+                    _ => (),
+                };
             }
+            Reason::UserAndLog { user, log: _ } => {
+                if msg.author.dm(ctx, |m| m.content(user)).await.is_err() {
+                    println!("Error sending blacklist warning")
+                }
+            }
+            _ => (),
         }
-        _ => (),
     }
 }
