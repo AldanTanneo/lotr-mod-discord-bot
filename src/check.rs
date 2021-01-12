@@ -43,7 +43,7 @@ pub async fn is_lotr_discord(_: &Context, msg: &Message) -> Result<(), Reason> {
     }
 }
 
-async fn has_permission(ctx: &Context, guild: GuildId, user: &User, perm: Permissions) -> bool {
+pub async fn has_permission(ctx: &Context, guild: GuildId, user: &User, perm: Permissions) -> bool {
     if let Ok(g) = guild.to_partial_guild(&ctx).await {
         for (role_id, role) in g.roles.iter() {
             if role.permissions.intersects(perm)

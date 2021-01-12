@@ -2,6 +2,7 @@ mod announcement;
 mod check;
 mod database;
 mod fandom;
+mod help;
 
 use mysql_async::*;
 use reqwest::redirect;
@@ -24,6 +25,7 @@ use std::{env, sync::Arc};
 use check::{dispatch_error_hook, ALLOWED_BLACKLIST_CHECK, IS_ADMIN_CHECK, IS_LOTR_DISCORD_CHECK};
 use database::*;
 use fandom::*;
+use help::HELP_COMMAND;
 use structures::*;
 use structures::{Lang::*, Namespace::*};
 use Blacklist::*;
@@ -196,49 +198,6 @@ You can find those in the full 1.7.10 Legacy edition [here](https://www.cursefor
             m
         })
         .await?;
-
-    Ok(())
-}
-
-// TODO: Improve help message
-#[command]
-async fn help(ctx: &Context, msg: &Message) -> CommandResult {
-    let prefix = get_prefix(ctx, msg.guild_id).await;
-    msg.author
-        .direct_message(ctx, |m| {
-            m.content(format!("My prefix here is \"{}\"", prefix.unwrap_or_else(|| "!".into())));
-            m.embed(|e| {
-                e.title("Available commands");
-                e.field(
-                    "General commands",
-                    format!("{}{}",
-                        "`renewed`\n`forge`\n`coremod`\n`curseforge`\n`help`\n",
-                        if msg.guild_id.unwrap_or(GuildId(0)) == LOTR_DISCORD { "`tos`\n"} else {""}
-                    ),
-                    true,
-                );
-                e.field(
-                    "Wiki commands",
-                    "`wiki`\n`wiki user`\n`wiki category`\n`wiki template`\n`wiki random`\n`wiki file`\n`wiki tolkien`\n`wiki minecraft`\n",
-                    true
-                );
-                e.field(
-                    "Admin commands",
-                    "`prefix`\n`admin add`\n`admin remove`\n`admin list`\n`blacklist`\n`announce`\n",
-                    true,
-                );
-                e.field(
-                    "Syntax: `wiki [subcommand] [language] [search terms]`",
-                    "Available languages: `en` (default), `de`, `fr`, `es`, `nl`, `ja`, `zh`, `ru`\n",
-                    false,
-                );
-                e
-            });
-            m
-        })
-        .await?;
-
-    msg.react(ctx, ReactionType::from('✅')).await?;
 
     Ok(())
 }
