@@ -19,6 +19,7 @@ pub async fn announce(ctx: &Context, channel: ChannelId, content_json: &str) -> 
             }
             if embed.is_object() {
                 let colour = embed["colour"].as_str();
+                let color = embed["color"].as_str();
                 let author = &embed["author"];
                 let title = embed["title"].as_str();
                 let description = embed["description"].as_str();
@@ -30,6 +31,10 @@ pub async fn announce(ctx: &Context, channel: ChannelId, content_json: &str) -> 
                 m.embed(|e| {
                     if let Some(colour) = colour {
                         if let Ok(c) = u32::from_str_radix(&colour.to_uppercase(), 16) {
+                            e.colour(Color::new(c));
+                        }
+                    } else if let Some(color) = color {
+                        if let Ok(c) = u32::from_str_radix(&color.to_uppercase(), 16) {
                             e.colour(Color::new(c));
                         }
                     }

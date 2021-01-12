@@ -30,7 +30,7 @@ pub async fn help(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
     "content": "the message content",
     "image": "a valid image url",
     "embed": {
-        "color": "RRGGBB", // hexadecimal color code
+        "colour": "RRGGBB", // hexadecimal color code
         "author": {
             "name": "the embed author name",
             "icon": "a valid author icon url",
