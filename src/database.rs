@@ -50,8 +50,7 @@ pub async fn get_prefix(ctx: &Context, guild_id: Option<GuildId>) -> Option<Stri
 
     drop(conn);
 
-    if let Ok(prefix) = res {
-        println!("Found existing prefix {:?}", &prefix);
+    if let Ok(Some(prefix)) = res {
         prefix
     } else {
         println!("Initializing prefix for {:?}", guild_id);
