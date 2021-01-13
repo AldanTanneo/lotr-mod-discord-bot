@@ -1,6 +1,7 @@
 use serenity::client::Context;
 use serenity::framework::standard::{macros::command, Args, CommandResult};
 use serenity::model::{channel::Message, id::GuildId, prelude::ReactionType, Permissions};
+use serenity::utils::Colour;
 
 use crate::check::has_permission;
 use crate::database::{get_admins, get_prefix};
@@ -23,9 +24,11 @@ pub async fn help(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
     if is_admin && !args.is_empty() && args.single().unwrap_or_else(|_| "".to_string()) == "json" {
         msg.author
             .direct_message(ctx, |m| {
-                m.content(
-                    r#"**Documentation for the announcement command**
-```json
+                m.embed(|e| {
+                    e.colour(Colour::DARK_GREEN);
+                    e.field(
+                        "Documentation for the announcement command",
+                        r#"```json
 {
     "content": "the message content",
     "image": "a valid image url",
@@ -59,7 +62,9 @@ pub async fn help(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
 ```
 Almost all fields are optional. Try it out!
 "#,
-                )
+                        false,
+                    )
+                })
             })
             .await?;
         return Ok(());
@@ -73,6 +78,7 @@ Almost all fields are optional. Try it out!
         .direct_message(ctx, |m| {
             m.content(format!("My prefix here is \"{}\"", prefix));
             m.embed(|e| {
+                e.colour(Colour::DARK_GREEN);
                 e.title("Available commands");
                 e.field(
                     "General commands",

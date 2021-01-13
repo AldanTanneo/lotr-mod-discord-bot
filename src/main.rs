@@ -1,5 +1,6 @@
 mod announcement;
 mod check;
+mod constants;
 mod database;
 mod fandom;
 mod help;
@@ -16,10 +17,11 @@ use serenity::futures::future::{join3, join_all};
 use serenity::model::{
     channel::Message,
     gateway::{Activity, Ready},
-    id::{ChannelId, GuildId, UserId},
+    id::{ChannelId, GuildId},
     misc::Mentionable,
     prelude::ReactionType,
 };
+use serenity::utils::Colour;
 use std::{env, sync::Arc};
 
 use check::{dispatch_error_hook, ALLOWED_BLACKLIST_CHECK, IS_ADMIN_CHECK, IS_LOTR_DISCORD_CHECK};
@@ -30,10 +32,7 @@ use structures::*;
 use structures::{Lang::*, Namespace::*};
 use Blacklist::*;
 
-const BOT_ID: UserId = UserId(780858391383638057);
-const OWNER_ID: UserId = UserId(405421991777009678);
-const LOTR_DISCORD: GuildId = GuildId(405091134327619587);
-const WIKI_DOMAIN: &str = "lotrminecraftmod.fandom.com";
+use constants::*;
 
 #[group]
 #[commands(help, renewed, tos, curseforge, prefix, forge, coremod)]
@@ -188,6 +187,7 @@ async fn renewed(ctx: &Context, msg: &Message) -> CommandResult {
     msg.channel_id
         .send_message(ctx, |m| {
             m.embed(|e| {
+                e.colour(Colour::GOLD);
                 e.title("Use the 1.7.10 version");
                 e.description(
                     "The 1.15.2 version of the mod is a work in progress, missing many features such as NPCs and structures.
@@ -225,6 +225,7 @@ async fn curseforge(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
         "Renewed"
     };
     msg.channel_id.send_message(ctx, |m| m.embed(|e|{
+        e.colour(Colour::GOLD);
         e.title(format!("Link to the {} version", version));
         e.description(format!(
             "The {} edition of the mod can be found on [Curseforge](https://www.curseforge.com/minecraft/mc-mods/the-lord-of-the-rings-mod-{})",
@@ -245,6 +246,7 @@ async fn forge(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     };
     msg.channel_id.send_message(ctx, |m| {
         m.embed(|e| {
+            e.colour(Colour::DARK_BLUE);
             e.title("Have you checked your Forge version?");
             e.description(format!("To function properly, the mod needs to run with Forge {} or later for Minecraft {}", version, mc));
             e.author(|a| {
@@ -264,6 +266,7 @@ async fn forge(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
 async fn coremod(ctx: &Context, msg: &Message) -> CommandResult {
     msg.channel_id
         .send_message(ctx, |m| m.embed(|e| {
+            e.colour(Colour::RED);
             e.title("Check your mod file extension!");
             e.description("Sometimes when downloading the mod with a browser like Firefox, the mod file is saved with a `.zip` extension instead of a `.jar`
 When this happens, the mod will not function properly: among other things that will happen, mod fences and fence gates will not connect, and horses will go very slowly.
