@@ -51,9 +51,12 @@ pub async fn get_prefix(ctx: &Context, guild_id: Option<GuildId>) -> Option<Stri
     drop(conn);
 
     if let Ok(prefix) = res {
+        println!("Found existing prefix {:?}", &prefix);
         prefix
     } else {
+        println!("Initializing prefix for {:?}", guild_id);
         set_prefix(ctx, guild_id, "!", false).await.ok()?;
+        println!("Prefix initialized successfully");
         Some("!".to_string())
     }
 }
@@ -78,11 +81,13 @@ pub async fn set_prefix(
     let server_id: u64 = guild_id.unwrap_or(GuildId(0)).0;
 
     let req = if update {
+        println!("Updating prefix to \"{}\"", prefix);
         format!(
             "UPDATE {} SET prefix = :prefix WHERE server_id = :server_id",
             TABLE_PREFIX
         )
     } else {
+        println!("Initializing prefix to \"{}\"", prefix);
         format!(
             "INSERT INTO {} (server_id, prefix) VALUES (:server_id, :prefix)",
             TABLE_PREFIX
@@ -96,6 +101,7 @@ pub async fn set_prefix(
         },
     )
     .await?;
+    println!("Done.");
 
     drop(conn);
 
