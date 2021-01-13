@@ -24,11 +24,10 @@ pub async fn help(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
     if is_admin && !args.is_empty() && args.single().unwrap_or_else(|_| "".to_string()) == "json" {
         msg.author
             .direct_message(ctx, |m| {
-                m.embed(|e| {
-                    e.colour(Colour::DARK_GREEN);
-                    e.field(
-                        "Documentation for the announcement command",
-                        r#"```json
+                m.content(
+                    r#"**JSON documentation for the announcement command**
+*Almost all fields are optional. Try it out!*
+```json
 {
     "content": "the message content",
     "image": "a valid image url",
@@ -60,11 +59,8 @@ pub async fn help(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
     }
 }
 ```
-Almost all fields are optional. Try it out!
 "#,
-                        false,
-                    )
-                })
+                )
             })
             .await?;
         return Ok(());
@@ -84,7 +80,7 @@ Almost all fields are optional. Try it out!
                     "General commands",
                     format!(
 "`{prefix}curseforge [legacy|renewed]`  Display the mod download link (default: `renewed`)
-`{prefix}help [json]`  Send this message
+`{prefix}help{json}`  Send this message
 
 *Not available in DMs:*
 `{prefix}renewed`  Technical support command
@@ -97,7 +93,8 @@ Almost all fields are optional. Try it out!
                         } else {
                             "".into()
                         },
-                        prefix=prefix
+                        prefix=prefix,
+                        json=if is_admin {" [json]"} else {""}
                     ),
                     false,
                 );
