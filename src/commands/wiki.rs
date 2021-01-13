@@ -2,9 +2,9 @@ use serenity::client::Context;
 use serenity::framework::standard::{macros::command, Args, CommandResult};
 use serenity::model::channel::Message;
 
-use crate::fandom;
-use fandom::structures::*;
-use fandom::structures::{Lang::*, Namespace::*};
+use crate::api;
+use api::structures::*;
+use api::structures::{Lang::*, Namespace::*};
 
 async fn wiki_search(
     ctx: &Context,
@@ -15,9 +15,9 @@ async fn wiki_search(
 ) -> CommandResult {
     let srsearch = args.rest();
     println!("srsearch {}", srsearch);
-    let p = fandom::search(ctx, &namespace, srsearch, wiki).await;
+    let p = api::search(ctx, &namespace, srsearch, wiki).await;
     if let Some(page) = p {
-        fandom::display(ctx, msg, &page, wiki).await?;
+        api::display(ctx, msg, &page, wiki).await?;
     } else {
         msg.reply(
             ctx,
@@ -66,7 +66,7 @@ async fn lotr_wiki(ctx: &Context, msg: &Message, args: Args, ns: Namespace) -> C
     if !args.is_empty() {
         wiki_search(ctx, msg, args, ns, &wiki).await?;
     } else {
-        fandom::display(ctx, msg, &ns.main_page(&wiki, &msg.author.name), &wiki).await?;
+        api::display(ctx, msg, &ns.main_page(&wiki, &msg.author.name), &wiki).await?;
     }
     Ok(())
 }
@@ -103,9 +103,9 @@ pub async fn file(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 #[command]
 pub async fn random(ctx: &Context, msg: &Message) -> CommandResult {
     let wiki = &Wikis::LOTRMod(En);
-    let p = fandom::random(ctx, wiki).await;
+    let p = api::random(ctx, wiki).await;
     if let Some(page) = p {
-        fandom::display(ctx, msg, &page, wiki).await?;
+        api::display(ctx, msg, &page, wiki).await?;
     } else {
         msg.channel_id.say(ctx, "Couldn't execute query!").await?;
     }
@@ -118,7 +118,7 @@ pub async fn tolkien(ctx: &Context, msg: &Message, args: Args) -> CommandResult 
     if !args.is_empty() {
         wiki_search(ctx, msg, args, Page, &wiki).await?;
     } else {
-        fandom::display(ctx, msg, &wiki.default(&msg.author.name), &wiki).await?;
+        api::display(ctx, msg, &wiki.default(&msg.author.name), &wiki).await?;
     }
     Ok(())
 }
@@ -129,7 +129,7 @@ pub async fn minecraft(ctx: &Context, msg: &Message, args: Args) -> CommandResul
     if !args.is_empty() {
         wiki_search(ctx, msg, args, Page, &wiki).await?;
     } else {
-        fandom::display(ctx, msg, &wiki.default(&msg.author.name), &wiki).await?;
+        api::display(ctx, msg, &wiki.default(&msg.author.name), &wiki).await?;
     }
     Ok(())
 }

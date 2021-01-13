@@ -1,9 +1,9 @@
 mod announcement;
+pub mod api;
 mod check;
 mod commands;
 mod constants;
 mod database;
-pub mod fandom;
 
 use mysql_async::*;
 use reqwest::redirect;
@@ -14,9 +14,9 @@ use serenity::futures::future::{join3, join_all};
 use serenity::model::gateway::{Activity, Ready};
 use std::{env, sync::Arc};
 
+use api::structures::ReqwestClient;
 use check::dispatch_error_hook;
 use database::*;
-use fandom::structures::ReqwestClient;
 
 use constants::*;
 
@@ -117,7 +117,7 @@ async fn main() {
         }
     });
 
-    let fandom_client = reqwest::Client::builder()
+    let request_client = reqwest::Client::builder()
         .redirect(custom_redirect_policy)
         .build()
         .expect("Could not build the reqwest client");
@@ -158,7 +158,7 @@ async fn main() {
         let mut data = client.data.write().await;
 
         data.insert::<DatabasePool>(Arc::new(pool));
-        data.insert::<ReqwestClient>(Arc::new(fandom_client));
+        data.insert::<ReqwestClient>(Arc::new(request_client));
     }
 
     // start listening for events by starting a single shard

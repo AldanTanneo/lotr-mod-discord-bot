@@ -1,9 +1,12 @@
+use bytesize::ByteSize;
 use serenity::client::Context;
 use serenity::framework::standard::{macros::command, Args, CommandResult};
 use serenity::model::channel::Message;
 use serenity::utils::Colour;
 
+use crate::api::curseforge;
 use crate::check::IS_LOTR_DISCORD_CHECK;
+use crate::constants::{CURSEFORGE_ID_LEGACY, CURSEFORGE_ID_RENEWED};
 
 #[command]
 #[only_in(guilds)]
@@ -11,7 +14,7 @@ async fn renewed(ctx: &Context, msg: &Message) -> CommandResult {
     msg.channel_id
         .send_message(ctx, |m| {
             m.embed(|e| {
-                e.colour(Colour::GOLD);
+                e.colour(Colour::DARK_GOLD);
                 e.title("Use the 1.7.10 version");
                 e.description(
                     "The 1.15.2 version of the mod is a work in progress, missing many features such as NPCs and structures.
@@ -39,22 +42,63 @@ Their Discord can be found here: https://discord.gg/gMNKaX6",
     Ok(())
 }
 
+fn pretty_large_int<T: Into<u64>>(x: T) -> String {
+    let mut num = x.into();
+    let mut s = format!("{}", num % 1000);
+    num /= 1000;
+    while num != 0 {
+        s = format!("{},{}", num % 1000, s);
+        num /= 1000;
+    }
+    s
+}
+
 #[command]
 async fn curseforge(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    let version = if args.single::<String>().unwrap_or_default() == "legacy" {
-        "Legacy"
+    let id = if args.single::<String>().unwrap_or_default() == "legacy" {
+        CURSEFORGE_ID_LEGACY
     } else {
-        "Renewed"
+        CURSEFORGE_ID_RENEWED
     };
-    msg.channel_id.send_message(ctx, |m| m.embed(|e|{
-        e.colour(Colour::GOLD);
-        e.title(format!("Link to the {} version", version));
-        e.description(format!(
-            "The {} edition of the mod can be found on [Curseforge](https://www.curseforge.com/minecraft/mc-mods/the-lord-of-the-rings-mod-{})",
-            version,
-            version.to_lowercase()
-        ))
-    })).await?;
+    let project = curseforge::get_project_info(ctx, id).await;
+    if let Some(project) = project {
+        msg.channel_id
+            .send_message(ctx, |m| {
+                m.embed(|e| {
+                    e.author(|a| {
+                        a.name("Curseforge");
+                        a.icon_url(
+                            "https://pbs.twimg.com/profile_images/1334200314136817665/QOJeY7B0_400x400.png",
+                        );
+                        a.url(&project.urls.curseforge)
+                    });
+                    e.colour(Colour(0xf16436));
+                    e.title(&project.title);
+                    e.description(&project.summary);
+                    e.thumbnail(&project.thumbnail);
+                    e.field(
+                        "Download link",
+                        format!(
+                            "[{}]({}) ({})",
+                            &project.download.name,
+                            &project.download.url,
+                            ByteSize(project.download.filesize)
+                        ),
+                        false,
+                    );
+                    e.footer(|f| {
+                        f.text(format!(
+                            "Total download count: {}",
+                            pretty_large_int(project.downloads.total)
+                        ))
+                    });
+                    e.timestamp(project.download.uploaded_at);
+                    e
+                })
+            })
+            .await
+            .unwrap();
+    }
     Ok(())
 }
 
