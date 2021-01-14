@@ -50,9 +50,13 @@ pub async fn set_ip(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
 #[command]
 #[only_in(guilds)]
 pub async fn online(ctx: &Context, msg: &Message) -> CommandResult {
-    let ip = get_minecraft_ip(ctx, msg.guild_id)
-        .await
-        .unwrap_or_default();
+    let ip = if let Some(ip) = get_minecraft_ip(ctx, msg.guild_id).await {
+        ip
+    } else {
+        msg.reply(ctx, "No registered Minecraft IP for this server.")
+            .await?;
+        return Ok(());
+    };
     let server = get_server_status(ctx, &ip).await;
     if let Some(server) = server {
         msg.channel_id
