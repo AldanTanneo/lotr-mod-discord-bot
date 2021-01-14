@@ -4,7 +4,7 @@ use serenity::model::{channel::Message, id::GuildId, prelude::ReactionType};
 
 use crate::check::ALLOWED_BLACKLIST_CHECK;
 use crate::constants::OWNER_ID;
-use crate::database::{add_floppa, get_floppa, is_floppadmin};
+use crate::database::floppa::{add_floppa, get_floppa, is_floppadmin};
 
 #[command]
 #[only_in(guilds)]

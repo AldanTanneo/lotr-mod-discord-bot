@@ -34,6 +34,25 @@ pub struct CurseProject {
     pub(crate) download: DownloadLink,
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+pub(crate) struct Description {
+    pub(crate) clean: Vec<String>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub(crate) struct PlayerList {
+    pub(crate) online: u32,
+    pub(crate) max: u32,
+    pub(crate) list: Vec<String>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct MinecraftServer {
+    pub(crate) online: bool,
+    pub(crate) motd: Description,
+    pub(crate) players: PlayerList,
+}
+
 #[derive(Serialize, Deserialize)]
 pub(crate) struct RandomPage {
     pub(crate) title: String,

@@ -11,8 +11,11 @@ use crate::announcement;
 use crate::check::{ALLOWED_BLACKLIST_CHECK, IS_ADMIN_CHECK};
 use crate::constants::{BOT_ID, LOTR_DISCORD, OWNER_ID};
 use crate::database::{
-    add_admin, check_blacklist, get_admins, get_prefix, is_floppadmin, remove_admin, set_prefix,
-    update_blacklist, Blacklist::IsBlacklisted,
+    admin_data::{add_admin, get_admins, remove_admin},
+    blacklist::{check_blacklist, update_blacklist},
+    config::{get_prefix, set_prefix},
+    floppa::is_floppadmin,
+    Blacklist::IsBlacklisted,
 };
 
 #[command]

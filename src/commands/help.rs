@@ -4,7 +4,10 @@ use serenity::model::{channel::Message, id::GuildId, prelude::ReactionType, Perm
 use serenity::utils::Colour;
 
 use crate::check::has_permission;
-use crate::database::{get_admins, get_prefix};
+use crate::database::{
+    admin_data::get_admins,
+    config::{get_minecraft_ip, get_prefix},
+};
 use crate::{LOTR_DISCORD, OWNER_ID};
 
 #[command]
@@ -69,6 +72,7 @@ pub async fn help(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
     let prefix = get_prefix(ctx, msg.guild_id)
         .await
         .unwrap_or_else(|| "!".into());
+    let is_minecraft_server = get_minecraft_ip(ctx, msg.guild_id).await.is_some();
 
     msg.author
         .direct_message(ctx, |m| {
@@ -99,6 +103,28 @@ pub async fn help(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
                     ),
                     false,
                 );
+                if is_minecraft_server || is_admin {
+                    e.field(
+                        "Minecraft server commands",
+                        format!(
+"`{prefix}ip{}`  Display the server ip{}
+`{prefix}online`  Display the server status and a list of online players
+",
+                            if is_admin {
+                                " [set <server ip>]"
+                            } else {
+                                ""
+                            },
+                            if is_admin {
+                                ", if it exists; use `set` to add one."
+                            } else {
+                                ""
+                            },
+                            prefix=prefix
+                        ),
+                        false
+                    );
+                }
                 e.field(
                     "Wiki commands",
                     format!(

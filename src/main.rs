@@ -1,5 +1,5 @@
 mod announcement;
-pub mod api;
+mod api;
 mod check;
 mod commands;
 mod constants;
@@ -16,14 +16,16 @@ use std::{env, sync::Arc};
 
 use api::structures::ReqwestClient;
 use check::dispatch_error_hook;
-use database::*;
+use database::{config::get_prefix, DatabasePool};
 
 use constants::*;
 
-use commands::{admin::*, general::*, help::*, meme::*, wiki::*};
+use commands::{admin::*, general::*, help::*, meme::*, servers::*, wiki::*};
 
 #[group]
-#[commands(help, renewed, tos, curseforge, prefix, forge, coremod, invite)]
+#[commands(
+    help, renewed, tos, curseforge, prefix, forge, coremod, invite, server_ip, online
+)]
 struct General;
 
 #[group]

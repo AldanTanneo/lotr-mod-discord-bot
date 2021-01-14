@@ -1,4 +1,5 @@
 pub mod curseforge;
+pub mod minecraft;
 pub mod structures;
 
 use serde_json::Value;
@@ -29,10 +30,7 @@ pub async fn search(
         println!("query '{}'", query);
         let rclient = {
             let data_read = ctx.data.read().await;
-            data_read
-                .get::<ReqwestClient>()
-                .expect("Expected DatabasePool in TypeMap")
-                .clone()
+            data_read.get::<ReqwestClient>()?.clone()
         };
 
         let ns_code: String = ns.into();
@@ -73,10 +71,7 @@ pub async fn search(
     } else {
         let rclient = {
             let data_read = ctx.data.read().await;
-            data_read
-                .get::<ReqwestClient>()
-                .expect("Expected DatabasePool in TypeMap")
-                .clone()
+            data_read.get::<ReqwestClient>()?.clone()
         };
 
         let ns_code: String = ns.into();
@@ -114,10 +109,7 @@ pub async fn search(
 pub async fn random(ctx: &Context, wiki: &Wikis) -> Option<GenericPage> {
     let rclient = {
         let data_read = ctx.data.read().await;
-        data_read
-            .get::<ReqwestClient>()
-            .expect("Expected DatabasePool in TypeMap")
-            .clone()
+        data_read.get::<ReqwestClient>()?.clone()
     };
 
     let req = [
@@ -159,7 +151,7 @@ pub async fn display(
         let data_read = ctx.data.read().await;
         data_read
             .get::<ReqwestClient>()
-            .expect("Expected DatabasePool in TypeMap")
+            .expect("Expected ReqwestClient in TypeMap")
             .clone()
     };
 

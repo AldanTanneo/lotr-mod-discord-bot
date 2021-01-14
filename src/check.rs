@@ -1,4 +1,3 @@
-use crate::database::*;
 use crate::{LOTR_DISCORD, OWNER_ID};
 use serenity::framework::standard::{
     macros::{check, hook},
@@ -9,6 +8,8 @@ use serenity::model::{
     channel::Message, id::GuildId, prelude::ReactionType, user::User, Permissions,
 };
 use serenity::prelude::*;
+
+use crate::database::{admin_data::get_admins, blacklist::check_blacklist, Blacklist};
 
 #[check]
 pub async fn allowed_blacklist(ctx: &Context, msg: &Message) -> Result<(), Reason> {

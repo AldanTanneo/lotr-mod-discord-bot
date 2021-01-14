@@ -69,11 +69,11 @@ async fn curseforge(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
                         a.name("Curseforge");
                         a.icon_url(
                             "https://pbs.twimg.com/profile_images/1334200314136817665/QOJeY7B0_400x400.png",
-                        );
-                        a.url(&project.urls.curseforge)
+                        )
                     });
                     e.colour(Colour(0xf16436));
                     e.title(&project.title);
+                    e.url(&project.urls.curseforge);
                     e.description(&project.summary);
                     e.thumbnail(&project.thumbnail);
                     e.field(
