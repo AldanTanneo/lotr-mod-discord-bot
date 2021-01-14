@@ -5,7 +5,7 @@ use serenity::model::channel::Message;
 use serenity::utils::Colour;
 
 use crate::api::curseforge;
-use crate::check::IS_LOTR_DISCORD_CHECK;
+use crate::check::{ALLOWED_BLACKLIST_CHECK, IS_LOTR_DISCORD_CHECK};
 use crate::constants::{CURSEFORGE_ID_LEGACY, CURSEFORGE_ID_RENEWED};
 
 #[command]
@@ -140,5 +140,20 @@ When this happens, the mod will not function properly: among other things that w
 To fix this, go to your `/.minecraft/mods` folder and change the file extension!")
         }))
         .await?;
+    Ok(())
+}
+
+#[command]
+#[checks(allowed_blacklist)]
+pub async fn invite(ctx: &Context, msg: &Message) -> CommandResult {
+    msg.author.dm(ctx, |m| {
+        m.embed(|e| {
+            e.colour(Colour::BLURPLE);
+            e.field("Invite me to your server!", "My invite link is available [here](https://github.com/AldanTanneo/lotr-mod-discord-bot/blob/main/README.md)", false)
+        })
+    }).await?;
+    if msg.guild_id.is_some() {
+        msg.reply(ctx, "Sent invite link to DMs!").await?;
+    }
     Ok(())
 }

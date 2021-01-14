@@ -80,7 +80,8 @@ pub async fn help(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
                     "General commands",
                     format!(
 "`{prefix}curseforge [legacy|renewed]`  Display the mod download link (default: `renewed`)
-`{prefix}help{json}`  Send this message
+`{prefix}invite`  Send the bot invite link in DMs
+`{prefix}help{json}`  Send this message in DMs
 
 *Not available in DMs:*
 `{prefix}renewed`  Technical support command
@@ -128,7 +129,7 @@ Available languages: `en`, `de`, `fr`, `es`, `nl`, `ja`, `zh`, `ru`
 `{prefix}admin add <user mention>`  Give a user admin rights for the bot
 `{prefix}admin remove <user mention>`  Removes admin rights for a user
 `{prefix}admin list`  Display a list of bot admins
-`{prefix}blacklist [<user or channel mention>]`  Prevent some commands to be used by the user or in the channel (except for bot admins). When used without arguments, displays the blacklist.
+`{prefix}blacklist [user or channel mention]`  Prevent some commands to be used by the user or in the channel (except for bot admins). When used without arguments, displays the blacklist.
 `{prefix}announce <channel mention> <json message contents>`  Make the bot send a message to the mentioned channel. For the JSON argument documentation, type `{prefix}help json`
 
 *Only bot admins can use these commands*

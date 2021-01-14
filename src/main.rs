@@ -23,7 +23,7 @@ use constants::*;
 use commands::{admin::*, general::*, help::*, meme::*, wiki::*};
 
 #[group]
-#[commands(help, renewed, tos, curseforge, prefix, forge, coremod)]
+#[commands(help, renewed, tos, curseforge, prefix, forge, coremod, invite)]
 struct General;
 
 #[group]
