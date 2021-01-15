@@ -20,9 +20,6 @@ features = [
     "rt-multi-thread"
 ]
 
-[dependencies.search_with_google]
-git = "https://gitlab.com/AldanTanneo/search-with-google"
-
 [dependencies.serenity]
 default-features = false
 features = [

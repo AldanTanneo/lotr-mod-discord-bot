@@ -7,6 +7,18 @@ use Namespace::*;
 use Wikis::*;
 
 #[derive(Serialize, Deserialize, Debug)]
+pub(crate) struct SearchResult {
+    pub(crate) title: String,
+    pub(crate) link: String,
+    pub(crate) snippet: String,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct GoogleSearch {
+    pub(crate) items: Vec<SearchResult>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
 pub(crate) struct ProjectUrl {
     pub(crate) curseforge: String,
 }

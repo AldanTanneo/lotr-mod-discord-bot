@@ -1,4 +1,5 @@
 pub mod curseforge;
+mod google;
 pub mod minecraft;
 pub mod structures;
 
@@ -8,6 +9,7 @@ use serenity::framework::standard::CommandResult;
 use serenity::model::prelude::Message;
 use serenity::utils::Colour;
 
+use google::google_search;
 use structures::*;
 use structures::{Namespace::*, Wikis::*};
 
@@ -63,7 +65,7 @@ pub async fn search(
             Some(GenericPage {
                 title: title.into(),
                 link,
-                desc: Some(desc),
+                desc: Some(desc.replace("\n", "")),
             })
         } else {
             None
@@ -246,24 +248,4 @@ pub async fn display(
         .await?;
 
     Ok(())
-}
-
-pub async fn google_search(ctx: &Context, query: &str, wiki: &Wikis) -> Option<[String; 3]> {
-    let rclient = {
-        let data_read = ctx.data.read().await;
-        search_with_google::Client {
-            client: data_read.get::<ReqwestClient>()?.clone(),
-        }
-    };
-
-    let req = format!("site:{} {}", wiki.site(), query);
-    println!("google {}", req);
-    let results = rclient.search(&req, 2, None).await;
-
-    if let Ok(hits) = results {
-        let hit = hits.get(0)?;
-        Some([hit.title.clone(), hit.link.clone(), hit.description.clone()])
-    } else {
-        None
-    }
 }
