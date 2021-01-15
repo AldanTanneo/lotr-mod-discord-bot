@@ -81,14 +81,8 @@ pub async fn online(ctx: &Context, msg: &Message) -> CommandResult {
                             &server
                                 .players
                                 .list
-                                .unwrap_or_else(|| vec![if on == 0 {
-                                    "No players online"
-                                } else {
-                                    "Could not get player list"
-                                }
-                                .into()])
-                                .join(", ")
-                                .replace("_", "\\_")
+                                .map(|s| s.join(", ").replace("_", "\\_"))
+                                .unwrap_or_else(|| "[]()".into())
                         ),
                         false,
                     );
