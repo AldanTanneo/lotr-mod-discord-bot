@@ -70,12 +70,26 @@ pub async fn online(ctx: &Context, msg: &Message) -> CommandResult {
                         &server.motd.clean.join("\n"),
                         &ip,
                     ));
+                    let on = server.players.online;
                     e.field(
                         format!(
                             "Players: {}/{}",
                             &server.players.online, &server.players.max
                         ),
-                        format!("{}", &server.players.list.join(", ")),
+                        format!(
+                            "{}",
+                            &server
+                                .players
+                                .list
+                                .unwrap_or_else(|| vec![if on == 0 {
+                                    "No players online"
+                                } else {
+                                    "Could not get player list"
+                                }
+                                .into()])
+                                .join(", ")
+                                .replace("_", "\\_")
+                        ),
                         false,
                     );
                     e

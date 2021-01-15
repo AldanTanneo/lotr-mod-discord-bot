@@ -43,7 +43,7 @@ pub(crate) struct Description {
 pub(crate) struct PlayerList {
     pub(crate) online: u32,
     pub(crate) max: u32,
-    pub(crate) list: Vec<String>,
+    pub(crate) list: Option<Vec<String>>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
