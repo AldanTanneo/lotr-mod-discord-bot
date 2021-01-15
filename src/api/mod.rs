@@ -65,7 +65,7 @@ pub async fn search(
             Some(GenericPage {
                 title: title.into(),
                 link,
-                desc: Some(desc.replace("\n", "")),
+                desc: Some(desc.replace(" \n", "").replace("\n", " ")),
             })
         } else {
             None

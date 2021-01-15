@@ -11,14 +11,13 @@ pub async fn google_search(ctx: &Context, query: &str, wiki: &Wikis) -> Option<[
         data_read.get::<ReqwestClient>()?.clone()
     };
 
-    let req = [
-        ("cx", GOOGLE_CX),
+    let req: [(&str, &str); 5] = [
         ("key", &api_key),
+        ("cx", GOOGLE_CX),
         ("q", &query.replace(" ", "+")),
         ("num", "3"),
         ("siteSearch", &wiki.site()),
     ];
-    println!("google {:?}", req);
 
     let res_body = rclient
         .get(GOOGLE_API)
