@@ -6,6 +6,8 @@ use crate::constants::{GOOGLE_API, GOOGLE_CX};
 
 pub async fn google_search(ctx: &Context, query: &str, wiki: &Wikis) -> Option<[String; 3]> {
     let api_key = env::var("GOOGLE_API_KEY").expect("Expected a google api key in the environment");
+    let search_engine_id =
+        env::var("GOOGLE_CX").expect("Expected a google search engine id in the environment");
     let rclient = {
         let data_read = ctx.data.read().await;
         data_read.get::<ReqwestClient>()?.clone()
@@ -13,7 +15,7 @@ pub async fn google_search(ctx: &Context, query: &str, wiki: &Wikis) -> Option<[
 
     let req: [(&str, &str); 5] = [
         ("key", &api_key),
-        ("cx", GOOGLE_CX),
+        ("cx", &search_engine_id),
         ("q", &query.replace(" ", "+")),
         ("num", "3"),
         ("siteSearch", &wiki.site()),
