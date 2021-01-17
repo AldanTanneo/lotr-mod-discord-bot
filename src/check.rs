@@ -9,17 +9,26 @@ use serenity::model::{
 };
 use serenity::prelude::*;
 
-use crate::database::{admin_data::get_admins, blacklist::check_blacklist, Blacklist};
+use crate::database::{
+    admin_data::get_admins, blacklist::check_blacklist, config::get_minecraft_ip, Blacklist,
+};
 
 #[check]
 pub async fn allowed_blacklist(ctx: &Context, msg: &Message) -> Result<(), Reason> {
     let admins = get_admins(ctx, msg.guild_id).await.unwrap_or_default();
-    if !(admins.contains(&msg.author.id)
-        || msg.author.id == OWNER_ID
-        || !check_blacklist(ctx, msg, false)
-            .await
-            .unwrap_or(Blacklist::IsBlacklisted(true))
-            .is_blacklisted())
+    if check_blacklist(ctx, msg, false)
+        .await
+        .unwrap_or(Blacklist::IsBlacklisted(true))
+        .is_blacklisted()
+        && !(admins.contains(&msg.author.id)
+            || msg.author.id == OWNER_ID
+            || has_permission(
+                ctx,
+                msg.guild_id.unwrap_or(GuildId(0)),
+                &msg.author,
+                Permissions::MANAGE_GUILD | Permissions::ADMINISTRATOR,
+            )
+            .await)
     {
         msg.delete(ctx)
             .await
@@ -100,7 +109,34 @@ pub async fn dispatch_error_hook(ctx: &Context, msg: &Message, error: DispatchEr
                     println!("Error sending blacklist warning")
                 }
             }
+            Reason::Log(err_message) => {
+                println!("Check failed: {}", err_message)
+            }
             _ => (),
+        }
+    }
+}
+
+#[check]
+pub async fn is_minecraft_server(ctx: &Context, msg: &Message) -> Result<(), Reason> {
+    if get_minecraft_ip(ctx, msg.guild_id).await.is_some() {
+        Ok(())
+    } else {
+        let admins = get_admins(ctx, msg.guild_id).await.unwrap_or_default();
+        if admins.contains(&msg.author.id)
+            || msg.author.id == OWNER_ID
+            || has_permission(
+                ctx,
+                msg.guild_id.unwrap_or(GuildId(0)),
+                &msg.author,
+                Permissions::MANAGE_GUILD | Permissions::ADMINISTRATOR,
+            )
+            .await
+        {
+            println!("Bypassed minecraft server check");
+            Ok(())
+        } else {
+            Err(Reason::Log("Not a minecraft server".to_string()))
         }
     }
 }

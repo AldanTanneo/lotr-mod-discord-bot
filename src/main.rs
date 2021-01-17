@@ -10,8 +10,11 @@ use reqwest::redirect;
 use serenity::async_trait;
 use serenity::client::{Client, Context, EventHandler};
 use serenity::framework::standard::{macros::group, StandardFramework};
-use serenity::futures::future::{join3, join_all};
-use serenity::model::gateway::{Activity, Ready};
+use serenity::futures::future::join;
+use serenity::model::{
+    gateway::{Activity, Ready},
+    guild::GuildStatus,
+};
 use std::{env, sync::Arc};
 
 use api::structures::ReqwestClient;
@@ -54,16 +57,10 @@ struct Handler;
 #[async_trait]
 impl EventHandler for Handler {
     async fn ready(&self, ctx: Context, ready: Ready) {
-        let (_, guilds, owner) = join3(
+        let (_, owner) = join(
             ctx.set_activity(Activity::playing(
                 "The Lord of the Rings Mod: Bringing Middle-earth to Minecraft",
             )),
-            join_all(
-                ready
-                    .guilds
-                    .iter()
-                    .map(|guild| guild.id().to_partial_guild(&ctx)),
-            ),
             OWNER_ID.to_user(&ctx),
         )
         .await;
@@ -73,9 +70,14 @@ impl EventHandler for Handler {
             .dm(ctx, |m| {
                 m.content(format!(
                     "Bot started and ready!\n\n**Guilds:**\n{}",
-                    guilds
+                    ready
+                        .guilds
                         .iter()
-                        .filter_map(|guild| guild.as_ref().map(|g| g.name.clone()).ok())
+                        .filter_map(|guild| match guild {
+                            GuildStatus::OnlineGuild(g) => Some(g.name.clone()),
+                            GuildStatus::OnlinePartialGuild(g) => Some(g.name.clone()),
+                            _ => None,
+                        })
                         .collect::<Vec<_>>()
                         .join("\n")
                 ))

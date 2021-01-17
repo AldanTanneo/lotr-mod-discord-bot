@@ -4,13 +4,14 @@ use serenity::model::channel::Message;
 use serenity::utils::Colour;
 
 use crate::api::minecraft::get_server_status;
-use crate::check::IS_ADMIN_CHECK;
+use crate::check::{IS_ADMIN_CHECK, IS_MINECRAFT_SERVER_CHECK};
 use crate::database::config::{delete_minecraft_ip, get_minecraft_ip, set_minecraft_ip};
 
 #[command]
 #[aliases("ip")]
 #[bucket = "basic"]
 #[sub_commands(set_ip, remove_ip)]
+#[checks(is_minecraft_server)]
 #[only_in(guilds)]
 async fn server_ip(ctx: &Context, msg: &Message) -> CommandResult {
     let ip = get_minecraft_ip(ctx, msg.guild_id).await;
@@ -68,6 +69,7 @@ pub async fn remove_ip(ctx: &Context, msg: &Message) -> CommandResult {
 }
 
 #[command]
+#[checks(is_minecraft_server)]
 #[only_in(guilds)]
 pub async fn online(ctx: &Context, msg: &Message) -> CommandResult {
     let ip = if let Some(ip) = get_minecraft_ip(ctx, msg.guild_id).await {

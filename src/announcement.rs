@@ -4,8 +4,7 @@ use serenity::framework::standard::CommandResult;
 use serenity::model::id::ChannelId;
 use serenity::utils::Color;
 
-pub async fn announce(ctx: &Context, channel: ChannelId, content_json: &str) -> CommandResult {
-    let message: Value = serde_json::from_str(content_json)?;
+pub async fn announce(ctx: &Context, channel: ChannelId, message: Value) -> CommandResult {
     let content = message["content"].as_str();
     let image = message["image"].as_str();
     let embed = &message["embed"];

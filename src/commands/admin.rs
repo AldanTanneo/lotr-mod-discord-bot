@@ -200,14 +200,28 @@ async fn announce(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
             msg.react(ctx, ReactionType::from('❌')).await?;
             return Ok(());
         };
-        let content = &msg.content;
-        let (a, b) = (
-            content.find('{').unwrap_or(0),
-            content.rfind('}').unwrap_or(0),
-        );
-        if announcement::announce(ctx, ChannelId(id), &content[a..=b])
-            .await
-            .is_ok()
+        let message = if msg.attachments.is_empty() {
+            let content = &msg.content;
+            let (a, b) = (
+                content.find('{').unwrap_or(0),
+                content.rfind('}').unwrap_or(0),
+            );
+            serde_json::from_str(&content[a..=b])
+        } else {
+            let a = &msg.attachments[0];
+            if a.size <= 51200 {
+                let json_data = a.download().await?;
+                serde_json::from_slice(&json_data)
+            } else {
+                msg.reply(ctx, "Attachment is too big! Filesize must be under 50KB.")
+                    .await?;
+                return Ok(());
+            }
+        };
+        if message.is_ok()
+            && announcement::announce(ctx, ChannelId(id), message.unwrap())
+                .await
+                .is_ok()
         {
             msg.react(ctx, ReactionType::from('✅')).await?;
         } else {
