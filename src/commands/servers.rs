@@ -5,12 +5,12 @@ use serenity::utils::Colour;
 
 use crate::api::minecraft::get_server_status;
 use crate::check::IS_ADMIN_CHECK;
-use crate::database::config::{get_minecraft_ip, set_minecraft_ip};
+use crate::database::config::{delete_minecraft_ip, get_minecraft_ip, set_minecraft_ip};
 
 #[command]
 #[aliases("ip")]
 #[bucket = "basic"]
-#[sub_commands(set_ip)]
+#[sub_commands(set_ip, remove_ip)]
 #[only_in(guilds)]
 async fn server_ip(ctx: &Context, msg: &Message) -> CommandResult {
     let ip = get_minecraft_ip(ctx, msg.guild_id).await;
@@ -48,6 +48,26 @@ pub async fn set_ip(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
 }
 
 #[command]
+#[checks(is_admin)]
+#[aliases("remove", "unset")]
+#[only_in(guilds)]
+pub async fn remove_ip(ctx: &Context, msg: &Message) -> CommandResult {
+    let ip = get_minecraft_ip(ctx, msg.guild_id).await;
+    if let Some(ip) = ip {
+        delete_minecraft_ip(ctx, msg.guild_id).await?;
+        msg.reply(
+            ctx,
+            format!("Successfully removed ip `{}` from this server", ip),
+        )
+        .await?;
+    } else {
+        msg.reply(ctx, "No registered Minecraft IP for this server.")
+            .await?;
+    }
+    Ok(())
+}
+
+#[command]
 #[only_in(guilds)]
 pub async fn online(ctx: &Context, msg: &Message) -> CommandResult {
     let ip = if let Some(ip) = get_minecraft_ip(ctx, msg.guild_id).await {
@@ -70,7 +90,6 @@ pub async fn online(ctx: &Context, msg: &Message) -> CommandResult {
                         &server.motd.clean.join("\n"),
                         &ip,
                     ));
-                    let on = server.players.online;
                     e.field(
                         format!(
                             "Players: {}/{}",

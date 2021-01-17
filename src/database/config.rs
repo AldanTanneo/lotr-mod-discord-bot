@@ -120,7 +120,7 @@ pub async fn set_minecraft_ip(
     };
     let mut conn = pool.get_conn().await?;
 
-    let server_id: u64 = guild_id.unwrap_or(GuildId(0)).0;
+    let server_id: u64 = guild_id.map(|g| g.0).unwrap_or_default();
 
     let req = if update {
         println!("Updating IP to {}", ip);
@@ -147,5 +147,35 @@ pub async fn set_minecraft_ip(
 
     drop(conn);
 
+    Ok(())
+}
+
+pub async fn delete_minecraft_ip(ctx: &Context, guild_id: Option<GuildId>) -> CommandResult {
+    let pool = {
+        let data_read = ctx.data.read().await;
+        if let Some(p) = data_read.get::<DatabasePool>() {
+            p.clone()
+        } else {
+            println!("Could not retrieve the database pool");
+            return Ok(());
+        }
+    };
+    let mut conn = pool.get_conn().await?;
+    let server_id: u64 = guild_id.map(|g| g.0).unwrap_or_default();
+
+    let req = format!(
+        "DELETE FROM {} WHERE server_id = :server_id LIMIT 1",
+        TABLE_MC_SERVER_IP
+    );
+
+    conn.exec_drop(
+        req.as_str(),
+        params! {
+            "server_id" => server_id
+        },
+    )
+    .await?;
+
+    drop(conn);
     Ok(())
 }
