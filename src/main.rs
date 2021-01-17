@@ -69,17 +69,8 @@ impl EventHandler for Handler {
             .unwrap()
             .dm(ctx, |m| {
                 m.content(format!(
-                    "Bot started and ready!\n\n**Guilds:**\n{}",
-                    ready
-                        .guilds
-                        .iter()
-                        .filter_map(|guild| match guild {
-                            GuildStatus::OnlineGuild(g) => Some(g.name.clone()),
-                            GuildStatus::OnlinePartialGuild(g) => Some(g.name.clone()),
-                            _ => None,
-                        })
-                        .collect::<Vec<_>>()
-                        .join("\n")
+                    "Bot started and ready!\n\nGuilds: {}\n*Type !guilds to see all guilds*",
+                    ready.guilds.len()
                 ))
             })
             .await
