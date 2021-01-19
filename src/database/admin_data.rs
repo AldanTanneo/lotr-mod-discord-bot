@@ -20,7 +20,7 @@ pub async fn is_admin(ctx: &Context, guild_id: Option<GuildId>, user: UserId) ->
 
     let res = conn
         .query_first(format!(
-            "SELECT EXISTS(SELECT perm_id FROM {} WHERE server_id={} AND user_id={})",
+            "SELECT EXISTS(SELECT perm_id FROM {} WHERE server_id={} AND user_id={} LIMIT 1)",
             TABLE_ADMINS, server_id, user.0
         ))
         .await

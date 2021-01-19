@@ -56,7 +56,7 @@ pub async fn check_blacklist(ctx: &Context, msg: &Message, get_list: bool) -> Op
     } else {
         let user_blacklist: bool = conn
             .query_first(format!(
-                "SELECT EXISTS(SELECT id FROM {} WHERE server_id={} AND user_id={})",
+                "SELECT EXISTS(SELECT id FROM {} WHERE server_id={} AND user_id={} LIMIT 1)",
                 TABLE_USER_BLACKLIST, server_id, msg.author.id.0
             ))
             .await
@@ -64,7 +64,7 @@ pub async fn check_blacklist(ctx: &Context, msg: &Message, get_list: bool) -> Op
 
         let channel_blacklist: bool = conn
             .query_first(format!(
-                "SELECT EXISTS(SELECT id FROM {} WHERE server_id={} AND channel_id={})",
+                "SELECT EXISTS(SELECT id FROM {} WHERE server_id={} AND channel_id={} LIMIT 1)",
                 TABLE_CHANNEL_BLACKLIST, server_id, msg.channel_id.0
             ))
             .await

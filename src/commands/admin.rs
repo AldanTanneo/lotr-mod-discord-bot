@@ -278,6 +278,7 @@ async fn listguilds(ctx: &Context) -> CommandResult {
     let mut id = GuildId(0);
     let owner = OWNER_ID.to_user(&ctx).await?;
     let mut first = true;
+    let mut count = 0;
     while let Ok(vec) = ctx
         .http
         .get_guilds(&serenity::http::GuildPagination::After(id), 20)
@@ -291,6 +292,7 @@ async fn listguilds(ctx: &Context) -> CommandResult {
                 .map(|g| g.name.clone())
                 .collect::<Vec<_>>()
                 .join("\n");
+            count += vec.len();
             id = vec[vec.len() - 1].id;
             if first {
                 first = false;
@@ -302,5 +304,8 @@ async fn listguilds(ctx: &Context) -> CommandResult {
             }
         }
     }
+    owner
+        .dm(ctx, |m| m.content(format!("*{} guilds*", count)))
+        .await?;
     Ok(())
 }
