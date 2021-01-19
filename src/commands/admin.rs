@@ -11,7 +11,7 @@ use crate::announcement;
 use crate::check::{ALLOWED_BLACKLIST_CHECK, IS_ADMIN_CHECK};
 use crate::constants::{BOT_ID, LOTR_DISCORD, OWNER_ID};
 use crate::database::{
-    admin_data::{add_admin, get_admins, remove_admin},
+    admin_data::{add_admin, get_admins, is_admin, remove_admin},
     blacklist::{check_blacklist, update_blacklist},
     config::{get_prefix, set_prefix},
     floppa::is_floppadmin,
@@ -60,8 +60,7 @@ async fn add(ctx: &Context, msg: &Message) -> CommandResult {
         .iter()
         .find(|&user| user.id != BOT_ID && user.id != OWNER_ID)
     {
-        let admins = get_admins(ctx, msg.guild_id).await.unwrap_or_default();
-        if !admins.contains(&user.id) {
+        if !is_admin(ctx, msg.guild_id, user.id).await.is_some() {
             add_admin(ctx, msg.guild_id, user.id, false, false).await?;
             msg.react(ctx, ReactionType::from('✅')).await?;
         } else {
@@ -89,8 +88,7 @@ async fn remove(ctx: &Context, msg: &Message) -> CommandResult {
         .iter()
         .find(|&user| user.id != BOT_ID && user.id != OWNER_ID)
     {
-        let admins = get_admins(ctx, msg.guild_id).await.unwrap_or_default();
-        if admins.contains(&user.id) {
+        if is_admin(ctx, msg.guild_id, user.id).await.is_some() {
             remove_admin(ctx, msg.guild_id, user.id).await?;
             msg.react(ctx, ReactionType::from('✅')).await?;
         } else {
@@ -248,12 +246,11 @@ async fn floppadmin(ctx: &Context, msg: &Message) -> CommandResult {
         .iter()
         .find(|&user| user.id != BOT_ID && user.id != OWNER_ID)
     {
-        let admins = get_admins(ctx, msg.guild_id).await.unwrap_or_default();
         if !is_floppadmin(ctx, msg.guild_id, user.id)
             .await
             .unwrap_or(false)
         {
-            if !admins.contains(&user.id) {
+            if !is_admin(ctx, msg.guild_id, user.id).await.is_some() {
                 add_admin(ctx, msg.guild_id, user.id, false, true)
             } else {
                 add_admin(ctx, msg.guild_id, user.id, true, true)

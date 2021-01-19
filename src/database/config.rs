@@ -1,31 +1,32 @@
 use mysql_async::prelude::*;
 use serenity::client::Context;
 use serenity::framework::standard::CommandResult;
-use serenity::model::id::GuildId;
+use serenity::model::{error::Error::WrongGuild, id::GuildId};
 
 use super::DatabasePool;
 use crate::constants::{TABLE_MC_SERVER_IP, TABLE_PREFIX};
 
 pub async fn get_prefix(ctx: &Context, guild_id: Option<GuildId>) -> Option<String> {
+    let server_id: u64 = guild_id?.0;
+
     let pool = {
         let data_read = ctx.data.read().await;
         data_read.get::<DatabasePool>()?.clone()
     };
     let mut conn = pool.get_conn().await.ok()?;
 
-    let server_id: u64 = guild_id?.0;
-
     let res = conn
         .query_first(format!(
             "SELECT prefix FROM {} WHERE server_id={}",
             TABLE_PREFIX, server_id
         ))
-        .await;
+        .await
+        .ok()?;
 
     drop(conn);
 
-    if let Ok(Some(prefix)) = res {
-        prefix
+    if res.is_some() {
+        res
     } else {
         println!("Initializing prefix for {:?}", guild_id);
         set_prefix(ctx, guild_id, "!", false).await.ok()?;
@@ -40,6 +41,8 @@ pub async fn set_prefix(
     prefix: &str,
     update: bool,
 ) -> CommandResult {
+    let server_id: u64 = guild_id.ok_or(WrongGuild)?.0;
+
     let pool = {
         let data_read = ctx.data.read().await;
         if let Some(p) = data_read.get::<DatabasePool>() {
@@ -50,8 +53,6 @@ pub async fn set_prefix(
         }
     };
     let mut conn = pool.get_conn().await?;
-
-    let server_id: u64 = guild_id.unwrap_or(GuildId(0)).0;
 
     let req = if update {
         println!("Updating prefix to \"{}\"", prefix);
@@ -82,13 +83,13 @@ pub async fn set_prefix(
 }
 
 pub async fn get_minecraft_ip(ctx: &Context, guild_id: Option<GuildId>) -> Option<String> {
+    let server_id: u64 = guild_id?.0;
+
     let pool = {
         let data_read = ctx.data.read().await;
         data_read.get::<DatabasePool>()?.clone()
     };
     let mut conn = pool.get_conn().await.ok()?;
-
-    let server_id: u64 = guild_id?.0;
 
     let ip = conn
         .query_first(format!(
@@ -109,6 +110,8 @@ pub async fn set_minecraft_ip(
     ip: &String,
     update: bool,
 ) -> CommandResult {
+    let server_id: u64 = guild_id.ok_or(WrongGuild)?.0;
+
     let pool = {
         let data_read = ctx.data.read().await;
         if let Some(p) = data_read.get::<DatabasePool>() {
@@ -119,8 +122,6 @@ pub async fn set_minecraft_ip(
         }
     };
     let mut conn = pool.get_conn().await?;
-
-    let server_id: u64 = guild_id.map(|g| g.0).unwrap_or_default();
 
     let req = if update {
         println!("Updating IP to {}", ip);
@@ -151,6 +152,8 @@ pub async fn set_minecraft_ip(
 }
 
 pub async fn delete_minecraft_ip(ctx: &Context, guild_id: Option<GuildId>) -> CommandResult {
+    let server_id: u64 = guild_id.ok_or(WrongGuild)?.0;
+
     let pool = {
         let data_read = ctx.data.read().await;
         if let Some(p) = data_read.get::<DatabasePool>() {
@@ -161,7 +164,6 @@ pub async fn delete_minecraft_ip(ctx: &Context, guild_id: Option<GuildId>) -> Co
         }
     };
     let mut conn = pool.get_conn().await?;
-    let server_id: u64 = guild_id.map(|g| g.0).unwrap_or_default();
 
     let req = format!(
         "DELETE FROM {} WHERE server_id = :server_id LIMIT 1",

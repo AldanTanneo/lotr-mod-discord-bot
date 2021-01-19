@@ -11,10 +11,7 @@ use serenity::async_trait;
 use serenity::client::{Client, Context, EventHandler};
 use serenity::framework::standard::{macros::group, StandardFramework};
 use serenity::futures::future::join;
-use serenity::model::{
-    gateway::{Activity, Ready},
-    guild::GuildStatus,
-};
+use serenity::model::gateway::{Activity, Ready};
 use std::{env, sync::Arc};
 
 use api::structures::ReqwestClient;
@@ -69,7 +66,7 @@ impl EventHandler for Handler {
             .unwrap()
             .dm(ctx, |m| {
                 m.content(format!(
-                    "Bot started and ready!\n\nGuilds: {}\n*Type !guilds to see all guilds*",
+                    "Bot started and ready!\n\nGuilds: {}",
                     ready.guilds.len()
                 ))
             })

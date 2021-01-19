@@ -1,24 +1,22 @@
 use serenity::client::Context;
 use serenity::framework::standard::{macros::command, Args, CommandResult};
-use serenity::model::{channel::Message, id::GuildId, prelude::ReactionType, Permissions};
+use serenity::model::{channel::Message, prelude::ReactionType, Permissions};
 use serenity::utils::Colour;
 
 use crate::check::has_permission;
 use crate::database::{
-    admin_data::get_admins,
+    admin_data::is_admin,
     config::{get_minecraft_ip, get_prefix},
 };
 use crate::{LOTR_DISCORD, OWNER_ID};
 
 #[command]
 pub async fn help(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    let admins = get_admins(ctx, msg.guild_id).await.unwrap_or_default();
-    let guild = msg.guild_id.unwrap_or(GuildId(0));
     let is_admin = msg.author.id == OWNER_ID
-        || admins.contains(&msg.author.id)
+        || is_admin(ctx, msg.guild_id, msg.author.id).await.is_some()
         || has_permission(
             ctx,
-            guild,
+            msg.guild_id,
             &msg.author,
             Permissions::MANAGE_GUILD | Permissions::ADMINISTRATOR,
         )
@@ -93,7 +91,7 @@ pub async fn help(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
 `{prefix}coremod`  Technical support command
 {}
 ",
-                        if msg.guild_id.unwrap_or(GuildId(0)) == LOTR_DISCORD {
+                        if msg.guild_id == Some(LOTR_DISCORD) {
                             format!("`{}tos`  Display the invite to TOS discord", prefix)
                         } else {
                             "".into()

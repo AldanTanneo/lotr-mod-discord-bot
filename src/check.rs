@@ -10,21 +10,46 @@ use serenity::model::{
 use serenity::prelude::*;
 
 use crate::database::{
-    admin_data::get_admins, blacklist::check_blacklist, config::get_minecraft_ip, Blacklist,
+    admin_data, blacklist::check_blacklist, config::get_minecraft_ip, Blacklist,
 };
+
+async fn bot_admin(ctx: &Context, msg: &Message) -> bool {
+    admin_data::is_admin(ctx, msg.guild_id, msg.author.id)
+        .await
+        .is_some()
+}
+
+pub async fn has_permission(
+    ctx: &Context,
+    guild: Option<GuildId>,
+    user: &User,
+    perm: Permissions,
+) -> bool {
+    if let Some(guild) = guild {
+        if let Ok(g) = guild.to_partial_guild(&ctx).await {
+            for (role_id, role) in g.roles.iter() {
+                if role.permissions.intersects(perm)
+                    && user.has_role(ctx, guild, role_id).await.unwrap_or(false)
+                {
+                    return true;
+                }
+            }
+        }
+    }
+    false
+}
 
 #[check]
 pub async fn allowed_blacklist(ctx: &Context, msg: &Message) -> Result<(), Reason> {
-    let admins = get_admins(ctx, msg.guild_id).await.unwrap_or_default();
     if check_blacklist(ctx, msg, false)
         .await
         .unwrap_or(Blacklist::IsBlacklisted(true))
         .is_blacklisted()
-        && !(admins.contains(&msg.author.id)
+        && !(bot_admin(ctx, msg).await
             || msg.author.id == OWNER_ID
             || has_permission(
                 ctx,
-                msg.guild_id.unwrap_or(GuildId(0)),
+                msg.guild_id,
                 &msg.author,
                 Permissions::MANAGE_GUILD | Permissions::ADMINISTRATOR,
             )
@@ -44,7 +69,7 @@ pub async fn allowed_blacklist(ctx: &Context, msg: &Message) -> Result<(), Reaso
 
 #[check]
 pub async fn is_lotr_discord(_: &Context, msg: &Message) -> Result<(), Reason> {
-    if msg.guild_id.unwrap_or(GuildId(0)) != LOTR_DISCORD {
+    if msg.guild_id != Some(LOTR_DISCORD) {
         Err(Reason::Log(
             "Tried to use !tos on another discord".to_string(),
         ))
@@ -53,28 +78,13 @@ pub async fn is_lotr_discord(_: &Context, msg: &Message) -> Result<(), Reason> {
     }
 }
 
-pub async fn has_permission(ctx: &Context, guild: GuildId, user: &User, perm: Permissions) -> bool {
-    if let Ok(g) = guild.to_partial_guild(&ctx).await {
-        for (role_id, role) in g.roles.iter() {
-            if role.permissions.intersects(perm)
-                && user.has_role(ctx, guild, role_id).await.unwrap_or(false)
-            {
-                return true;
-            }
-        }
-    }
-    false
-}
-
 #[check]
 pub async fn is_admin(ctx: &Context, msg: &Message) -> Result<(), Reason> {
-    let admins = get_admins(ctx, msg.guild_id).await.unwrap_or_default();
-    let guild = msg.guild_id.unwrap_or(GuildId(0));
     if msg.author.id == OWNER_ID
-        || admins.contains(&msg.author.id)
+        || bot_admin(ctx, msg).await
         || has_permission(
             ctx,
-            guild,
+            msg.guild_id,
             &msg.author,
             Permissions::MANAGE_GUILD | Permissions::ADMINISTRATOR,
         )
@@ -122,12 +132,11 @@ pub async fn is_minecraft_server(ctx: &Context, msg: &Message) -> Result<(), Rea
     if get_minecraft_ip(ctx, msg.guild_id).await.is_some() {
         Ok(())
     } else {
-        let admins = get_admins(ctx, msg.guild_id).await.unwrap_or_default();
-        if admins.contains(&msg.author.id)
+        if bot_admin(ctx, msg).await
             || msg.author.id == OWNER_ID
             || has_permission(
                 ctx,
-                msg.guild_id.unwrap_or(GuildId(0)),
+                msg.guild_id,
                 &msg.author,
                 Permissions::MANAGE_GUILD | Permissions::ADMINISTRATOR,
             )

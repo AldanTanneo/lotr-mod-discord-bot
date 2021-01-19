@@ -1,18 +1,48 @@
 use mysql_async::prelude::*;
 use serenity::client::Context;
 use serenity::framework::standard::CommandResult;
-use serenity::model::id::{GuildId, UserId};
+use serenity::model::{
+    error::Error::WrongGuild,
+    id::{GuildId, UserId},
+};
 
 use super::DatabasePool;
 use crate::constants::TABLE_ADMINS;
 
-pub async fn get_admins(ctx: &Context, guild_id: Option<GuildId>) -> Option<Vec<UserId>> {
+pub async fn is_admin(ctx: &Context, guild_id: Option<GuildId>, user: UserId) -> Option<()> {
+    let server_id: u64 = guild_id?.0;
+
     let pool = {
         let data_read = ctx.data.read().await;
         data_read.get::<DatabasePool>()?.clone()
     };
     let mut conn = pool.get_conn().await.ok()?;
+
+    let res = conn
+        .query_first(format!(
+            "SELECT EXISTS(SELECT perm_id FROM {} WHERE server_id={} AND user_id={})",
+            TABLE_ADMINS, server_id, user.0
+        ))
+        .await
+        .ok()??;
+
+    drop(conn);
+
+    if res {
+        Some(())
+    } else {
+        None
+    }
+}
+
+pub async fn get_admins(ctx: &Context, guild_id: Option<GuildId>) -> Option<Vec<UserId>> {
     let server_id: u64 = guild_id?.0;
+
+    let pool = {
+        let data_read = ctx.data.read().await;
+        data_read.get::<DatabasePool>()?.clone()
+    };
+    let mut conn = pool.get_conn().await.ok()?;
 
     let res = conn
         .exec_map(
@@ -41,6 +71,8 @@ pub async fn add_admin(
     update: bool,
     floppadmin: bool,
 ) -> CommandResult {
+    let server_id: u64 = guild_id.ok_or(WrongGuild)?.0;
+
     let pool = {
         let data_read = ctx.data.read().await;
         if let Some(p) = data_read.get::<DatabasePool>() {
@@ -51,7 +83,6 @@ pub async fn add_admin(
         }
     };
     let mut conn = pool.get_conn().await?;
-    let server_id: u64 = guild_id.unwrap_or(GuildId(0)).0;
 
     let req = if update {
         format!(
@@ -83,6 +114,8 @@ pub async fn remove_admin(
     guild_id: Option<GuildId>,
     user_id: UserId,
 ) -> CommandResult {
+    let server_id: u64 = guild_id.ok_or(WrongGuild)?.0;
+
     let pool = {
         let data_read = ctx.data.read().await;
         if let Some(p) = data_read.get::<DatabasePool>() {
@@ -94,11 +127,9 @@ pub async fn remove_admin(
     };
     let mut conn = pool.get_conn().await?;
 
-    let server_id: u64 = guild_id.unwrap_or(GuildId(0)).0;
-
     conn.exec_drop(
         format!(
-            "DELETE FROM {} WHERE server_id = :server_id AND user_id = :user_id",
+            "DELETE FROM {} WHERE server_id = :server_id AND user_id = :user_id LIMIT 1",
             TABLE_ADMINS
         )
         .as_str(),

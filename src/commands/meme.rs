@@ -1,6 +1,6 @@
 use serenity::client::Context;
 use serenity::framework::standard::{macros::command, Args, CommandResult};
-use serenity::model::{channel::Message, id::GuildId, prelude::ReactionType};
+use serenity::model::{channel::Message, error::Error::WrongGuild, prelude::ReactionType};
 
 use crate::check::ALLOWED_BLACKLIST_CHECK;
 use crate::constants::OWNER_ID;
@@ -59,7 +59,7 @@ async fn floppadd(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
             .unwrap_or(false)
     {
         let owner = OWNER_ID.to_user(ctx);
-        let guild = msg.guild_id.unwrap_or(GuildId(0)).to_partial_guild(ctx);
+        let guild = msg.guild_id.ok_or(WrongGuild)?.to_partial_guild(ctx);
         let url = args.single::<String>();
         if let Ok(floppa_url) = url {
             let owner = owner.await?;
