@@ -2,7 +2,7 @@ use serenity::client::Context;
 use serenity::framework::standard::{macros::command, Args, CommandResult};
 use serenity::model::{
     channel::Message,
-    id::{ChannelId, GuildId},
+    id::{ChannelId, GuildId, UserId},
     prelude::ReactionType,
 };
 use serenity::prelude::*;
@@ -82,7 +82,7 @@ async fn add(ctx: &Context, msg: &Message) -> CommandResult {
 #[checks(is_admin)]
 #[max_args(1)]
 #[min_args(1)]
-async fn remove(ctx: &Context, msg: &Message) -> CommandResult {
+async fn remove(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     if let Some(user) = msg
         .mentions
         .iter()
@@ -95,6 +95,12 @@ async fn remove(ctx: &Context, msg: &Message) -> CommandResult {
             msg.reply(ctx, "This user is not a bot admin on this server!")
                 .await?;
         }
+    } else if is_admin(ctx, msg.guild_id, UserId(args.parse()?))
+        .await
+        .is_some()
+    {
+        remove_admin(ctx, msg.guild_id, UserId(args.single()?)).await?;
+        msg.react(ctx, ReactionType::from('✅')).await?;
     } else {
         msg.reply(
             ctx,
