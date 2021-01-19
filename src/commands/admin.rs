@@ -95,7 +95,7 @@ async fn remove(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
             msg.reply(ctx, "This user is not a bot admin on this server!")
                 .await?;
         }
-    } else if is_admin(ctx, msg.guild_id, UserId(args.parse()?))
+    } else if is_admin(ctx, msg.guild_id, UserId(args.parse().unwrap_or_default()))
         .await
         .is_some()
     {
