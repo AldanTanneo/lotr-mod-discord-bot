@@ -54,6 +54,7 @@ fn pretty_large_int<T: Into<u64>>(x: T) -> String {
 }
 
 #[command]
+#[aliases("download")]
 async fn curseforge(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let id = if args.single::<String>().unwrap_or_default() == "legacy" {
         CURSEFORGE_ID_LEGACY
