@@ -1,6 +1,5 @@
 use serenity::client::Context;
 use serenity::framework::standard::{macros::command, Args, CommandResult};
-use serenity::futures::future::join_all;
 use serenity::model::{channel::Message, prelude::ReactionType, Permissions};
 use serenity::utils::Colour;
 
@@ -73,19 +72,18 @@ pub async fn help(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
         .await
         .unwrap_or_else(|| "!".into());
     let is_minecraft_server = get_minecraft_ip(ctx, msg.guild_id).await.is_some();
-    let custom_commands = dbg!(
-        join_all(
-            get_custom_commands_list(ctx, msg.guild_id)
-                .await
-                .unwrap_or_default()
-                .iter()
-                .map(|name| get_command_data(ctx, msg.guild_id, &name, true)),
-        )
+
+    let cclist = get_custom_commands_list(ctx, msg.guild_id)
         .await
-    )
-    .into_iter()
-    .filter_map(|c| c)
-    .collect::<Vec<_>>();
+        .unwrap_or_default();
+    let mut ccdata = Vec::with_capacity(cclist.len());
+    for data in cclist
+        .iter()
+        .map(|name| get_command_data(ctx, msg.guild_id, &name, true))
+    {
+        ccdata.push(data.await);
+    }
+    let custom_commands = ccdata.into_iter().filter_map(|c| c).collect::<Vec<_>>();
 
     msg.author
         .direct_message(ctx, |m| {
