@@ -213,7 +213,7 @@ pub async fn custom_command_display(ctx: &Context, msg: &Message, mut args: Args
             .send_message(ctx, |m| {
                 m.embed(|e| {
                     e.title("Custom commands");
-                    e.description(list.join("\n"))
+                    e.description(format!("`{}`", list.join("`\n`")))
                 })
             })
             .await?;
