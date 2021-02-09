@@ -208,14 +208,15 @@ pub async fn json(ctx: &Context, msg: &Message) -> CommandResult {
         "timestamp": "a valid timestamp in the format [YYYY]-[MM]-[DD]T[HH]:[mm]:[ss]"
                      // example: "2020-12-02T13:07:00"
 
-        // Only for custom commands:
-        "documentation": "A formatted string" 
-            // if this field is not present, your custom command will not be
-            // displayed in !help for regular users
-        "type": "default" // can be "meme", "admin" or "default";
-            // if the type is "meme", the command will be subject to the blacklist
-            // if the type is "admin", only admins will be able to use it.
     }
+
+    // Only for custom commands:
+    "documentation": "A formatted string" 
+        // if this field is not present, your custom command will not be
+        // displayed in !help for regular users
+    "type": "default" // can be "meme", "admin" or "default";
+        // if the type is "meme", the command will be subject to the blacklist
+        // if the type is "admin", only admins will be able to use it.
 }
 ```
 "#,
