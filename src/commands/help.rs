@@ -1,5 +1,6 @@
 use serenity::client::Context;
 use serenity::framework::standard::{macros::command, Args, CommandResult};
+use serenity::futures::future::join_all;
 use serenity::model::{channel::Message, prelude::ReactionType, Permissions};
 use serenity::utils::Colour;
 
@@ -7,6 +8,7 @@ use crate::check::has_permission;
 use crate::database::{
     admin_data::is_admin,
     config::{get_minecraft_ip, get_prefix},
+    custom_commands::{get_command_data, get_custom_commands_list},
 };
 use crate::{LOTR_DISCORD, OWNER_ID};
 
@@ -71,6 +73,19 @@ pub async fn help(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
         .await
         .unwrap_or_else(|| "!".into());
     let is_minecraft_server = get_minecraft_ip(ctx, msg.guild_id).await.is_some();
+    let custom_commands = dbg!(
+        join_all(
+            get_custom_commands_list(ctx, msg.guild_id)
+                .await
+                .unwrap_or_default()
+                .iter()
+                .map(|name| get_command_data(ctx, msg.guild_id, &name, true)),
+        )
+        .await
+    )
+    .into_iter()
+    .filter_map(|c| c)
+    .collect::<Vec<_>>();
 
     msg.author
         .direct_message(ctx, |m| {
@@ -145,6 +160,29 @@ Available languages: `en`, `de`, `fr`, `es`, `nl`, `ja`, `zh`, `ru`
                     ),
                     false
                 );
+                if !custom_commands.is_empty() {
+                    e.field(
+                        "Custom commands",
+                        custom_commands
+                            .into_iter()
+                            .filter_map(|c| {
+                                let tmp = c.description.clone().map(|s| s.is_empty()).unwrap_or(true);
+                                if !is_admin && tmp {
+                                    None
+                                } else {
+                                    let desc = if tmp {
+                                        "_No description_".into()
+                                    } else {
+                                        c.description.unwrap()
+                                    };
+                                    Some(format!("`{}{}`  {}", prefix, c.name, desc))
+                                }
+                            })
+                            .collect::<Vec<_>>()
+                            .join("\n"),
+                        false,
+                    );
+                }
                 if is_admin {
                     e.field(
                         "Admin commands",

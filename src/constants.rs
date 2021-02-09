@@ -19,4 +19,4 @@ pub const TABLE_FLOPPA: &str = "floppa_images";
 pub const TABLE_USER_BLACKLIST: &str = "user_blacklist";
 pub const TABLE_CHANNEL_BLACKLIST: &str = "channel_blacklist";
 pub const TABLE_MC_SERVER_IP: &str = "mc_server_ip";
-// pub const TABLE_CUSTOM_COMMANDS: &str = "custom_commands";
+pub const TABLE_CUSTOM_COMMANDS: &str = "custom_commands";

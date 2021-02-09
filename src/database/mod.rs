@@ -1,6 +1,7 @@
 pub mod admin_data;
 pub mod blacklist;
 pub mod config;
+pub mod custom_commands;
 pub mod floppa;
 
 use mysql_async::Pool;
@@ -35,4 +36,11 @@ impl Blacklist {
             _ => (vec![], vec![]),
         }
     }
+}
+
+#[derive(std::fmt::Debug)]
+pub struct CustomCommand {
+    pub name: String,
+    pub body: String,
+    pub description: Option<String>,
 }

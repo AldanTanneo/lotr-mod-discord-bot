@@ -20,11 +20,22 @@ use database::{config::get_prefix, DatabasePool};
 
 use constants::*;
 
-use commands::{admin::*, general::*, help::*, meme::*, servers::*, wiki::*};
+use commands::{admin::*, custom_commands::*, general::*, help::*, meme::*, servers::*, wiki::*};
 
 #[group]
+#[default_command(custom_command)]
 #[commands(
-    help, renewed, tos, curseforge, prefix, forge, coremod, invite, server_ip, online
+    custom_command,
+    help,
+    renewed,
+    tos,
+    curseforge,
+    prefix,
+    forge,
+    coremod,
+    invite,
+    server_ip,
+    online
 )]
 struct General;
 
@@ -46,7 +57,7 @@ struct Wiki;
 struct Admin;
 
 #[group]
-#[commands(floppadd, blacklist, announce, floppadmin, listguilds)]
+#[commands(floppadd, blacklist, announce, floppadmin, listguilds, define)]
 struct Moderation;
 
 struct Handler;
@@ -132,11 +143,11 @@ async fn main() {
                 .delimiters(vec![' ', '\n'])
         })
         .on_dispatch_error(dispatch_error_hook)
-        .group(&GENERAL_GROUP)
         .group(&MEME_GROUP)
         .group(&WIKI_GROUP)
         .group(&ADMIN_GROUP)
         .group(&MODERATION_GROUP)
+        .group(&GENERAL_GROUP)
         .bucket("basic", |b| b.delay(2).time_span(10).limit(3))
         .await;
 

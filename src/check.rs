@@ -13,7 +13,7 @@ use crate::database::{
     admin_data, blacklist::check_blacklist, config::get_minecraft_ip, Blacklist,
 };
 
-async fn bot_admin(ctx: &Context, msg: &Message) -> bool {
+pub async fn bot_admin(ctx: &Context, msg: &Message) -> bool {
     admin_data::is_admin(ctx, msg.guild_id, msg.author.id)
         .await
         .is_some()
@@ -45,15 +45,15 @@ pub async fn allowed_blacklist(ctx: &Context, msg: &Message) -> Result<(), Reaso
         .await
         .unwrap_or(Blacklist::IsBlacklisted(true))
         .is_blacklisted()
-        && !(bot_admin(ctx, msg).await
-            || msg.author.id == OWNER_ID
-            || has_permission(
-                ctx,
-                msg.guild_id,
-                &msg.author,
-                Permissions::MANAGE_GUILD | Permissions::ADMINISTRATOR,
-            )
-            .await)
+        && !bot_admin(ctx, msg).await
+        && msg.author.id != OWNER_ID
+        && !has_permission(
+            ctx,
+            msg.guild_id,
+            &msg.author,
+            Permissions::MANAGE_GUILD | Permissions::ADMINISTRATOR,
+        )
+        .await
     {
         msg.delete(ctx)
             .await

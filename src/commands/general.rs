@@ -10,6 +10,7 @@ use crate::constants::{CURSEFORGE_ID_LEGACY, CURSEFORGE_ID_RENEWED};
 
 #[command]
 #[only_in(guilds)]
+#[aliases("legacy")]
 async fn renewed(ctx: &Context, msg: &Message) -> CommandResult {
     msg.channel_id
         .send_message(ctx, |m| {
@@ -56,7 +57,7 @@ fn pretty_large_int<T: Into<u64>>(x: T) -> String {
 #[command]
 #[aliases("download")]
 async fn curseforge(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    let id = if args.single::<String>().unwrap_or_default() == "legacy" {
+    let id = if args.single::<String>().unwrap_or_default().to_lowercase() == "legacy" {
         CURSEFORGE_ID_LEGACY
     } else {
         CURSEFORGE_ID_RENEWED

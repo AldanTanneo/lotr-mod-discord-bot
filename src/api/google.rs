@@ -21,6 +21,8 @@ pub async fn google_search(ctx: &Context, query: &str, wiki: &Wikis) -> Option<[
         ("siteSearch", &wiki.site()),
     ];
 
+    println!("Google search \"{}\"", query);
+
     let res_body = rclient
         .get(GOOGLE_API)
         .query(&req)
