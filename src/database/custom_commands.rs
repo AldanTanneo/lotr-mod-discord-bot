@@ -20,7 +20,7 @@ pub async fn check_command_exists(
     let mut conn = pool.get_conn().await.ok()?;
 
     conn.query_first(format!(
-        "SELECT EXISTS(SELECT id FROM {} WHERE server_id={} AND name=\"{}\" LIMIT 1)",
+        "SELECT EXISTS(SELECT command_id FROM {} WHERE server_id={} AND name=\"{}\" LIMIT 1)",
         TABLE_CUSTOM_COMMANDS, server_id, name
     ))
     .await
