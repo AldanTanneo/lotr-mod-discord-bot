@@ -150,7 +150,7 @@ Available languages: `en`, `de`, `fr`, `es`, `nl`, `ja`, `zh`, `ru`
 `{prefix}announce <channel mention> <json message contents>`  Make the bot send a message to the mentioned channel. For the JSON argument documentation, type `{prefix}help json`
 
 `{prefix}define <command name> <json command content>`  Define or update a custom command.  For the JSON argument documentation, type `{prefix}help json`
-`{prefix}command display`  Provide an argument to get info on a specific command, or leave empty to get a list of commands
+`{prefix}command display [command name]`  Provide an argument to get info on a specific command, or leave empty to get a list of commands
 `{prefix}command remove <command name>`  Remove a custom command
 
 *Only bot admins can use these commands*
@@ -189,6 +189,7 @@ pub async fn json(ctx: &Context, msg: &Message) -> CommandResult {
             "url": "a valid url that will open when clicking on the author name"
         },
         "title": "the embed title",
+        "url": "a valid url that will open when clicking on the title",
         "description": "the embed description",
         "image": "an embed image",
         "thumbnail": "a valid thumbnail image url",

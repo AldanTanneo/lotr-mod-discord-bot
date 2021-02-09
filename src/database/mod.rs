@@ -38,7 +38,6 @@ impl Blacklist {
     }
 }
 
-#[derive(std::fmt::Debug)]
 pub struct CustomCommand {
     pub name: String,
     pub body: String,

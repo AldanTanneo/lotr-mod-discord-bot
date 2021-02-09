@@ -21,6 +21,7 @@ pub async fn announce(ctx: &Context, channel: ChannelId, message: Value) -> Comm
                 let color = embed["color"].as_str();
                 let author = &embed["author"];
                 let title = embed["title"].as_str();
+                let url = embed["url"].as_str();
                 let description = embed["description"].as_str();
                 let fields = embed["fields"].as_array();
                 let image = embed["image"].as_str();
@@ -56,6 +57,9 @@ pub async fn announce(ctx: &Context, channel: ChannelId, message: Value) -> Comm
                     }
                     if let Some(title) = title {
                         e.title(title);
+                    }
+                    if let Some(url) = url {
+                        e.url(url);
                     }
                     if let Some(description) = description {
                         e.description(description);

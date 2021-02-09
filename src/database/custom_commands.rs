@@ -6,6 +6,27 @@ use serenity::model::{error::Error::WrongGuild, id::GuildId};
 use super::{CustomCommand, DatabasePool};
 use crate::constants::TABLE_CUSTOM_COMMANDS;
 
+pub async fn check_command_exists(
+    ctx: &Context,
+    guild_id: Option<GuildId>,
+    name: &str,
+) -> Option<bool> {
+    let server_id: u64 = guild_id?.0;
+
+    let pool = {
+        let data_read = ctx.data.read().await;
+        data_read.get::<DatabasePool>()?.clone()
+    };
+    let mut conn = pool.get_conn().await.ok()?;
+
+    conn.query_first(format!(
+        "SELECT EXISTS(SELECT id FROM {} WHERE server_id={} AND name=\"{}\" LIMIT 1)",
+        TABLE_CUSTOM_COMMANDS, server_id, name
+    ))
+    .await
+    .ok()?
+}
+
 pub async fn add_custom_command(
     ctx: &Context,
     guild_id: Option<GuildId>,

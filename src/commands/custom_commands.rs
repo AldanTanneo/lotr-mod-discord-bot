@@ -9,7 +9,8 @@ use crate::constants::OWNER_ID;
 use crate::database::{
     blacklist::check_blacklist,
     custom_commands::{
-        add_custom_command, get_command_data, get_custom_commands_list, remove_custom_command,
+        add_custom_command, check_command_exists, get_command_data, get_custom_commands_list,
+        remove_custom_command,
     },
     Blacklist,
 };
@@ -46,12 +47,12 @@ pub async fn custom_command(ctx: &Context, msg: &Message, mut args: Args) -> Com
         let message: Value = serde_json::from_str(&body)?;
         if let Value::String(s) = &message["type"] {
             if s == "meme"
+                && msg.author.id != OWNER_ID
                 && check_blacklist(ctx, msg, false)
                     .await
                     .unwrap_or(Blacklist::IsBlacklisted(true))
                     .is_blacklisted()
                 && !bot_admin(ctx, msg).await
-                && msg.author.id != OWNER_ID
                 && !has_permission(
                     ctx,
                     msg.guild_id,
@@ -95,11 +96,10 @@ pub async fn custom_command(ctx: &Context, msg: &Message, mut args: Args) -> Com
 #[checks(is_admin)]
 pub async fn define(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let name: String = args.single()?;
-    let update = get_custom_commands_list(ctx, msg.guild_id)
+    let update = check_command_exists(ctx, msg.guild_id, &name)
         .await
-        .map(|v| v.contains(&name))
         .unwrap_or(false);
-    let mut message = if msg.attachments.is_empty() {
+    let message = if msg.attachments.is_empty() {
         let content = &msg.content;
         let (a, b) = (
             content.find('{').unwrap_or(0),
@@ -108,44 +108,51 @@ pub async fn define(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
         serde_json::from_str::<Value>(&content[a..=b])
     } else {
         let a = &msg.attachments[0];
-        if a.size <= 51200 {
+        if a.size <= 25600 {
             let json_data = a.download().await?;
             serde_json::from_slice::<Value>(&json_data)
         } else {
-            msg.reply(ctx, "Attachment is too big! Filesize must be under 50KB.")
+            msg.react(ctx, ReactionType::from('❌')).await?;
+            msg.reply(ctx, "Attachment is too big! Filesize must be under 25KB.")
                 .await?;
             return Ok(());
         }
-    }?;
-    let documentation = message
-        .as_object_mut()
-        .map(|map| map.remove("documentation").unwrap_or_default())
-        .unwrap_or_default();
-    let body = serde_json::to_string_pretty(&message)?;
-    println!(
-        "adding custom command \"{}\": {}\n({:?})",
-        name, body, documentation
-    );
-    if add_custom_command(
-        ctx,
-        msg.guild_id,
-        &name,
-        body,
-        documentation.as_str(),
-        update,
-    )
-    .await
-    .is_ok()
-        && get_custom_commands_list(ctx, msg.guild_id)
-            .await
-            .map(|v| v.contains(&name))
-            .unwrap_or(false)
-    {
-        msg.react(ctx, ReactionType::from('✅'))
+    };
+
+    if let Ok(mut message) = message {
+        let documentation = message
+            .as_object_mut()
+            .map(|map| map.remove("documentation").unwrap_or_default())
+            .unwrap_or_default();
+        let body = serde_json::to_string_pretty(&message)?;
+        println!(
+            "adding custom command \"{}\": {}\n({:?})",
+            name, body, documentation
+        );
+        if add_custom_command(
+            ctx,
+            msg.guild_id,
+            &name,
+            body,
+            documentation.as_str(),
+            update,
+        )
+        .await
+        .is_ok()
+            && check_command_exists(ctx, msg.guild_id, &name)
+                .await
+                .unwrap_or(false)
+        {
+            msg.react(ctx, ReactionType::from('✅'))
+        } else {
+            msg.react(ctx, ReactionType::from('❌'))
+        }
+        .await?;
     } else {
-        msg.react(ctx, ReactionType::from('❌'))
+        msg.reply(ctx, "Error defining the command! Check your JSON content.")
+            .await?;
+        msg.react(ctx, ReactionType::from('❌')).await?;
     }
-    .await?;
     Ok(())
 }
 
@@ -154,9 +161,12 @@ pub async fn define(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
 #[aliases("remove", "delete")]
 pub async fn custom_command_remove(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let name: String = args.single()?;
-    if remove_custom_command(ctx, msg.guild_id, &name)
+    if check_command_exists(ctx, msg.guild_id, &name)
         .await
-        .is_ok()
+        .unwrap_or(false)
+        && remove_custom_command(ctx, msg.guild_id, &name)
+            .await
+            .is_ok()
     {
         msg.react(ctx, ReactionType::from('✅'))
     } else {
@@ -186,13 +196,16 @@ pub async fn custom_command_display(ctx: &Context, msg: &Message, mut args: Args
                             if command.body.len() < 1013 {
                                 format!("```json\n{}```", command.body)
                             } else {
-                                "_Command body is to long to display here_".into()
+                                "_Too long to display here_".into()
                             },
                             false,
                         )
                     })
                 })
                 .await?;
+        } else {
+            msg.reply(ctx, "The custom command does not exist!").await?;
+            msg.react(ctx, ReactionType::from('❌')).await?;
         }
     } else if let Some(list) = get_custom_commands_list(ctx, msg.guild_id).await {
         println!("displaying a list of custom commands");
