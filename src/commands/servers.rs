@@ -38,7 +38,7 @@ async fn server_ip(ctx: &Context, msg: &Message) -> CommandResult {
 #[aliases("set")]
 #[only_in(guilds)]
 pub async fn set_ip(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    if let Ok(ip) = args.single_quoted() {
+    if let Ok(ip) = args.single_quoted::<String>() {
         println!("Setting up IP");
         let update = get_minecraft_ip(ctx, msg.guild_id).await.is_some();
         set_minecraft_ip(ctx, msg.guild_id, &ip, update).await?;
@@ -97,14 +97,11 @@ pub async fn online(ctx: &Context, msg: &Message) -> CommandResult {
                             "Players: {}/{}",
                             &server.players.online, &server.players.max
                         ),
-                        format!(
-                            "{}",
-                            &server
-                                .players
-                                .list
-                                .map(|s| s.join(", ").replace("_", "\\_"))
-                                .unwrap_or_else(|| "[]()".into())
-                        ),
+                        &server
+                            .players
+                            .list
+                            .map(|s| s.join(", ").replace("_", "\\_"))
+                            .unwrap_or_else(|| "[]()".into()),
                         false,
                     );
                     e

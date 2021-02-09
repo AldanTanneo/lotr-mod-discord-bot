@@ -107,7 +107,7 @@ pub async fn get_minecraft_ip(ctx: &Context, guild_id: Option<GuildId>) -> Optio
 pub async fn set_minecraft_ip(
     ctx: &Context,
     guild_id: Option<GuildId>,
-    ip: &String,
+    ip: &str,
     update: bool,
 ) -> CommandResult {
     let server_id: u64 = guild_id.ok_or(WrongGuild)?.0;

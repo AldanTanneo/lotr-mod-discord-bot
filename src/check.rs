@@ -131,21 +131,19 @@ pub async fn dispatch_error_hook(ctx: &Context, msg: &Message, error: DispatchEr
 pub async fn is_minecraft_server(ctx: &Context, msg: &Message) -> Result<(), Reason> {
     if get_minecraft_ip(ctx, msg.guild_id).await.is_some() {
         Ok(())
+    } else if bot_admin(ctx, msg).await
+        || msg.author.id == OWNER_ID
+        || has_permission(
+            ctx,
+            msg.guild_id,
+            &msg.author,
+            Permissions::MANAGE_GUILD | Permissions::ADMINISTRATOR,
+        )
+        .await
+    {
+        println!("Bypassed minecraft server check");
+        Ok(())
     } else {
-        if bot_admin(ctx, msg).await
-            || msg.author.id == OWNER_ID
-            || has_permission(
-                ctx,
-                msg.guild_id,
-                &msg.author,
-                Permissions::MANAGE_GUILD | Permissions::ADMINISTRATOR,
-            )
-            .await
-        {
-            println!("Bypassed minecraft server check");
-            Ok(())
-        } else {
-            Err(Reason::Log("Not a minecraft server".to_string()))
-        }
+        Err(Reason::Log("Not a minecraft server".to_string()))
     }
 }

@@ -148,12 +148,13 @@ To fix this, go to your `/.minecraft/mods` folder and change the file extension!
 #[command]
 #[checks(allowed_blacklist)]
 pub async fn invite(ctx: &Context, msg: &Message) -> CommandResult {
-    if msg.author.dm(ctx, |m| {
+    let dm = msg.author.dm(ctx, |m| {
         m.embed(|e| {
             e.colour(Colour::BLURPLE);
             e.field("Invite me to your server!", "My invite link is available [here](https://github.com/AldanTanneo/lotr-mod-discord-bot/blob/main/README.md)", false)
         })
-    }).await.is_ok() && msg.guild_id.is_some() {
+    }).await;
+    if dm.is_ok() && msg.guild_id.is_some() {
         msg.reply(ctx, "Sent invite link to DMs!").await?;
     }
     Ok(())

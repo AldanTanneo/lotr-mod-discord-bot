@@ -3,7 +3,7 @@ use serenity::client::Context;
 use super::structures::{MinecraftServer, ReqwestClient};
 use crate::constants::MINECRAFT_API;
 
-pub async fn get_server_status(ctx: &Context, ip: &String) -> Option<MinecraftServer> {
+pub async fn get_server_status(ctx: &Context, ip: &str) -> Option<MinecraftServer> {
     let rclient = {
         let data_read = ctx.data.read().await;
         data_read.get::<ReqwestClient>()?.clone()
