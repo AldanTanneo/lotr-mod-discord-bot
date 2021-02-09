@@ -151,7 +151,7 @@ pub async fn define(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
 
 #[command]
 #[checks(is_admin)]
-#[aliases("remove")]
+#[aliases("remove", "delete")]
 pub async fn custom_command_remove(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let name: String = args.single()?;
     if remove_custom_command(ctx, msg.guild_id, &name)
@@ -167,7 +167,7 @@ pub async fn custom_command_remove(ctx: &Context, msg: &Message, mut args: Args)
 }
 
 #[command]
-#[aliases("display")]
+#[aliases("display", "show")]
 #[checks(is_admin)]
 pub async fn custom_command_display(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     if let Ok(name) = args.single::<String>() {
