@@ -9,7 +9,7 @@ use serenity::prelude::*;
 
 use crate::announcement;
 use crate::check::{ALLOWED_BLACKLIST_CHECK, IS_ADMIN_CHECK};
-use crate::constants::{BOT_ID, LOTR_DISCORD, OWNER_ID};
+use crate::constants::{BOT_ID, LOTR_DISCORD, MAX_JSON_FILE_SIZE, OWNER_ID};
 use crate::database::{
     admin_data::{add_admin, get_admins, is_admin, remove_admin},
     blacklist::{check_blacklist, update_blacklist},
@@ -213,11 +213,11 @@ async fn announce(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
             serde_json::from_str(&content[a..=b])
         } else {
             let a = &msg.attachments[0];
-            if a.size <= 51200 {
+            if a.size <= MAX_JSON_FILE_SIZE {
                 let json_data = a.download().await?;
                 serde_json::from_slice(&json_data)
             } else {
-                msg.reply(ctx, "Attachment is too big! Filesize must be under 50KB.")
+                msg.reply(ctx, "Attachment is too big! Filesize must be under 25KB.")
                     .await?;
                 return Ok(());
             }

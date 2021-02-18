@@ -5,7 +5,7 @@ use serenity::model::{channel::Message, prelude::ReactionType, Permissions};
 
 use crate::announcement::announce;
 use crate::check::{bot_admin, has_permission, IS_ADMIN_CHECK};
-use crate::constants::OWNER_ID;
+use crate::constants::{MAX_JSON_FILE_SIZE, OWNER_ID};
 use crate::database::{
     blacklist::check_blacklist,
     custom_commands::{
@@ -108,7 +108,7 @@ pub async fn define(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
         serde_json::from_str::<Value>(&content[a..=b])
     } else {
         let a = &msg.attachments[0];
-        if a.size <= 25600 {
+        if a.size <= MAX_JSON_FILE_SIZE {
             let json_data = a.download().await?;
             serde_json::from_slice::<Value>(&json_data)
         } else {

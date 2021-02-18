@@ -4,6 +4,8 @@ pub const BOT_ID: UserId = UserId(780858391383638057);
 pub const OWNER_ID: UserId = UserId(405421991777009678);
 pub const LOTR_DISCORD: GuildId = GuildId(405091134327619587);
 
+pub const MAX_JSON_FILE_SIZE: u64 = 25600;
+
 pub const WIKI_DOMAIN: &str = "lotrminecraftmod.fandom.com";
 
 pub const CURSE_API: &str = "https://api.cfwidget.com/minecraft/mc-mods/";
