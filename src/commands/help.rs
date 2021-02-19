@@ -182,9 +182,8 @@ pub async fn json(ctx: &Context, msg: &Message) -> CommandResult {
     "content": "the message content",
     "image": "a valid image url",
     "reactions": [
-        ":joy:", // unicode emojis
-        "🍎",
-        ":custom_emoji:"
+        "🍎", // unicode emojis
+        "<:name:0000000000000000>" // custom emojis
     ],
     "embed": {
         "colour": "RRGGBB", // hexadecimal color code
