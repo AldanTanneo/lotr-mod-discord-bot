@@ -1,12 +1,14 @@
 use serde_json::Value;
 use serenity::client::Context;
 use serenity::framework::standard::CommandResult;
-use serenity::model::id::ChannelId;
+use serenity::model::{id::ChannelId, prelude::ReactionType};
 use serenity::utils::Color;
+use std::convert::TryFrom;
 
 pub async fn announce(ctx: &Context, channel: ChannelId, message: Value) -> CommandResult {
     let content = message["content"].as_str();
     let image = message["image"].as_str();
+    let reactions = message["reactions"].as_array();
     let embed = &message["embed"];
     channel
         .send_message(ctx, |m| {
@@ -15,6 +17,14 @@ pub async fn announce(ctx: &Context, channel: ChannelId, message: Value) -> Comm
             }
             if let Some(image) = image {
                 m.add_file(image);
+            }
+            if let Some(reactions) = reactions {
+                m.reactions(
+                    reactions
+                        .iter()
+                        .filter_map(|s| s.as_str())
+                        .filter_map(|s| ReactionType::try_from(s).ok()),
+                );
             }
             if embed.is_object() {
                 let colour = embed["colour"].as_str();
