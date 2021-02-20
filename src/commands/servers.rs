@@ -71,8 +71,10 @@ pub async fn remove_ip(ctx: &Context, msg: &Message) -> CommandResult {
 #[command]
 #[checks(is_minecraft_server)]
 #[only_in(guilds)]
-pub async fn online(ctx: &Context, msg: &Message) -> CommandResult {
-    let ip = if let Some(ip) = get_minecraft_ip(ctx, msg.guild_id).await {
+pub async fn online(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+    let ip = if !args.is_empty() {
+        args.single::<String>()?
+    } else if let Some(ip) = get_minecraft_ip(ctx, msg.guild_id).await {
         ip
     } else {
         msg.reply(ctx, "No registered Minecraft IP for this server.")
