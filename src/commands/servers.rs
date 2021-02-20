@@ -81,6 +81,7 @@ pub async fn online(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
             .await?;
         return Ok(());
     };
+    println!("Getting status for ip: \"{}\"", ip);
     let server = get_server_status(ctx, &ip).await;
     if let Some(server) = server {
         msg.channel_id
@@ -102,7 +103,14 @@ pub async fn online(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
                         &server
                             .players
                             .list
-                            .map(|s| s.join(", ").replace("_", "\\_"))
+                            .as_ref()
+                            .map(|s| {
+                                if s.len() <= 64 {
+                                    s.join(", ").replace("_", "\\_")
+                                } else {
+                                    "[]()".into()
+                                }
+                            })
                             .unwrap_or_else(|| "[]()".into()),
                         false,
                     );
