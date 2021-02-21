@@ -11,7 +11,7 @@ use crate::database::floppa::{add_floppa, get_floppa, is_floppadmin};
 #[checks(allowed_blacklist)]
 #[bucket = "basic"]
 async fn floppa(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    let n = args.single::<u32>().ok();
+    let n = args.single::<i64>().ok();
     let url = if let Some(url) = get_floppa(ctx, n).await {
         url
     } else {

@@ -105,10 +105,11 @@ pub async fn online(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
                             .list
                             .as_ref()
                             .map(|s| {
-                                if s.len() <= 64 {
-                                    s.join(", ").replace("_", "\\_")
+                                let res = s.join(", ").replace("_", "\\_");
+                                if res.len() > 1024 {
+                                    "Too many usernames to display!".into()
                                 } else {
-                                    "[]()".into()
+                                    res
                                 }
                             })
                             .unwrap_or_else(|| "[]()".into()),

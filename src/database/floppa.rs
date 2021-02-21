@@ -1,5 +1,4 @@
 use mysql_async::prelude::*;
-use rand::seq::IteratorRandom;
 use serenity::client::Context;
 use serenity::framework::standard::CommandResult;
 use serenity::model::id::{GuildId, UserId};
@@ -7,56 +6,32 @@ use serenity::model::id::{GuildId, UserId};
 use super::DatabasePool;
 use crate::constants::{OWNER_ID, TABLE_ADMINS, TABLE_FLOPPA};
 
-fn choose_from_ids(vec: Vec<u32>) -> u32 {
-    let mut rng = rand::thread_rng();
-    let id = vec.iter().choose(&mut rng).unwrap_or(&1);
-    *id
-}
-
-pub async fn get_floppa(ctx: &Context, n: Option<u32>) -> Option<String> {
+pub async fn get_floppa(ctx: &Context, n: Option<i64>) -> Option<String> {
     let pool = {
         let data_read = ctx.data.read().await;
         data_read.get::<DatabasePool>()?.clone()
     };
     let mut conn = pool.get_conn().await.ok()?;
 
-    let ids: Vec<u32> = conn
-        .exec_map(
-            format!("SELECT id FROM {}", TABLE_FLOPPA).as_str(),
-            (),
-            |id| id,
-        )
-        .await
-        .ok()?;
-
-    if ids.is_empty() {
-        return None;
-    }
-
-    let floppa_id = if let Some(n) = n {
-        if ids.contains(&n) {
-            n
-        } else {
-            *ids.get(0.max((n - 1) as usize % ids.len()))?
-        }
-    } else {
-        choose_from_ids(ids)
-    };
-
-    let res = conn
-        .query_first(format!(
+    if let Some(n) = n {
+        let max_len: i64 = conn
+            .query_first(format!("SELECT MAX(id) FROM {}", TABLE_FLOPPA))
+            .await
+            .ok()??;
+        let num = (((n - 1) % max_len) + max_len) % max_len + 1;
+        conn.query_first(format!(
             "SELECT image_url FROM {} WHERE id={}",
-            TABLE_FLOPPA, floppa_id
+            TABLE_FLOPPA, num
         ))
-        .await;
-
-    drop(conn);
-
-    if let Ok(url) = res {
-        url
+        .await
     } else {
-        None
+        conn.query_first(format!(
+            "SELECT image_url FROM {} ORDER BY RAND() LIMIT 1 ",
+            TABLE_FLOPPA
+        ))
+        .await
     }
+    .ok()?
 }
 
 pub async fn add_floppa(ctx: &Context, floppa_url: String) -> CommandResult {

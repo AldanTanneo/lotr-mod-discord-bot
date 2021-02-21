@@ -52,11 +52,11 @@ pub async fn help(ctx: &Context, msg: &Message) -> CommandResult {
                 } else {
                     c.description.unwrap()
                 };
-                Some(format!("`{}{}`  {}", prefix, c.name, desc))
+                Some(format!("`{}{}`  {}\n", prefix, c.name, desc))
             }
         })
         .collect::<Vec<_>>()
-        .join("\n");
+        .join("");
 
     msg.author
         .direct_message(ctx, |m| {
@@ -92,7 +92,7 @@ pub async fn help(ctx: &Context, msg: &Message) -> CommandResult {
                         "Minecraft server commands",
                         format!(
 "`{prefix}ip{}`  Display the server ip{}
-`{prefix}online`  Display the server status and a list of online players
+`{prefix}online [ip]`  Display the server status and a list of online players (default: the server's set ip)
 ",
                             if is_admin {
                                 " [set <server ip>]"
