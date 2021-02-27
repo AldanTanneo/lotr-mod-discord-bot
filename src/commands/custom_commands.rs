@@ -48,7 +48,7 @@ pub async fn custom_command(ctx: &Context, msg: &Message, mut args: Args) -> Com
         let mut message: Value = serde_json::from_str(&body.replace("\\$", "$"))?;
         if let Value::Array(a) = &message["default_args"] {
             let argc = args.len() - 1;
-            let changed = dbg!(body.contains(format!("\u{200B}${}", argc).as_str()));
+            let changed = body.contains(format!("\u{200B}${}", argc).as_str());
             for (i, arg) in a[argc.min(a.len())..].iter().enumerate() {
                 if let Value::String(s) = arg {
                     println!("Default argument '{}'", s);
@@ -185,6 +185,9 @@ pub async fn custom_command_remove(ctx: &Context, msg: &Message, mut args: Args)
         && remove_custom_command(ctx, msg.guild_id, &name)
             .await
             .is_ok()
+        && !check_command_exists(ctx, msg.guild_id, &name)
+            .await
+            .unwrap_or(false)
     {
         msg.react(ctx, ReactionType::from('✅'))
     } else {
