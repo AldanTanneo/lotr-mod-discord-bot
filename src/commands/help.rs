@@ -221,6 +221,9 @@ pub async fn json(ctx: &Context, msg: &Message) -> CommandResult {
     "type": "default" // can be "meme", "admin" or "default";
         // if the type is "meme", the command will be subject to the blacklist
         // if the type is "admin", only admins will be able to use it.
+    "default_args": ["arg0", "arg1", ...]
+        // if $0, $1 are left in the json because there are not enough arguments
+        // to fill them, these values will be used.
 }
 ```
 "#,

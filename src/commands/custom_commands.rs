@@ -23,28 +23,41 @@ pub async fn custom_command(ctx: &Context, msg: &Message, mut args: Args) -> Com
     println!("Custom command execution...");
     let name = args.single::<String>()?.to_lowercase();
     if let Some(command_data) = get_command_data(ctx, msg.guild_id, &name, false).await {
-        let body = if command_data.body.contains('$') {
-            let mut body = command_data.body.replace('$', "_$").replace("\\_$", "\\$");
+        let mut body = if command_data.body.contains('$') && !args.is_empty() {
+            let mut body = command_data
+                .body
+                .replace('$', "\u{200B}$")
+                .replace("\\\u{200B}$", "\\$");
             for (i, arg) in args.iter::<String>().enumerate() {
                 body = body.replace(
-                    format!("_${}", i).as_str(),
+                    format!("\u{200B}${}", i).as_str(),
                     &arg?
                         .as_str()
                         .trim_matches('"')
-                        .replace('$', "_$")
-                        .replace("@&", "@& ")
-                        .replace("@everyone", "@ everyone")
+                        .replace('$', "\\$")
+                        .replace('@', "@\u{200B}")
                         .replace('\\', "\\\\")
                         .replace('\n', "\\n")
                         .replace('"', "\\\""),
                 );
             }
-            body.replace("_$", "$").replace("\\$", "$")
+            body
         } else {
             command_data.body
         };
         println!("{}", body);
-        let message: Value = serde_json::from_str(&body)?;
+        let mut message: Value = serde_json::from_str(&body.replace("\\$", "$"))?;
+        if let Value::Array(a) = &message["default_args"] {
+            let changed = body.contains(format!("\u{200B}${}", args.len()).as_str());
+            for (i, arg) in a[args.len().min(a.len())..].iter().enumerate() {
+                if let Value::String(s) = arg {
+                    body = body.replace(format!("\u{200B}${}", i).as_str(), &s.replace('$', "\\$"));
+                }
+            }
+            if changed {
+                message = serde_json::from_str(&body.replace("\\$", "$"))?;
+            }
+        }
         if let Value::String(s) = &message["type"] {
             if s == "meme"
                 && msg.author.id != OWNER_ID
