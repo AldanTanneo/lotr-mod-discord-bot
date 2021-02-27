@@ -20,7 +20,7 @@ CREATE TABLE `bot_admins` (
   `server_id` bigint(20) UNSIGNED NOT NULL,
   `user_id` bigint(20) UNSIGNED NOT NULL,
   `floppadmin` tinyint(1) NOT NULL DEFAULT '0'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 -- --------------------------------------------------------
 
@@ -32,7 +32,7 @@ CREATE TABLE `channel_blacklist` (
   `id` int(11) NOT NULL,
   `server_id` bigint(20) NOT NULL,
   `channel_id` bigint(20) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 -- --------------------------------------------------------
 
@@ -43,10 +43,10 @@ CREATE TABLE `channel_blacklist` (
 CREATE TABLE `custom_commands` (
   `command_id` int(11) NOT NULL,
   `server_id` bigint(20) NOT NULL,
-  `name` tinytext CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
-  `command_json` text CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
-  `documentation` text CHARACTER SET utf8 COLLATE utf8_bin
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+  `name` tinytext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+  `command_json` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+  `documentation` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 -- --------------------------------------------------------
 
@@ -56,8 +56,8 @@ CREATE TABLE `custom_commands` (
 
 CREATE TABLE `floppa_images` (
   `id` int(11) NOT NULL,
-  `image_url` text CHARACTER SET utf8 COLLATE utf8_bin
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+  `image_url` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 -- --------------------------------------------------------
 
@@ -67,8 +67,8 @@ CREATE TABLE `floppa_images` (
 
 CREATE TABLE `lotr_mod_bot_prefix` (
   `server_id` bigint(20) NOT NULL,
-  `prefix` text CHARACTER SET utf8 COLLATE utf8_bin NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+  `prefix` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 -- --------------------------------------------------------
 
@@ -78,8 +78,8 @@ CREATE TABLE `lotr_mod_bot_prefix` (
 
 CREATE TABLE `mc_server_ip` (
   `server_id` bigint(20) NOT NULL,
-  `mc_ip` text CHARACTER SET utf8 COLLATE utf8_bin NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+  `mc_ip` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 -- --------------------------------------------------------
 
@@ -91,7 +91,7 @@ CREATE TABLE `user_blacklist` (
   `id` int(11) NOT NULL,
   `server_id` bigint(20) NOT NULL,
   `user_id` bigint(20) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 --
 -- Indexes for dumped tables
