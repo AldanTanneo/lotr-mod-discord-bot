@@ -23,35 +23,39 @@ pub async fn custom_command(ctx: &Context, msg: &Message, mut args: Args) -> Com
     println!("Custom command execution...");
     let name = args.single::<String>()?.to_lowercase();
     if let Some(command_data) = get_command_data(ctx, msg.guild_id, &name, false).await {
-        let mut body = if command_data.body.contains('$') && !args.is_empty() {
-            let mut body = command_data
+        let mut body = if command_data.body.contains('$') {
+            command_data
                 .body
                 .replace('$', "\u{200B}$")
-                .replace("\\\u{200B}$", "\\$");
-            for (i, arg) in args.iter::<String>().enumerate() {
-                body = body.replace(
-                    format!("\u{200B}${}", i).as_str(),
-                    &arg?
-                        .as_str()
-                        .trim_matches('"')
-                        .replace('$', "\\$")
-                        .replace('@', "@\u{200B}")
-                        .replace('\\', "\\\\")
-                        .replace('\n', "\\n")
-                        .replace('"', "\\\""),
-                );
-            }
-            body
+                .replace("\\\u{200B}$", "\\$")
         } else {
             command_data.body
         };
+        for (i, arg) in args.iter::<String>().enumerate() {
+            body = body.replace(
+                format!("\u{200B}${}", i).as_str(),
+                &arg?
+                    .as_str()
+                    .trim_matches('"')
+                    .replace('$', "\\$")
+                    .replace('@', "@\u{200B}")
+                    .replace('\\', "\\\\")
+                    .replace('\n', "\\n")
+                    .replace('"', "\\\""),
+            );
+        }
         println!("{}", body);
         let mut message: Value = serde_json::from_str(&body.replace("\\$", "$"))?;
         if let Value::Array(a) = &message["default_args"] {
-            let changed = body.contains(format!("\u{200B}${}", (args.len() - 1)).as_str());
-            for (i, arg) in a[(args.len() - 1).min(a.len())..].iter().enumerate() {
+            let argc = args.len() - 1;
+            let changed = dbg!(body.contains(format!("\u{200B}${}", argc).as_str()));
+            for (i, arg) in a[argc.min(a.len())..].iter().enumerate() {
                 if let Value::String(s) = arg {
-                    body = body.replace(format!("\u{200B}${}", i).as_str(), &s.replace('$', "\\$"));
+                    println!("Default argument '{}'", s);
+                    body = body.replace(
+                        format!("\u{200B}${}", i + argc).as_str(),
+                        &s.replace('$', "\\$"),
+                    );
                 }
             }
             if changed {
@@ -142,7 +146,7 @@ pub async fn define(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
             "adding custom command \"{}\": {}\n({:?})",
             name, body, documentation
         );
-        if add_custom_command(
+        let db_res = add_custom_command(
             ctx,
             msg.guild_id,
             &name,
@@ -150,14 +154,15 @@ pub async fn define(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
             documentation.as_str(),
             update,
         )
-        .await
-        .is_ok()
+        .await;
+        if db_res.is_ok()
             && check_command_exists(ctx, msg.guild_id, &name)
                 .await
                 .unwrap_or(false)
         {
             msg.react(ctx, ReactionType::from('✅'))
         } else {
+            println!("{:?}", db_res.err());
             msg.react(ctx, ReactionType::from('❌'))
         }
         .await?;
