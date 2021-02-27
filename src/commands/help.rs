@@ -67,7 +67,7 @@ pub async fn help(ctx: &Context, msg: &Message) -> CommandResult {
                 e.field(
                     "General commands",
                     format!(
-"`{prefix}curseforge [legacy|renewed]`  Display the mod download link (default: `renewed`)
+"`{prefix}curseforge [legacy|renewed]`  Display the mod download link (default: `legacy`)
 `{prefix}invite`  Send the bot invite link in DMs
 `{prefix}help{json}`  Send this message in DMs
 

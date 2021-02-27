@@ -19,7 +19,9 @@ async fn renewed(ctx: &Context, msg: &Message) -> CommandResult {
                 e.title("Use the 1.7.10 version");
                 e.description(
                     "The 1.15.2 version of the mod is a work in progress, missing many features such as NPCs and structures.
-You can find those in the full 1.7.10 Legacy edition [here](https://www.curseforge.com/minecraft/mc-mods/the-lord-of-the-rings-mod-legacy)",
+You can find those in the full 1.7.10 Legacy edition [here](https://www.curseforge.com/minecraft/mc-mods/the-lord-of-the-rings-mod-legacy).
+
+For a list of features present in the renewed version, check [this page](https://lotrminecraftmod.fandom.com/wiki/Updates/Renewed).",
                 )
             });
 
@@ -57,10 +59,10 @@ fn pretty_large_int<T: Into<u64>>(x: T) -> String {
 #[command]
 #[aliases("download")]
 async fn curseforge(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    let id = if args.single::<String>().unwrap_or_default().to_lowercase() == "legacy" {
-        CURSEFORGE_ID_LEGACY
-    } else {
+    let id = if args.single::<String>().unwrap_or_default().to_lowercase() == "renewed" {
         CURSEFORGE_ID_RENEWED
+    } else {
+        CURSEFORGE_ID_LEGACY
     };
     let project = curseforge::get_project_info(ctx, id).await;
     if let Some(project) = project {
