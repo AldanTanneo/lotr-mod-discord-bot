@@ -48,8 +48,8 @@ pub async fn custom_command(ctx: &Context, msg: &Message, mut args: Args) -> Com
         println!("{}", body);
         let mut message: Value = serde_json::from_str(&body.replace("\\$", "$"))?;
         if let Value::Array(a) = &message["default_args"] {
-            let changed = body.contains(format!("\u{200B}${}", args.len()).as_str());
-            for (i, arg) in a[args.len().min(a.len())..].iter().enumerate() {
+            let changed = body.contains(format!("\u{200B}${}", (args.len() - 1)).as_str());
+            for (i, arg) in a[(args.len() - 1).min(a.len())..].iter().enumerate() {
                 if let Value::String(s) = arg {
                     body = body.replace(format!("\u{200B}${}", i).as_str(), &s.replace('$', "\\$"));
                 }
