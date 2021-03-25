@@ -73,7 +73,17 @@ async fn lotr_wiki(ctx: &Context, msg: &Message, args: Args, ns: Namespace) -> C
 
 #[command]
 pub async fn wiki(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-    lotr_wiki(ctx, msg, args, Page).await?;
+    if args.current() == Some("discord") {
+        msg.channel_id
+            .say(
+                ctx,
+                "The invite for the **LOTR Mod Community Discord** is available here:
+https://discord.gg/QXkZzKU",
+            )
+            .await?;
+    } else {
+        lotr_wiki(ctx, msg, args, Page).await?;
+    }
     Ok(())
 }
 

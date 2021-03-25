@@ -1,4 +1,4 @@
-use crate::{LOTR_DISCORD, OWNER_ID};
+use crate::OWNER_ID;
 use serenity::framework::standard::{
     macros::{check, hook},
     DispatchError, Reason,
@@ -62,17 +62,6 @@ pub async fn allowed_blacklist(ctx: &Context, msg: &Message) -> Result<(), Reaso
             user: "You are not allowed to use this command here.".to_string(),
             log: "Sending DM warning".to_string(),
         })
-    } else {
-        Ok(())
-    }
-}
-
-#[check]
-pub async fn is_lotr_discord(_: &Context, msg: &Message) -> Result<(), Reason> {
-    if msg.guild_id != Some(LOTR_DISCORD) {
-        Err(Reason::Log(
-            "Tried to use !tos on another discord".to_string(),
-        ))
     } else {
         Ok(())
     }

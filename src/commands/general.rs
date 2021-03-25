@@ -5,7 +5,7 @@ use serenity::model::channel::Message;
 use serenity::utils::Colour;
 
 use crate::api::curseforge;
-use crate::check::{ALLOWED_BLACKLIST_CHECK, IS_LOTR_DISCORD_CHECK};
+use crate::check::ALLOWED_BLACKLIST_CHECK;
 use crate::constants::{CURSEFORGE_ID_LEGACY, CURSEFORGE_ID_RENEWED};
 
 #[command]
@@ -29,19 +29,6 @@ For a list of features present in the renewed version, check [this page](https:/
         })
         .await?;
 
-    Ok(())
-}
-
-#[command]
-#[only_in(guilds)]
-#[checks(is_lotr_discord)]
-async fn tos(ctx: &Context, msg: &Message) -> CommandResult {
-    msg.channel_id
-        .say(ctx,
-            "This is the Discord server of the **Lord of the Rings Mod**, not the official Minecraft server of the mod.
-Their Discord can be found here: https://discord.gg/gMNKaX6",
-        )
-        .await?;
     Ok(())
 }
 
@@ -159,5 +146,47 @@ pub async fn invite(ctx: &Context, msg: &Message) -> CommandResult {
     if dm.is_ok() && msg.guild_id.is_some() {
         msg.reply(ctx, "Sent invite link to DMs!").await?;
     }
+    Ok(())
+}
+
+#[command]
+pub async fn discord(ctx: &Context, msg: &Message) -> CommandResult {
+    msg.channel_id
+        .say(
+            ctx,
+            "The invite for the **LOTR Mod Community Discord** is available here:
+https://discord.gg/QXkZzKU",
+        )
+        .await?;
+    Ok(())
+}
+
+#[command]
+#[aliases("fb")]
+pub async fn facebook(ctx: &Context, msg: &Message) -> CommandResult {
+    msg.channel_id.send_message(ctx, |m| m.embed(|e| {
+        e.colour(Colour::new(0x3B5998));
+        e.description("Check the mod’s Facebook page for\nupdates and teasers [here](https://www.facebook.com/LOTRMC)!");
+        e.thumbnail("https://i.ibb.co/rdJtpWY/10610821-779526068752432-5484491658565693801-n.jpg");
+        e.title("Link to the Facebook page");
+        e.url("https://www.facebook.com/LOTRMC");
+        e
+    })).await?;
+    Ok(())
+}
+
+#[command]
+#[aliases("donation", "paypal")]
+pub async fn donate(ctx: &Context, msg: &Message) -> CommandResult {
+    msg.channel_id.send_message(ctx, |m| m.embed(|e| {
+        e.colour(Colour::new(0xCEBD9C));
+        e.description("Donations of **£5 GBP** or over will be thanked with the Patron [Shield](https://lotrminecraftmod.fandom.com/wiki/Shield) & [Title](https://lotrminecraftmod.fandom.com/wiki/Title) in the next released update if you write your Minecraft username in the donation message.");
+        e.field("Donate in $", "[Paypal](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=YZ97X6UBJJD7Y)", true);
+        e.field("Donate in £", "[Paypal](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=8BXR2F4FYYEK2)", true);
+        e.field("Donate in €", "[Paypal](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=5Q4NK7C5N2FB4)", true);
+        e.thumbnail("https://media.discordapp.net/attachments/781837314975989772/809773869971013653/Donate.png");
+        e.title("Donate to the mod!");
+        e
+    })).await?;
     Ok(())
 }

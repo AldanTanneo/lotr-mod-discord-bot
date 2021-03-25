@@ -28,14 +28,16 @@ use commands::{admin::*, custom_commands::*, general::*, help::*, meme::*, serve
     custom_command,
     help,
     renewed,
-    tos,
     curseforge,
     prefix,
     forge,
     coremod,
     invite,
     server_ip,
-    online
+    online,
+    donate,
+    facebook,
+    discord
 )]
 struct General;
 

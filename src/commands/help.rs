@@ -7,9 +7,9 @@ use crate::check::{has_permission, IS_ADMIN_CHECK};
 use crate::database::{
     admin_data::is_admin,
     config::{get_minecraft_ip, get_prefix},
-    custom_commands::{get_command_data, get_custom_commands_list},
+    custom_commands::get_custom_commands_list,
 };
-use crate::{LOTR_DISCORD, OWNER_ID};
+use crate::OWNER_ID;
 
 #[command]
 #[sub_commands(json)]
@@ -32,27 +32,18 @@ pub async fn help(ctx: &Context, msg: &Message) -> CommandResult {
     let cclist = get_custom_commands_list(ctx, msg.guild_id)
         .await
         .unwrap_or_default();
-    let mut ccdata = Vec::with_capacity(cclist.len());
-    for data in cclist
-        .iter()
-        .map(|name| get_command_data(ctx, msg.guild_id, &name, true))
-    {
-        ccdata.push(data.await);
-    }
-    let custom_commands = ccdata.into_iter().filter_map(|c| c).collect::<Vec<_>>();
-    let cctext = custom_commands
+    let cctext = cclist
         .into_iter()
-        .filter_map(|c| {
-            let tmp = c.description.clone().map(|s| s.is_empty()).unwrap_or(true);
-            if !is_admin && tmp {
+        .filter_map(|(name, desc)| {
+            if !is_admin && desc.is_empty() {
                 None
             } else {
-                let desc = if tmp {
+                let desc = if desc.is_empty() {
                     "_No description_".into()
                 } else {
-                    c.description.unwrap()
+                    desc
                 };
-                Some(format!("`{}{}`  {}\n", prefix, c.name, desc))
+                Some(format!("`{}{}`  {}\n", prefix, name, desc))
             }
         })
         .collect::<Vec<_>>()
@@ -70,18 +61,16 @@ pub async fn help(ctx: &Context, msg: &Message) -> CommandResult {
 "`{prefix}curseforge [legacy|renewed]`  Display the mod download link (default: `legacy`)
 `{prefix}invite`  Send the bot invite link in DMs
 `{prefix}help{json}`  Send this message in DMs
+`{prefix}donate`  Display the mod donation links
+`{prefix}facebook`  Display the mod Facebook page link
+`{prefix}discord`  Display the invite link to the community discord
 
 *Not available in DMs:*
 `{prefix}renewed`  Technical support command
 `{prefix}forge`  Technical support command
 `{prefix}coremod`  Technical support command
-{}
+
 ",
-                        if msg.guild_id == Some(LOTR_DISCORD) {
-                            format!("`{}tos`  Display the invite to TOS discord", prefix)
-                        } else {
-                            "".into()
-                        },
                         prefix=prefix,
                         json=if is_admin {" [json]"} else {""}
                     ),
@@ -204,7 +193,7 @@ pub async fn json(ctx: &Context, msg: &Message) -> CommandResult {
                 true // or false: wether the field is inlined or not 
                      // (if not, displays as a block)
             ]
-        ]
+        ],
         "footer" : {
             "icon": "a valid footer icon url",
             "text": "some footer text"
