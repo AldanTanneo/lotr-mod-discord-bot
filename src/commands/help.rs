@@ -32,6 +32,7 @@ pub async fn help(ctx: &Context, msg: &Message) -> CommandResult {
     let cclist = get_custom_commands_list(ctx, msg.guild_id)
         .await
         .unwrap_or_default();
+    let mut newline = 0;
     let cctext = cclist
         .into_iter()
         .filter_map(|(name, desc)| {
@@ -39,11 +40,23 @@ pub async fn help(ctx: &Context, msg: &Message) -> CommandResult {
                 None
             } else {
                 let desc = if desc.is_empty() {
+                    newline += 1;
                     "_No description_".into()
                 } else {
                     desc
                 };
-                Some(format!("`{}{}`  {}\n", prefix, name, desc))
+                Some(format!(
+                    "{newline}`{}{}`  {}\n",
+                    prefix,
+                    name,
+                    desc,
+                    newline = if newline == 1 {
+                        newline += 1;
+                        "\n"
+                    } else {
+                        ""
+                    }
+                ))
             }
         })
         .collect::<Vec<_>>()

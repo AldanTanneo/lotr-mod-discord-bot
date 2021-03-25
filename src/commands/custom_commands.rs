@@ -230,17 +230,34 @@ pub async fn custom_command_display(ctx: &Context, msg: &Message, mut args: Args
         }
     } else if let Some(list) = get_custom_commands_list(ctx, msg.guild_id).await {
         println!("displaying a list of custom commands");
+        let mut newline = 0;
         msg.channel_id
             .send_message(ctx, |m| {
                 m.embed(|e| {
                     e.title("Custom commands");
-                    e.description(format!(
-                        "`{}`",
+                    e.description(
                         list.iter()
-                            .map(|(name, _)| name.clone())
+                            .map(|(name, desc)| {
+                                format!(
+                                    "{skip}`{}`  {}\n",
+                                    name,
+                                    if desc.is_empty() {
+                                        newline += 1;
+                                        "_No description_"
+                                    } else {
+                                        desc
+                                    },
+                                    skip = if newline == 1 {
+                                        newline += 1;
+                                        "\n"
+                                    } else {
+                                        ""
+                                    }
+                                )
+                            })
                             .collect::<Vec<_>>()
-                            .join("`\n`")
-                    ))
+                            .join(""),
+                    )
                 })
             })
             .await?;
