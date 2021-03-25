@@ -154,7 +154,7 @@ pub async fn get_command_data(
 pub async fn get_custom_commands_list(
     ctx: &Context,
     guild_id: Option<GuildId>,
-) -> Option<Vec<String>> {
+) -> Option<Vec<(String, String)>> {
     let server_id: u64 = guild_id?.0;
 
     let pool = {
@@ -163,15 +163,16 @@ pub async fn get_custom_commands_list(
     };
     let mut conn = pool.get_conn().await.ok()?;
 
-    conn.exec(
+    conn.exec_map(
         format!(
-            "SELECT name FROM {} WHERE server_id=:server_id",
+            "SELECT name, documentation FROM {} WHERE server_id=:server_id ORDER BY documentation DESC",
             TABLE_CUSTOM_COMMANDS
         )
         .as_str(),
         params! {
             "server_id" => server_id
         },
+        |(name, documentation)| (name, documentation),
     )
     .await
     .ok()
