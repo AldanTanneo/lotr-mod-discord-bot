@@ -1,6 +1,6 @@
 use serenity::client::Context;
 use serenity::framework::standard::{macros::command, CommandResult};
-use serenity::model::{channel::Message, prelude::ReactionType, Permissions};
+use serenity::model::{channel::Message, Permissions};
 use serenity::utils::Colour;
 
 use crate::check::{has_permission, IS_ADMIN_CHECK};
@@ -82,7 +82,6 @@ pub async fn help(ctx: &Context, msg: &Message) -> CommandResult {
 `{prefix}renewed`  Technical support command
 `{prefix}forge`  Technical support command
 `{prefix}coremod`  Technical support command
-
 ",
                         prefix=prefix,
                         json=if is_admin {" [json]"} else {""}
@@ -166,7 +165,9 @@ Available languages: `en`, `de`, `fr`, `es`, `nl`, `ja`, `zh`, `ru`
         })
         .await?;
 
-    msg.react(ctx, ReactionType::from('✅')).await?;
+    if msg.guild_id.is_some() {
+        msg.reply(ctx, "Help message sent to DMs!").await?;
+    }
 
     Ok(())
 }
@@ -232,5 +233,10 @@ pub async fn json(ctx: &Context, msg: &Message) -> CommandResult {
             )
         })
         .await?;
+
+    if msg.guild_id.is_some() {
+        msg.reply(ctx, "JSON help message sent to DMs!").await?;
+    }
+
     Ok(())
 }

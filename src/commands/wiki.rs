@@ -72,18 +72,22 @@ async fn lotr_wiki(ctx: &Context, msg: &Message, args: Args, ns: Namespace) -> C
 }
 
 #[command]
+#[sub_commands(discord_link)]
 pub async fn wiki(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-    if args.current() == Some("discord") {
-        msg.channel_id
-            .say(
-                ctx,
-                "The invite for the **LOTR Mod Community Discord** is available here:
+    lotr_wiki(ctx, msg, args, Page).await?;
+    Ok(())
+}
+
+#[command]
+#[aliases("discord")]
+pub async fn discord_link(ctx: &Context, msg: &Message) -> CommandResult {
+    msg.channel_id
+        .say(
+            ctx,
+            "The invite for the **LOTR Mod Community Discord** is available here:
 https://discord.gg/QXkZzKU",
-            )
-            .await?;
-    } else {
-        lotr_wiki(ctx, msg, args, Page).await?;
-    }
+        )
+        .await?;
     Ok(())
 }
 

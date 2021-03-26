@@ -79,8 +79,8 @@ impl EventHandler for Handler {
             .unwrap()
             .dm(ctx, |m| {
                 m.content(format!(
-                    "Bot started and ready!\n\nGuilds: {}",
-                    ready.guilds.len()
+                    "Bot started and ready!\n\tGuilds: {}\n_\tDo `!guilds` to see all guilds_",
+                    ready.guilds.len(),
                 ))
             })
             .await
