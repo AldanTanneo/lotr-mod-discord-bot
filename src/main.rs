@@ -46,9 +46,7 @@ struct General;
 struct Meme;
 
 #[group]
-#[default_command(wiki)]
-#[prefixes("wiki")]
-#[commands(user, category, template, file, random, tolkien, minecraft)]
+#[commands(wiki)]
 struct Wiki;
 
 #[group]
