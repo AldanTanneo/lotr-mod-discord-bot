@@ -46,7 +46,7 @@ struct General;
 struct Meme;
 
 #[group]
-#[commands(wiki)]
+#[commands(wiki, tolkien, minecraft)]
 struct Wiki;
 
 #[group]

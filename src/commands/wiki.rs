@@ -4,8 +4,8 @@ use serenity::model::channel::Message;
 
 use super::general::DISCORD_COMMAND;
 use crate::api;
-use api::structures::*;
-use api::structures::{Lang::*, Namespace::*};
+use api::structures::{Lang::*, Namespace::*, *};
+use api::wiki;
 
 async fn wiki_search(
     ctx: &Context,
@@ -16,9 +16,9 @@ async fn wiki_search(
 ) -> CommandResult {
     let srsearch = args.rest();
     println!("srsearch {}", srsearch);
-    let p = api::search(ctx, &namespace, srsearch, wiki).await;
+    let p = wiki::search(ctx, &namespace, srsearch, wiki).await;
     if let Some(page) = p {
-        api::display(ctx, msg, &page, wiki).await?;
+        wiki::display(ctx, msg, &page, wiki).await?;
     } else {
         msg.reply(
             ctx,
@@ -67,7 +67,7 @@ async fn lotr_wiki(ctx: &Context, msg: &Message, args: Args, ns: Namespace) -> C
     if !args.is_empty() {
         wiki_search(ctx, msg, args, ns, &wiki).await?;
     } else {
-        api::display(ctx, msg, &ns.main_page(&wiki, &msg.author.name), &wiki).await?;
+        wiki::display(ctx, msg, &ns.main_page(&wiki, &msg.author.name), &wiki).await?;
     }
     Ok(())
 }
@@ -105,9 +105,9 @@ async fn file(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 #[command]
 async fn random(ctx: &Context, msg: &Message) -> CommandResult {
     let wiki = &Wikis::LOTRMod(En);
-    let p = api::random(ctx, wiki).await;
+    let p = wiki::random(ctx, wiki).await;
     if let Some(page) = p {
-        api::display(ctx, msg, &page, wiki).await?;
+        wiki::display(ctx, msg, &page, wiki).await?;
     } else {
         msg.channel_id.say(ctx, "Couldn't execute query!").await?;
     }
@@ -115,23 +115,24 @@ async fn random(ctx: &Context, msg: &Message) -> CommandResult {
 }
 
 #[command]
-async fn tolkien(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
+#[aliases("tolkiengateway")]
+pub async fn tolkien(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let wiki = Wikis::TolkienGateway;
     if !args.is_empty() {
         wiki_search(ctx, msg, args, Page, &wiki).await?;
     } else {
-        api::display(ctx, msg, &wiki.default(&msg.author.name), &wiki).await?;
+        wiki::display(ctx, msg, &wiki.default(&msg.author.name), &wiki).await?;
     }
     Ok(())
 }
 
 #[command]
-async fn minecraft(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
+pub async fn minecraft(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let wiki = Wikis::Minecraft;
     if !args.is_empty() {
         wiki_search(ctx, msg, args, Page, &wiki).await?;
     } else {
-        api::display(ctx, msg, &wiki.default(&msg.author.name), &wiki).await?;
+        wiki::display(ctx, msg, &wiki.default(&msg.author.name), &wiki).await?;
     }
     Ok(())
 }
