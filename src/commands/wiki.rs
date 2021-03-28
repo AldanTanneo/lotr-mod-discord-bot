@@ -127,6 +127,7 @@ pub async fn tolkien(ctx: &Context, msg: &Message, args: Args) -> CommandResult 
 }
 
 #[command]
+#[aliases("mc")]
 pub async fn minecraft(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let wiki = Wikis::Minecraft;
     if !args.is_empty() {
