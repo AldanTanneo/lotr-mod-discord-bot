@@ -5,7 +5,7 @@ use serenity::model::{channel::Message, prelude::ReactionType, Permissions};
 
 use crate::announcement::announce;
 use crate::check::{bot_admin, has_permission, IS_ADMIN_CHECK};
-use crate::constants::{MAX_JSON_FILE_SIZE, OWNER_ID};
+use crate::constants::{MAX_JSON_FILE_SIZE, OWNER_ID, RESERVED_NAMES};
 use crate::database::{
     blacklist::check_blacklist,
     custom_commands::{
@@ -112,7 +112,16 @@ pub async fn custom_command(ctx: &Context, msg: &Message, mut args: Args) -> Com
 #[command]
 #[checks(is_admin)]
 pub async fn define(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    let name: String = args.single()?;
+    let name: String = args.single::<String>()?.to_lowercase();
+    if RESERVED_NAMES.contains(&name.as_str()) {
+        msg.react(ctx, ReactionType::from('❌')).await?;
+        msg.reply(
+            ctx,
+            format!("You cannot add a command with the reserved name `{}`", name),
+        )
+        .await?;
+        return Ok(());
+    }
     let update = check_command_exists(ctx, msg.guild_id, &name)
         .await
         .unwrap_or(false);
@@ -177,7 +186,7 @@ pub async fn define(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
 #[command]
 #[checks(is_admin)]
 #[aliases("remove", "delete")]
-pub async fn custom_command_remove(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+async fn custom_command_remove(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let name: String = args.single()?;
     if check_command_exists(ctx, msg.guild_id, &name)
         .await
@@ -200,7 +209,7 @@ pub async fn custom_command_remove(ctx: &Context, msg: &Message, mut args: Args)
 #[command]
 #[aliases("display", "show")]
 #[checks(is_admin)]
-pub async fn custom_command_display(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+async fn custom_command_display(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     if let Ok(name) = args.single::<String>() {
         if let Some(command) = get_command_data(ctx, msg.guild_id, &name, true).await {
             println!("Displaying command docs...");
@@ -215,7 +224,10 @@ pub async fn custom_command_display(ctx: &Context, msg: &Message, mut args: Args
                         e.field(
                             "Command body",
                             if command.body.len() < 1013 {
-                                format!("```json\n{}```", command.body)
+                                format!(
+                                    "```json\n{}```",
+                                    command.body.replace("```", "`\u{200B}``")
+                                )
                             } else {
                                 "_Too long to display here_".into()
                             },
