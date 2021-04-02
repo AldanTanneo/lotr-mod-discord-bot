@@ -50,14 +50,7 @@ struct Meme;
 struct Wiki;
 
 #[group]
-#[only_in(guilds)]
-#[prefixes("admin")]
-#[default_command(list)]
-#[commands(add, remove, list)]
-struct Admin;
-
-#[group]
-#[commands(floppadd, blacklist, announce, floppadmin, listguilds, define)]
+#[commands(admin, floppadd, blacklist, announce, floppadmin, listguilds, define)]
 struct Moderation;
 
 struct Handler;
@@ -145,7 +138,6 @@ async fn main() {
         .on_dispatch_error(dispatch_error_hook)
         .group(&MEME_GROUP)
         .group(&WIKI_GROUP)
-        .group(&ADMIN_GROUP)
         .group(&MODERATION_GROUP)
         .group(&GENERAL_GROUP)
         .bucket("basic", |b| b.delay(2).time_span(10).limit(3))

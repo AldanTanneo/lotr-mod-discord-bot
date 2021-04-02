@@ -51,6 +51,35 @@ async fn prefix(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
 
 #[command]
 #[only_in(guilds)]
+#[checks(allowed_blacklist)]
+#[sub_commands("add", "remove")]
+#[aliases("admins")]
+async fn admin(ctx: &Context, msg: &Message) -> CommandResult {
+    let admins = get_admins(ctx, msg.guild_id).await.unwrap_or_else(Vec::new);
+
+    let mut user_names: Vec<String> = admins.iter().map(|&id| id.mention().to_string()).collect();
+    user_names.push(OWNER_ID.mention().to_string());
+
+    let guild_name = msg
+        .guild_id
+        .unwrap_or(LOTR_DISCORD)
+        .to_partial_guild(ctx)
+        .await?
+        .name;
+    msg.channel_id
+        .send_message(ctx, |m| {
+            m.embed(|e| {
+                e.title("List of bot admins");
+                e.description(format!("On **{}**\n{}", guild_name, user_names.join("\n")))
+            });
+            m
+        })
+        .await?;
+    Ok(())
+}
+
+#[command]
+#[only_in(guilds)]
 #[checks(is_admin)]
 #[max_args(1)]
 #[min_args(1)]
@@ -113,35 +142,8 @@ async fn remove(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
 
 #[command]
 #[only_in(guilds)]
-#[checks(allowed_blacklist)]
-async fn list(ctx: &Context, msg: &Message) -> CommandResult {
-    let admins = get_admins(ctx, msg.guild_id).await.unwrap_or_else(Vec::new);
-
-    let mut user_names: Vec<String> = admins.iter().map(|&id| id.mention().to_string()).collect();
-    user_names.push(OWNER_ID.mention().to_string());
-
-    let guild_name = msg
-        .guild_id
-        .unwrap_or(LOTR_DISCORD)
-        .to_partial_guild(ctx)
-        .await?
-        .name;
-    msg.channel_id
-        .send_message(ctx, |m| {
-            m.embed(|e| {
-                e.title("List of bot admins");
-                e.description(format!("On **{}**\n{}", guild_name, user_names.join("\n")))
-            });
-            m
-        })
-        .await?;
-    Ok(())
-}
-
-#[command]
-#[only_in(guilds)]
 #[checks(is_admin, allowed_blacklist)]
-async fn blacklist(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
+pub async fn blacklist(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     if args.is_empty() && msg.mentions.is_empty() {
         let (users, channels) = check_blacklist(ctx, msg, true)
             .await

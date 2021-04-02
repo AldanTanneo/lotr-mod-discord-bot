@@ -174,7 +174,7 @@ Available languages: `en`, `de`, `fr`, `es`, `nl`, `ja`, `zh`, `ru`
 
 #[command]
 #[checks(is_admin)]
-pub async fn json(ctx: &Context, msg: &Message) -> CommandResult {
+async fn json(ctx: &Context, msg: &Message) -> CommandResult {
     msg.author
         .direct_message(ctx, |m| {
             m.content(
