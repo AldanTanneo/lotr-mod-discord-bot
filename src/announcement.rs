@@ -6,19 +6,15 @@ use serenity::utils::Color;
 use std::convert::TryFrom;
 
 pub async fn announce(ctx: &Context, channel: ChannelId, message: Value) -> CommandResult {
-    let content = message["content"].as_str();
-    let image = message["image"].as_str();
-    let reactions = message["reactions"].as_array();
-    let embed = &message["embed"];
     channel
         .send_message(ctx, |m| {
-            if let Some(content) = content {
+            if let Some(content) = message["content"].as_str() {
                 m.content(content);
             }
-            if let Some(image) = image {
+            if let Some(image) = message["image"].as_str() {
                 m.add_file(image);
             }
-            if let Some(reactions) = reactions {
+            if let Some(reactions) = message["reactions"].as_array() {
                 m.reactions(
                     reactions
                         .iter()
@@ -26,58 +22,44 @@ pub async fn announce(ctx: &Context, channel: ChannelId, message: Value) -> Comm
                         .filter_map(|s| ReactionType::try_from(s).ok()),
                 );
             }
-            if embed.is_object() {
-                let colour = embed["colour"].as_str();
-                let color = embed["color"].as_str();
-                let author = &embed["author"];
-                let title = embed["title"].as_str();
-                let url = embed["url"].as_str();
-                let description = embed["description"].as_str();
-                let fields = embed["fields"].as_array();
-                let image = embed["image"].as_str();
-                let thumb = embed["thumbnail"].as_str();
-                let footer = &embed["footer"];
-                let timestamp = embed["timestamp"].as_str();
+            if let Some(embed) = message["embed"].as_object() {
                 m.embed(|e| {
-                    if let Some(colour) = colour {
+                    if let Some(colour) = embed["colour"].as_str() {
                         if let Ok(c) = u32::from_str_radix(&colour.to_uppercase(), 16) {
                             e.colour(Color::new(c));
                         }
-                    } else if let Some(color) = color {
+                    } else if let Some(color) = embed["color"].as_str() {
                         if let Ok(c) = u32::from_str_radix(&color.to_uppercase(), 16) {
                             e.colour(Color::new(c));
                         }
                     }
-                    if author.is_object() {
-                        let name = author["name"].as_str();
-                        let icon = author["icon"].as_str();
-                        let url = author["url"].as_str();
+                    if let Some(author) = embed["author"].as_object() {
                         e.author(|a| {
-                            if let Some(name) = name {
+                            if let Some(name) = author["name"].as_str() {
                                 a.name(name);
                             }
-                            if let Some(icon) = icon {
+                            if let Some(icon) = author["icon"].as_str() {
                                 a.icon_url(icon);
                             }
-                            if let Some(url) = url {
+                            if let Some(url) = author["url"].as_str() {
                                 a.url(url);
                             }
                             a
                         });
                     }
-                    if let Some(title) = title {
+                    if let Some(title) = embed["title"].as_str() {
                         e.title(title);
                     }
-                    if let Some(url) = url {
+                    if let Some(url) = embed["url"].as_str() {
                         e.url(url);
                     }
-                    if let Some(description) = description {
+                    if let Some(description) = embed["description"].as_str() {
                         e.description(description);
                     }
-                    if let Some(image) = image {
+                    if let Some(image) = embed["image"].as_str() {
                         e.image(image);
                     }
-                    if let Some(fields) = fields {
+                    if let Some(fields) = embed["fields"].as_array() {
                         for field in fields {
                             let title = field[0].as_str();
                             let content = field[1].as_str();
@@ -89,10 +71,10 @@ pub async fn announce(ctx: &Context, channel: ChannelId, message: Value) -> Comm
                             }
                         }
                     }
-                    if let Some(thumb) = thumb {
+                    if let Some(thumb) = embed["thumbnail"].as_str() {
                         e.thumbnail(thumb);
                     }
-                    if footer.is_object() {
+                    if let Some(footer) = embed["footer"].as_object() {
                         let icon = footer["icon"].as_str();
                         let text = footer["text"].as_str();
                         e.footer(|f| {
@@ -105,7 +87,7 @@ pub async fn announce(ctx: &Context, channel: ChannelId, message: Value) -> Comm
                             f
                         });
                     }
-                    if let Some(timestamp) = timestamp {
+                    if let Some(timestamp) = embed["timestamp"].as_str() {
                         e.timestamp(timestamp);
                     }
                     e

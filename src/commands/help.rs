@@ -132,6 +132,21 @@ Available languages: `en`, `de`, `fr`, `es`, `nl`, `ja`, `zh`, `ru`
                     ),
                     false
                 );
+                if !cctext.is_empty() || is_admin {
+                    e.footer(|f| f.text("1/2"));
+                }
+                e
+            });
+            m
+        })
+        .await?;
+
+    if !cctext.is_empty() || is_admin {
+        msg.author
+        .direct_message(ctx, |m| {
+            m.embed(|e| {
+                e.colour(Colour::DARK_GREEN);
+                e.title("Available commands");
                 if !cctext.is_empty() {
                     e.field(
                         "Custom commands",
@@ -159,11 +174,13 @@ Available languages: `en`, `de`, `fr`, `es`, `nl`, `ja`, `zh`, `ru`
                         false,
                     );
                 }
+                e.footer(|f| f.text("2/2"));
                 e
             });
             m
         })
         .await?;
+    }
 
     if msg.guild_id.is_some() {
         msg.reply(ctx, "Help message sent to DMs!").await?;

@@ -297,7 +297,7 @@ async fn listguilds(ctx: &Context) -> CommandResult {
         } else {
             let guild_names = vec
                 .iter()
-                .map(|g| g.name.clone())
+                .map(|g| format!("{} (`{}`)", g.name, g.id))
                 .collect::<Vec<_>>()
                 .join("\n");
             count += vec.len();
