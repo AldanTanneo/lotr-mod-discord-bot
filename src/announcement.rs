@@ -22,7 +22,8 @@ pub async fn announce(ctx: &Context, channel: ChannelId, message: Value) -> Comm
                         .filter_map(|s| ReactionType::try_from(s).ok()),
                 );
             }
-            if let Some(embed) = message["embed"].as_object() {
+            if message["embed"].is_object() {
+                let embed = &message["embed"];
                 m.embed(|e| {
                     if let Some(colour) = embed["colour"].as_str() {
                         if let Ok(c) = u32::from_str_radix(&colour.to_uppercase(), 16) {
@@ -33,7 +34,8 @@ pub async fn announce(ctx: &Context, channel: ChannelId, message: Value) -> Comm
                             e.colour(Color::new(c));
                         }
                     }
-                    if let Some(author) = embed["author"].as_object() {
+                    if embed["author"].is_object() {
+                        let author = &embed["author"];
                         e.author(|a| {
                             if let Some(name) = author["name"].as_str() {
                                 a.name(name);
@@ -74,14 +76,13 @@ pub async fn announce(ctx: &Context, channel: ChannelId, message: Value) -> Comm
                     if let Some(thumb) = embed["thumbnail"].as_str() {
                         e.thumbnail(thumb);
                     }
-                    if let Some(footer) = embed["footer"].as_object() {
-                        let icon = footer["icon"].as_str();
-                        let text = footer["text"].as_str();
+                    if embed["footer"].is_object() {
+                        let footer = &embed["footer"];
                         e.footer(|f| {
-                            if let Some(icon) = icon {
+                            if let Some(icon) = footer["icon"].as_str() {
                                 f.icon_url(icon);
                             }
-                            if let Some(text) = text {
+                            if let Some(text) = footer["text"].as_str() {
                                 f.text(text);
                             }
                             f
