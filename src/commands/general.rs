@@ -18,7 +18,7 @@ async fn renewed(ctx: &Context, msg: &Message) -> CommandResult {
                 e.colour(Colour::DARK_GOLD);
                 e.title("Use the 1.7.10 version");
                 e.description(
-                    "The 1.15.2 version of the mod is a work in progress, missing many features such as NPCs and structures.
+                    "The 1.16.5 version of the mod is a work in progress, missing many features such as NPCs and structures.
 You can find those in the full 1.7.10 Legacy edition [here](https://www.curseforge.com/minecraft/mc-mods/the-lord-of-the-rings-mod-legacy).
 
 For a list of features present in the renewed version, check [this page](https://lotrminecraftmod.fandom.com/wiki/Updates/Renewed).",
@@ -99,7 +99,7 @@ async fn forge(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let (version, mc) = if args.single::<String>().unwrap_or_default() == "legacy" {
         ("1558", "1.7.10")
     } else {
-        ("31.2.31", "1.15.2")
+        ("36.1.0", "1.16.5")
     };
     msg.channel_id.send_message(ctx, |m| {
         m.embed(|e| {
