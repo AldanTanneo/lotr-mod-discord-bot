@@ -199,52 +199,51 @@ async fn json(ctx: &Context, msg: &Message) -> CommandResult {
 *Almost all fields are optional. Try it out!*
 ```json
 {
-    "content": "the message content",
-    "image": "a valid image url",
-    "reactions": [
-        "🍎", // unicode emojis
-        "<:name:0000000000000000>" // custom emojis
+	"content": "the message content",
+	"image": "a valid image url",
+	"reactions": [
+		"🍎", // unicode emojis
+		"<:name:0000000000000000>" // custom emojis
     ],
-    "embed": {
-        "colour": "RRGGBB", // hexadecimal color code
-        "author": {
-            "name": "the embed author name",
-            "icon": "a valid author icon url",
-            "url": "a valid url that will open when clicking on the author name"
-        },
-        "title": "the embed title",
-        "url": "a valid url that will open when clicking on the title",
-        "description": "the embed description",
-        "image": "an embed image",
-        "thumbnail": "a valid thumbnail image url",
-        "fields": [ // a list of fields to display in the embed; an element looks like:
-            [
-                "a field title",
-                "some field content",
-                true // or false: wether the field is inlined or not 
-                     // (if not, displays as a block)
-            ]
-        ],
-        "footer" : {
-            "icon": "a valid footer icon url",
-            "text": "some footer text"
-        },
-        "timestamp": "a valid timestamp in the format [YYYY]-[MM]-[DD]T[HH]:[mm]:[ss]"
-                     // example: "2020-12-02T13:07:00"
+	"embed": {
+		"colour": "RRGGBB", // hexadecimal color code
+		"author": {
+			"name": "the embed author name",
+			"icon": "a valid author icon url",
+			"url": "a valid url that will open when clicking on the author name"
+		},
+		"title": "the embed title",
+		"url": "a valid url that will open when clicking on the title",
+		"description": "the embed description",
+		"image": "an embed image",
+		"thumbnail": "a valid thumbnail image url",
+		"fields": [ // a list of fields to display in the embed; an element looks like:
+			[
+				"a field title",
+				"some field content",
+				true // or false: wether the field is inlined or not 
+					 // (if not, displays as a block)
+			]
+		],
+		"footer" : {
+			"icon": "a valid footer icon url",
+			"text": "some footer text"
+		},
+		"timestamp": "a valid timestamp in the format [YYYY]-[MM]-[DD]T[HH]:[mm]:[ss]"
+					 // example: "2020-12-02T13:07:00"
+	}
 
-    }
-
-    // Only for custom commands:
-    "documentation": "A formatted string" 
-        // if this field is not present, your custom command will not be
-        // displayed in !help for regular users
-    "type": "default" // can be "meme", "admin" or "default";
-        // if the type is "meme", the command will be subject to the blacklist
-        // if the type is "admin", only admins will be able to use it.
-    "default_args": ["arg0", "arg1", ...]
-        // if $0, $1 are left in the json because there are not enough arguments
-        // to fill them, these values will be used.
-    "self_delete": true // or false: wether the command message is deleted after execution.
+	// Only for custom commands:
+	"documentation": "A formatted string" 
+		// if this field is not present, your custom command will not be
+		// displayed in !help for regular users
+	"type": "default" // can be "meme", "admin" or "default";
+		// if the type is "meme", the command will be subject to the blacklist
+		// if the type is "admin", only admins will be able to use it.
+	"default_args": ["arg0", "arg1", ...]
+		// if $0, $1 are left in the json because there are not enough arguments
+		// to fill them, these values will be used.
+	"self_delete": true // or false: wether the command message is deleted after execution.
 }
 ```
 "#,
