@@ -244,6 +244,7 @@ async fn json(ctx: &Context, msg: &Message) -> CommandResult {
     "default_args": ["arg0", "arg1", ...]
         // if $0, $1 are left in the json because there are not enough arguments
         // to fill them, these values will be used.
+    "self_delete": true // or false: wether the command message is deleted after execution.
 }
 ```
 "#,
