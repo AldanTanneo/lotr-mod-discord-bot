@@ -59,7 +59,7 @@ async fn lotr_wiki(ctx: &Context, msg: &Message, args: Args, ns: Namespace) -> C
     let lang = res.0;
     let mut args = res.1;
     let default = res.2;
-    let wiki = Wikis::LOTRMod(lang);
+    let wiki = Wikis::LotrMod(lang);
     if default {
         println!("rewinding");
         args.rewind();
@@ -104,7 +104,7 @@ async fn file(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 
 #[command]
 async fn random(ctx: &Context, msg: &Message) -> CommandResult {
-    let wiki = &Wikis::LOTRMod(En);
+    let wiki = &Wikis::LotrMod(En);
     let p = wiki::random(ctx, wiki).await;
     if let Some(page) = p {
         wiki::display(ctx, msg, &page, wiki).await?;

@@ -153,7 +153,7 @@ pub async fn display(
     };
 
     let img = match wiki {
-        LOTRMod(_) | Minecraft => {
+        LotrMod(_) | Minecraft => {
             println!("imageserving");
             let req = [
                 ("format", "json"),

@@ -99,7 +99,7 @@ impl From<RandomPage> for GenericPage {
             desc: Some("Random page...".into()),
             link: format!(
                 "{}/{}",
-                LOTRMod(En).site(),
+                LotrMod(En).site(),
                 page.title.trim().replace(" ", "_")
             ),
         }
@@ -234,7 +234,7 @@ impl std::fmt::Display for Lang {
 
 #[derive(std::cmp::PartialEq)]
 pub enum Wikis {
-    LOTRMod(Lang),
+    LotrMod(Lang),
     TolkienGateway,
     Minecraft,
 }
@@ -242,8 +242,8 @@ pub enum Wikis {
 impl Wikis {
     pub(crate) fn get_api(&self) -> String {
         match self {
-            LOTRMod(En) => "https://lotrminecraftmod.fandom.com/api.php?".to_string(),
-            LOTRMod(lang) => format!("https://lotrminecraftmod.fandom.com/{}/api.php?", lang),
+            LotrMod(En) => "https://lotrminecraftmod.fandom.com/api.php?".to_string(),
+            LotrMod(lang) => format!("https://lotrminecraftmod.fandom.com/{}/api.php?", lang),
             TolkienGateway => "http://tolkiengateway.net/w/api.php?".to_string(),
             Minecraft => "https://minecraft.gamepedia.com/api.php?".to_string(),
         }
@@ -251,7 +251,7 @@ impl Wikis {
 
     pub fn site(&self) -> String {
         match self {
-            LOTRMod(lang) => format!("https://lotrminecraftmod.fandom.com/{}", lang),
+            LotrMod(lang) => format!("https://lotrminecraftmod.fandom.com/{}", lang),
             TolkienGateway => "https://tolkiengateway.net".to_string(),
             Minecraft => "https://minecraft.gamepedia.com".to_string(),
         }
@@ -259,7 +259,7 @@ impl Wikis {
 
     pub fn default_img(&self) -> String {
         match self {
-            LOTRMod(_) => {
+            LotrMod(_) => {
                 "https://static.wikia.nocookie.net/lotrminecraftmod/images/8/8e/GrukRenewedLogo.png"
             }
             TolkienGateway => "https://medias.liberation.fr/photo/1277413-author-j-r-r-tolkien.jpg",
@@ -270,7 +270,7 @@ impl Wikis {
 
     pub fn icon(&self) -> String {
         match self {
-            LOTRMod(_) => "https://i.ibb.co/v1hHg3G/test.png",
+            LotrMod(_) => "https://i.ibb.co/v1hHg3G/test.png",
             TolkienGateway => "https://i.ibb.co/VYKWK7V/favicon.png",
             Minecraft => {
                 "https://toppng.com/uploads/preview/minecraft-block-icon-11531077309p00lhxolea.png"
@@ -281,7 +281,7 @@ impl Wikis {
 
     pub fn name(&self) -> String {
         match self {
-            LOTRMod(lang) => lang.main(),
+            LotrMod(lang) => lang.main(),
             TolkienGateway => "Tolkien Gateway".into(),
             Minecraft => "Official Minecraft Wiki".into(),
         }
@@ -289,7 +289,7 @@ impl Wikis {
 
     pub fn default(&self, username: &str) -> GenericPage {
         match self {
-            LOTRMod(_) => Page.main_page(self, username),
+            LotrMod(_) => Page.main_page(self, username),
             TolkienGateway => GenericPage {
                 title: self.name(),
                 link: self.site(),
@@ -352,7 +352,7 @@ impl std::fmt::Display for Namespace {
 impl Namespace {
     pub fn main_page(&self, wiki: &Wikis, username: &str) -> GenericPage {
         match wiki {
-            LOTRMod(lang) => {
+            LotrMod(lang) => {
                 match self {
                     Page => GenericPage {
                         title: lang.main(),
