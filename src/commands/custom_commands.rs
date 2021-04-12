@@ -46,6 +46,40 @@ pub async fn custom_command(ctx: &Context, msg: &Message, mut args: Args) -> Com
         }
         println!("{}", body);
         let mut message: Value = serde_json::from_str(&body.replace("\\$", "$"))?;
+        // early interrupt in case of blacklist / admin command
+        if let Value::String(s) = &message["type"] {
+            let is_admin = msg.author.id == OWNER_ID
+                || bot_admin(ctx, msg).await
+                || has_permission(
+                    ctx,
+                    msg.guild_id,
+                    &msg.author,
+                    Permissions::MANAGE_GUILD | Permissions::ADMINISTRATOR,
+                )
+                .await;
+            if !is_admin {
+                if s == "meme"
+                    && check_blacklist(ctx, msg, false)
+                        .await
+                        .unwrap_or(Blacklist::IsBlacklisted(true))
+                        .is_blacklisted()
+                {
+                    msg.delete(ctx).await?;
+                    msg.author
+                        .dm(ctx, |m| {
+                            m.content("You are not allowed to use this command here!")
+                        })
+                        .await?;
+                    return Ok(());
+                } else if s == "admin" {
+                    msg.react(ctx, ReactionType::from('❌')).await?;
+                    msg.reply(ctx, "You are not an admin on this server!")
+                        .await?;
+                    return Ok(());
+                }
+            }
+        }
+        // default args
         if let Value::Array(a) = &message["default_args"] {
             let argc = args.len() - 1;
             let changed = body.contains(format!("\u{200B}${}", argc).as_str());
@@ -62,47 +96,11 @@ pub async fn custom_command(ctx: &Context, msg: &Message, mut args: Args) -> Com
                 message = serde_json::from_str(&body.replace("\\$", "$"))?;
             }
         }
-        if let Value::String(s) = &message["type"] {
-            if s == "meme"
-                && msg.author.id != OWNER_ID
-                && check_blacklist(ctx, msg, false)
-                    .await
-                    .unwrap_or(Blacklist::IsBlacklisted(true))
-                    .is_blacklisted()
-                && !bot_admin(ctx, msg).await
-                && !has_permission(
-                    ctx,
-                    msg.guild_id,
-                    &msg.author,
-                    Permissions::MANAGE_GUILD | Permissions::ADMINISTRATOR,
-                )
-                .await
-            {
-                msg.delete(ctx).await?;
-                msg.author
-                    .dm(ctx, |m| {
-                        m.content("You are not allowed to use this command here!")
-                    })
-                    .await?;
-                return Ok(());
-            } else if s == "admin"
-                && msg.author.id != OWNER_ID
-                && !bot_admin(ctx, msg).await
-                && !has_permission(
-                    ctx,
-                    msg.guild_id,
-                    &msg.author,
-                    Permissions::MANAGE_GUILD | Permissions::ADMINISTRATOR,
-                )
-                .await
-            {
-                msg.react(ctx, ReactionType::from('❌')).await?;
-                msg.reply(ctx, "You are not an admin on this server!")
-                    .await?;
-                return Ok(());
-            }
-        };
+        let delete = message["self_delete"].as_bool().unwrap_or(false);
         announce(ctx, msg.channel_id, message).await?;
+        if delete {
+            msg.delete(ctx).await?;
+        }
     } else {
         println!("Could not find custom command \"{}\"", name);
     }
