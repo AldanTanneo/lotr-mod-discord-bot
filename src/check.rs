@@ -1,4 +1,3 @@
-use crate::OWNER_ID;
 use serenity::framework::standard::{
     macros::{check, hook},
     DispatchError, Reason,
@@ -9,6 +8,7 @@ use serenity::model::{
 };
 use serenity::prelude::*;
 
+use crate::constants::{MANAGE_BOT_PERMS, OWNER_ID};
 use crate::database::{
     admin_data, blacklist::check_blacklist, config::get_minecraft_ip, Blacklist,
 };
@@ -27,12 +27,12 @@ pub async fn has_permission(
 ) -> bool {
     if let Some(guild) = guild {
         if let Ok(g) = guild.to_partial_guild(&ctx).await {
-            for (role_id, role) in g.roles.iter() {
-                if role.permissions.intersects(perm)
-                    && user.has_role(ctx, guild, role_id).await.unwrap_or(false)
-                {
-                    return true;
-                }
+            if let Ok(m) = g.member(ctx, user.id).await {
+                return m
+                    .permissions(ctx)
+                    .await
+                    .unwrap_or_default()
+                    .intersects(perm);
             }
         }
     }
@@ -47,13 +47,7 @@ pub async fn allowed_blacklist(ctx: &Context, msg: &Message) -> Result<(), Reaso
         .is_blacklisted()
         && !bot_admin(ctx, msg).await
         && msg.author.id != OWNER_ID
-        && !has_permission(
-            ctx,
-            msg.guild_id,
-            &msg.author,
-            Permissions::MANAGE_GUILD | Permissions::ADMINISTRATOR,
-        )
-        .await
+        && !has_permission(ctx, msg.guild_id, &msg.author, MANAGE_BOT_PERMS).await
     {
         msg.delete(ctx)
             .await
@@ -71,13 +65,7 @@ pub async fn allowed_blacklist(ctx: &Context, msg: &Message) -> Result<(), Reaso
 pub async fn is_admin(ctx: &Context, msg: &Message) -> Result<(), Reason> {
     if msg.author.id == OWNER_ID
         || bot_admin(ctx, msg).await
-        || has_permission(
-            ctx,
-            msg.guild_id,
-            &msg.author,
-            Permissions::MANAGE_GUILD | Permissions::ADMINISTRATOR,
-        )
-        .await
+        || has_permission(ctx, msg.guild_id, &msg.author, MANAGE_BOT_PERMS).await
     {
         Ok(())
     } else {
@@ -122,13 +110,7 @@ pub async fn is_minecraft_server(ctx: &Context, msg: &Message) -> Result<(), Rea
         Ok(())
     } else if bot_admin(ctx, msg).await
         || msg.author.id == OWNER_ID
-        || has_permission(
-            ctx,
-            msg.guild_id,
-            &msg.author,
-            Permissions::MANAGE_GUILD | Permissions::ADMINISTRATOR,
-        )
-        .await
+        || has_permission(ctx, msg.guild_id, &msg.author, MANAGE_BOT_PERMS).await
     {
         println!("Bypassed minecraft server check");
         Ok(())
