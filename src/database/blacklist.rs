@@ -3,14 +3,14 @@ use serenity::client::Context;
 use serenity::framework::standard::{Args, CommandResult};
 use serenity::model::{
     error::Error::WrongGuild,
-    id::{ChannelId, UserId},
+    id::{ChannelId, GuildId, UserId},
     misc::Mentionable,
     prelude::Message,
 };
 
-use super::DatabasePool;
-use super::{Blacklist, Blacklist::*};
-use crate::constants::{TABLE_CHANNEL_BLACKLIST, TABLE_USER_BLACKLIST};
+use super::admin_data::is_admin;
+use super::{Blacklist, Blacklist::*, DatabasePool};
+use crate::constants::{MANAGE_BOT_PERMS, OWNER_ID, TABLE_CHANNEL_BLACKLIST, TABLE_USER_BLACKLIST};
 
 pub async fn check_blacklist(ctx: &Context, msg: &Message, get_list: bool) -> Option<Blacklist> {
     let server_id: u64 = msg.guild_id?.0;
@@ -88,6 +88,7 @@ pub async fn update_blacklist(ctx: &Context, msg: &Message, mut args: Args) -> C
     let mut conn = pool.get_conn().await?;
 
     let server_id: u64 = msg.guild_id.ok_or(WrongGuild)?.0;
+    let pguild = GuildId(server_id).to_partial_guild(ctx).await?;
     let (users, channels) = check_blacklist(ctx, msg, true)
         .await
         .unwrap_or(IsBlacklisted(true))
@@ -95,8 +96,26 @@ pub async fn update_blacklist(ctx: &Context, msg: &Message, mut args: Args) -> C
 
     for user in &msg.mentions {
         println!("user...");
+        if let Ok(member) = pguild.member(ctx, user.id).await {
+            if user.id == OWNER_ID
+                || is_admin(ctx, msg.guild_id, user.id).await.is_some()
+                || member
+                    .permissions(ctx)
+                    .await
+                    .unwrap_or_default()
+                    .intersects(MANAGE_BOT_PERMS)
+            {
+                msg.channel_id
+                    .say(
+                        ctx,
+                        format!("You cannot add {} to the blacklist!", user.name),
+                    )
+                    .await?;
+                continue;
+            }
+        }
         if users.contains(&user.id) {
-            println!("deleting");
+            println!("deleting {}", user.id);
             conn.exec_drop(
                 format!(
                     "DELETE FROM {} WHERE server_id = :server_id AND user_id = :user_id LIMIT 1",
@@ -116,7 +135,6 @@ pub async fn update_blacklist(ctx: &Context, msg: &Message, mut args: Args) -> C
                 )
                 .await?;
         } else {
-            println!("adding");
             conn.exec_drop(
                 format!(
                     "INSERT INTO {} (server_id, user_id) VALUES (:server_id, :user_id)",
