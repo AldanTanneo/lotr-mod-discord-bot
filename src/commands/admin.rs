@@ -84,12 +84,8 @@ async fn admin(ctx: &Context, msg: &Message) -> CommandResult {
 #[max_args(1)]
 #[min_args(1)]
 async fn add(ctx: &Context, msg: &Message) -> CommandResult {
-    if let Some(user) = msg
-        .mentions
-        .iter()
-        .find(|&user| user.id != BOT_ID && user.id != OWNER_ID)
-    {
-        if !is_admin(ctx, msg.guild_id, user.id).await.is_some() {
+    if let Some(user) = msg.mentions.iter().find(|&user| user.id != BOT_ID) {
+        if !(is_admin(ctx, msg.guild_id, user.id).await.is_some() || user.id == OWNER_ID) {
             add_admin(ctx, msg.guild_id, user.id, false, false).await?;
             msg.react(ctx, ReactionType::from('✅')).await?;
         } else {
@@ -112,12 +108,10 @@ async fn add(ctx: &Context, msg: &Message) -> CommandResult {
 #[max_args(1)]
 #[min_args(1)]
 async fn remove(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    if let Some(user) = msg
-        .mentions
-        .iter()
-        .find(|&user| user.id != BOT_ID && user.id != OWNER_ID)
-    {
-        if is_admin(ctx, msg.guild_id, user.id).await.is_some() {
+    if let Some(user) = msg.mentions.iter().find(|&user| user.id != BOT_ID) {
+        if user.id == OWNER_ID {
+            msg.reply(ctx, "You cannot remove this bot admin!").await?;
+        } else if is_admin(ctx, msg.guild_id, user.id).await.is_some() {
             remove_admin(ctx, msg.guild_id, user.id).await?;
             msg.react(ctx, ReactionType::from('✅')).await?;
         } else {
