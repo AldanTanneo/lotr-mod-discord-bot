@@ -1,10 +1,15 @@
 use serenity::model::id::{GuildId, UserId};
+use serenity::model::Permissions;
 
 pub const BOT_ID: UserId = UserId(780858391383638057);
 pub const OWNER_ID: UserId = UserId(405421991777009678);
 pub const LOTR_DISCORD: GuildId = GuildId(405091134327619587);
 
 pub const MAX_JSON_FILE_SIZE: u64 = 25600;
+
+pub const MANAGE_BOT_PERMS: Permissions = Permissions {
+    bits: 0b0000_0000_0000_0000_0000_0000_1010_1000,
+};
 
 pub const WIKI_DOMAIN: &str = "lotrminecraftmod.fandom.com";
 
