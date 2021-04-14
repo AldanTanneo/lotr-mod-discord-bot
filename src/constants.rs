@@ -1,4 +1,4 @@
-//! Constants used in commands and api bindings
+//! Constants used in commands and API bindings
 
 use lazy_static::lazy_static;
 use serenity::model::id::{GuildId, UserId};
