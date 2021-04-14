@@ -137,8 +137,14 @@ pub async fn define(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
             serde_json::from_slice::<Value>(&json_data)
         } else {
             msg.react(ctx, ReactionType::from('❌')).await?;
-            msg.reply(ctx, "Attachment is too big! Filesize must be under 25KB.")
-                .await?;
+            msg.reply(
+                ctx,
+                format!(
+                    "Attachment is too big! Filesize must be under {}KB.",
+                    MAX_JSON_FILE_SIZE / 1024
+                ),
+            )
+            .await?;
             return Ok(());
         }
     };

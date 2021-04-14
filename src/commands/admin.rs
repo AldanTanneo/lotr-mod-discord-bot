@@ -213,8 +213,14 @@ async fn announce(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
                 let json_data = a.download().await?;
                 serde_json::from_slice(&json_data)
             } else {
-                msg.reply(ctx, "Attachment is too big! Filesize must be under 25KB.")
-                    .await?;
+                msg.reply(
+                    ctx,
+                    format!(
+                        "Attachment is too big! Filesize must be under {}KB.",
+                        MAX_JSON_FILE_SIZE / 1024
+                    ),
+                )
+                .await?;
                 return Ok(());
             }
         };
