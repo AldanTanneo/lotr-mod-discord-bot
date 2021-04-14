@@ -138,11 +138,11 @@ pub async fn dispatch_error_hook(ctx: &Context, msg: &Message, error: DispatchEr
             }
             Reason::UserAndLog { user, log: _ } => {
                 if msg.author.dm(ctx, |m| m.content(user)).await.is_err() {
-                    println!("Error sending blacklist warning")
+                    println!("Error sending blacklist warning");
                 }
             }
             Reason::Log(err_message) => {
-                println!("Check failed: {}", err_message)
+                println!("Check failed: {}", err_message);
             }
             _ => (),
         }

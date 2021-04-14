@@ -1,26 +1,36 @@
-mod announcement;
-mod api;
-mod check;
-mod commands;
-mod constants;
-mod database;
+//! Discord bot used in the [LOTR Mod Community Discord](https://discord.gg/QXkZzKU)
+//! and a few other servers.
+//!
+//! Includes LOTR Mod-related commands, a small [permissions system][commands::admin],
+//! [custom commands][commands::custom_commands], and useful commands for
+//! technical support or easy reference.
+//!
+//! For a list of commands, see [here][commands]
+
+pub mod announcement;
+pub mod api;
+pub mod check;
+pub mod commands;
+pub mod constants;
+pub mod database;
 
 use mysql_async::*;
+
 use reqwest::redirect;
+
 use serenity::async_trait;
 use serenity::client::{Client, Context, EventHandler};
 use serenity::framework::standard::{macros::group, StandardFramework};
 use serenity::futures::future::join;
 use serenity::model::gateway::{Activity, Ready};
+
 use std::{env, sync::Arc};
 
 use api::structures::ReqwestClient;
 use check::dispatch_error_hook;
-use database::{config::get_prefix, DatabasePool};
-
-use constants::*;
-
 use commands::{admin::*, custom_commands::*, general::*, help::*, meme::*, servers::*, wiki::*};
+use constants::*;
+use database::{config::get_prefix, DatabasePool};
 
 #[group]
 #[default_command(custom_command)]
@@ -81,6 +91,7 @@ impl EventHandler for Handler {
 
 #[tokio::main]
 async fn main() {
+    // get environment variables for bot login
     let token = env::var("DISCORD_TOKEN").expect("Expected a token in the environment");
     let db_name: String = env::var("DB_NAME").expect("Expected an environment variable DB_NAME");
     let db_user: String = env::var("DB_USER").expect("Expected an environment variable DB_USER");
@@ -93,6 +104,7 @@ async fn main() {
         .parse()
         .unwrap();
 
+    // create database pool for bot guild data
     let pool: Pool = Pool::new(
         OptsBuilder::default()
             .user(Some(db_user))
@@ -102,6 +114,7 @@ async fn main() {
             .tcp_port(db_port),
     );
 
+    // custom redirect policy, kinda superfluous
     let custom_redirect_policy = redirect::Policy::custom(|attempt| {
         if attempt.previous().len() > 5 {
             attempt.error("too many redirects")
@@ -113,14 +126,17 @@ async fn main() {
         }
     });
 
+    // reqwest client for API calls
     let request_client = reqwest::Client::builder()
         .redirect(custom_redirect_policy)
         .build()
         .expect("Could not build the reqwest client");
 
+    // initialize bot framework
     let framework = StandardFramework::new()
         .configure(|c| {
-            c.prefix("")
+            c.prefix("") // remove default prefix and
+                // add dynamic prefix defaulting to "!"
                 .dynamic_prefix(|ctx, msg| {
                     Box::pin(async move {
                         Some(
@@ -130,19 +146,27 @@ async fn main() {
                         )
                     })
                 })
+                // bot reacts on mention
                 .on_mention(Some(BOT_ID))
+                // sole owner is constants::OWNER_ID
                 .owners(vec![OWNER_ID].into_iter().collect())
+                // "wiki", "Wiki", "wIKi" are all valid commands
                 .case_insensitivity(true)
+                // supports multiline commands
                 .delimiters(vec![' ', '\n'])
         })
+        // failed checks handler
         .on_dispatch_error(dispatch_error_hook)
+        // command groups
         .group(&MEME_GROUP)
         .group(&WIKI_GROUP)
         .group(&MODERATION_GROUP)
         .group(&GENERAL_GROUP)
+        // rate limiting some commands
         .bucket("basic", |b| b.delay(2).time_span(10).limit(3))
         .await;
 
+    // building client
     let mut client = Client::builder(token)
         .event_handler(Handler)
         .framework(framework)
@@ -150,6 +174,7 @@ async fn main() {
         .expect("Error creating client");
 
     {
+        // storing the database pool and the reqwest client in the type map
         let mut data = client.data.write().await;
 
         data.insert::<DatabasePool>(Arc::new(pool));
@@ -158,6 +183,7 @@ async fn main() {
 
     // start listening for events by starting a single shard
     if let Err(why) = client.start().await {
+        // basic error logging
         println!("An error occurred while running the client: {:?}", why);
     }
 }
