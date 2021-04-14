@@ -11,7 +11,7 @@ use crate::constants::{CURSEFORGE_ID_LEGACY, CURSEFORGE_ID_RENEWED};
 #[command]
 #[only_in(guilds)]
 #[aliases("legacy")]
-async fn renewed(ctx: &Context, msg: &Message) -> CommandResult {
+pub async fn renewed(ctx: &Context, msg: &Message) -> CommandResult {
     msg.channel_id
         .send_message(ctx, |m| {
             m.embed(|e| {
@@ -45,7 +45,7 @@ fn pretty_large_int<T: Into<u64>>(x: T) -> String {
 
 #[command]
 #[aliases("download")]
-async fn curseforge(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+pub async fn curseforge(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let id = if args.single::<String>().unwrap_or_default().to_lowercase() == "renewed" {
         CURSEFORGE_ID_RENEWED
     } else {
@@ -95,7 +95,7 @@ async fn curseforge(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
 
 #[command]
 #[only_in(guilds)]
-async fn forge(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+pub async fn forge(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let (version, mc) = if args.single::<String>().unwrap_or_default() == "legacy" {
         ("1558", "1.7.10")
     } else {
@@ -120,7 +120,7 @@ async fn forge(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
 
 #[command]
 #[only_in(guilds)]
-async fn coremod(ctx: &Context, msg: &Message) -> CommandResult {
+pub async fn coremod(ctx: &Context, msg: &Message) -> CommandResult {
     msg.channel_id
         .send_message(ctx, |m| m.embed(|e| {
             e.colour(Colour::RED);
