@@ -1,15 +1,49 @@
+//! Admin commands, to work with the bot's own permissions system
+//!
+//! Three categories of people can manage the bot:
+//! - Users with the
+//! [`MANAGE_BOT_PERMS`][struct@crate::constants::MANAGE_BOT_PERMS]
+//! set of permissions, equivalent to
+//! `ADMINISTRATOR | MANAGE_CHANNELS | MANAGE_GUILD`;
+//! - Users that are promoted to "bot admins" by another admin, using the
+//! [`!admin add`][add] command;
+//! - And lastly, the bot [owner][OWNER_ID].
+//!
+//! Most of these commands are only executable by admins, with the exception of
+//! the [`!admin`][admin] command which can be used by anyone to display a list
+//! of bot admins.
+//!
+//! # Admin-only commands
+//! - [`!prefix`][prefix] displays the current prefix or changes it to the
+//! prefix passed in as argument.
+//! - [`!admin add`][add] adds a new admin to the database.
+//! - [`!admin remove`][remove] removes a bot admin.
+//! - [`!blacklist`][blacklist] displays the blacklist, or adds the mentionned
+//! channel or users to the blacklist.
+//! - [`!announce`][announce] allows bot admin to post messages as the bot,
+//! useful for official announcements.
+//!
+//! # Owner-only commands
+//! - [`!floppadmin`][floppadmin] allows the owner to give access to the floppa
+//! database.
+//! - [`!listguilds`][listguilds] allows the owner to get a list of guilds
+//! the bot has been invited in.
+//!
+//! # About the blacklist
+//!
+//! Using the [`!blacklist`][blacklist] command, bot admins can add users and
+
 use serenity::client::Context;
 use serenity::framework::standard::{macros::command, Args, CommandResult};
 use serenity::model::{
     channel::Message,
-    id::{ChannelId, GuildId, UserId},
+    id::{GuildId, UserId},
     prelude::ReactionType,
 };
 use serenity::prelude::*;
 
-use crate::announcement;
 use crate::check::{ALLOWED_BLACKLIST_CHECK, IS_ADMIN_CHECK};
-use crate::constants::{BOT_ID, LOTR_DISCORD, MAX_JSON_FILE_SIZE, OWNER_ID};
+use crate::constants::{BOT_ID, LOTR_DISCORD, OWNER_ID};
 use crate::database::{
     admin_data::{add_admin, get_admins, is_admin, remove_admin},
     blacklist::{check_blacklist, update_blacklist},
@@ -22,7 +56,7 @@ use crate::database::{
 #[checks(is_admin)]
 #[only_in(guilds)]
 #[max_args(1)]
-async fn prefix(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+pub async fn prefix(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     if args.is_empty() {
         let prefix = get_prefix(ctx, msg.guild_id).await;
         msg.reply(
@@ -54,7 +88,7 @@ async fn prefix(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
 #[checks(allowed_blacklist)]
 #[sub_commands("add", "remove")]
 #[aliases("admins")]
-async fn admin(ctx: &Context, msg: &Message) -> CommandResult {
+pub async fn admin(ctx: &Context, msg: &Message) -> CommandResult {
     let admins = get_admins(ctx, msg.guild_id).await.unwrap_or_else(Vec::new);
 
     let mut user_names: Vec<String> = admins.iter().map(|&id| id.mention().to_string()).collect();
@@ -83,7 +117,7 @@ async fn admin(ctx: &Context, msg: &Message) -> CommandResult {
 #[checks(is_admin)]
 #[max_args(1)]
 #[min_args(1)]
-async fn add(ctx: &Context, msg: &Message) -> CommandResult {
+pub async fn add(ctx: &Context, msg: &Message) -> CommandResult {
     if let Some(user) = msg.mentions.iter().find(|&user| user.id != BOT_ID) {
         if !(is_admin(ctx, msg.guild_id, user.id).await.is_some() || user.id == OWNER_ID) {
             add_admin(ctx, msg.guild_id, user.id, false, false).await?;
@@ -107,7 +141,7 @@ async fn add(ctx: &Context, msg: &Message) -> CommandResult {
 #[checks(is_admin)]
 #[max_args(1)]
 #[min_args(1)]
-async fn remove(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+pub async fn remove(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     if let Some(user) = msg.mentions.iter().find(|&user| user.id != BOT_ID) {
         if user.id == OWNER_ID {
             msg.reply(ctx, "You cannot remove this bot admin!").await?;
@@ -136,7 +170,7 @@ async fn remove(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
 
 #[command]
 #[only_in(guilds)]
-#[checks(is_admin, allowed_blacklist)]
+#[checks(is_admin)]
 pub async fn blacklist(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     if args.is_empty() && msg.mentions.is_empty() {
         let (users, channels) = check_blacklist(ctx, msg, true)
@@ -180,75 +214,8 @@ pub async fn blacklist(ctx: &Context, msg: &Message, args: Args) -> CommandResul
 }
 
 #[command]
-#[only_in(guilds)]
-#[checks(is_admin)]
-async fn announce(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    let channel = serenity::utils::parse_channel(args.single::<String>()?.trim());
-    if let Some(id) = channel {
-        if msg.guild_id
-            != ChannelId(id)
-                .to_channel(ctx)
-                .await?
-                .guild()
-                .map(|c| c.guild_id)
-        {
-            msg.reply(
-                ctx,
-                "You can only announce in the same server as the one you are in!",
-            )
-            .await?;
-            msg.react(ctx, ReactionType::from('❌')).await?;
-            return Ok(());
-        };
-        let message = if msg.attachments.is_empty() {
-            let content = &msg.content;
-            let (a, b) = (
-                content.find('{').unwrap_or(0),
-                content.rfind('}').unwrap_or(0),
-            );
-            serde_json::from_str(&content[a..=b])
-        } else {
-            let a = &msg.attachments[0];
-            if a.size <= MAX_JSON_FILE_SIZE {
-                let json_data = a.download().await?;
-                serde_json::from_slice(&json_data)
-            } else {
-                msg.reply(
-                    ctx,
-                    format!(
-                        "Attachment is too big! Filesize must be under {}KB.",
-                        MAX_JSON_FILE_SIZE / 1024
-                    ),
-                )
-                .await?;
-                return Ok(());
-            }
-        };
-        if message.is_ok()
-            && announcement::announce(ctx, ChannelId(id), message.unwrap())
-                .await
-                .is_ok()
-        {
-            msg.react(ctx, ReactionType::from('✅')).await?;
-        } else {
-            msg.reply(
-                ctx,
-                "Error sending the message! Check your json content and/or the bot permissions.",
-            )
-            .await?;
-            msg.react(ctx, ReactionType::from('❌')).await?;
-        };
-    } else {
-        msg.reply(ctx, "The first argument must be a channel mention!")
-            .await?;
-        msg.react(ctx, ReactionType::from('❌')).await?;
-    }
-    Ok(())
-}
-
-#[command]
 #[owners_only]
-async fn floppadmin(ctx: &Context, msg: &Message) -> CommandResult {
+pub async fn floppadmin(ctx: &Context, msg: &Message) -> CommandResult {
     if let Some(user) = msg
         .mentions
         .iter()
@@ -282,7 +249,7 @@ async fn floppadmin(ctx: &Context, msg: &Message) -> CommandResult {
 #[only_in(dms)]
 #[owners_only]
 #[aliases("guilds")]
-async fn listguilds(ctx: &Context) -> CommandResult {
+pub async fn listguilds(ctx: &Context) -> CommandResult {
     let mut id = GuildId(0);
     let owner = OWNER_ID.to_user(&ctx).await?;
     let mut first = true;

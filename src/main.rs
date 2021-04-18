@@ -13,6 +13,7 @@ pub mod check;
 pub mod commands;
 pub mod constants;
 pub mod database;
+pub mod utils;
 
 use mysql_async::*;
 
@@ -28,7 +29,10 @@ use std::{env, sync::Arc};
 
 use api::structures::ReqwestClient;
 use check::dispatch_error_hook;
-use commands::{admin::*, custom_commands::*, general::*, help::*, meme::*, servers::*, wiki::*};
+use commands::{
+    admin::*, announcements::*, custom_commands::*, general::*, help::*, meme::*, servers::*,
+    wiki::*,
+};
 use constants::*;
 use database::{config::get_prefix, DatabasePool};
 
