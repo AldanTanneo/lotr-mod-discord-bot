@@ -1,7 +1,7 @@
 use mysql_async::prelude::*;
 use serenity::client::Context;
 use serenity::framework::standard::CommandResult;
-use serenity::model::id::{GuildId, UserId};
+use serenity::model::prelude::*;
 
 use super::DatabasePool;
 use crate::constants::{OWNER_ID, TABLE_ADMINS, TABLE_FLOPPA};

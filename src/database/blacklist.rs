@@ -1,12 +1,8 @@
 use mysql_async::prelude::*;
 use serenity::client::Context;
 use serenity::framework::standard::{Args, CommandResult};
-use serenity::model::{
-    error::Error::WrongGuild,
-    id::{ChannelId, GuildId, UserId},
-    misc::Mentionable,
-    prelude::Message,
-};
+use serenity::model::error::Error::WrongGuild;
+use serenity::model::prelude::*;
 
 use super::{Blacklist, Blacklist::*, DatabasePool};
 use crate::constants::{MANAGE_BOT_PERMS, OWNER_ID, TABLE_CHANNEL_BLACKLIST, TABLE_USER_BLACKLIST};

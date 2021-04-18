@@ -5,7 +5,7 @@ pub mod custom_commands;
 pub mod floppa;
 
 use mysql_async::Pool;
-use serenity::model::id::{ChannelId, UserId};
+use serenity::model::prelude::*;
 use serenity::prelude::TypeMapKey;
 use std::sync::Arc;
 

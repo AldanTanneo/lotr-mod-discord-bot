@@ -4,8 +4,7 @@ use serde_json::Value;
 use serenity::client::Context;
 use serenity::framework::standard::CommandResult;
 use serenity::futures::future::join_all;
-use serenity::model::id::{ChannelId, MessageId};
-use serenity::model::prelude::ReactionType;
+use serenity::model::prelude::*;
 use serenity::utils::Color;
 use std::convert::TryFrom;
 

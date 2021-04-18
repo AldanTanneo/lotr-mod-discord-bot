@@ -35,11 +35,7 @@
 
 use serenity::client::Context;
 use serenity::framework::standard::{macros::command, Args, CommandResult};
-use serenity::model::{
-    channel::Message,
-    id::{GuildId, UserId},
-};
-use serenity::prelude::*;
+use serenity::model::prelude::*;
 
 use crate::check::{ALLOWED_BLACKLIST_CHECK, IS_ADMIN_CHECK};
 use crate::constants::{BOT_ID, LOTR_DISCORD, OWNER_ID};

@@ -16,15 +16,12 @@ pub mod database;
 pub mod utils;
 
 use mysql_async::*;
-
 use reqwest::redirect;
-
 use serenity::async_trait;
 use serenity::client::{Client, Context, EventHandler};
 use serenity::framework::standard::{macros::group, StandardFramework};
 use serenity::futures::future::join;
-use serenity::model::gateway::{Activity, Ready};
-
+use serenity::model::prelude::*;
 use std::{env, sync::Arc};
 
 use api::structures::ReqwestClient;
@@ -33,7 +30,7 @@ use commands::{
     admin::*, announcements::*, custom_commands::*, general::*, help::*, meme::*, servers::*,
     wiki::*,
 };
-use constants::*;
+use constants::{BOT_ID, OWNER_ID};
 use database::{config::get_prefix, DatabasePool};
 
 #[group]
@@ -122,9 +119,6 @@ async fn main() {
     let custom_redirect_policy = redirect::Policy::custom(|attempt| {
         if attempt.previous().len() > 5 {
             attempt.error("too many redirects")
-        } else if attempt.url().host_str() != Some(WIKI_DOMAIN) {
-            // prevent redirects outside of WIKI_DOMAIN
-            attempt.stop()
         } else {
             attempt.follow()
         }

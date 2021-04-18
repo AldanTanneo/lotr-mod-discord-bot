@@ -1,28 +1,23 @@
 use serenity::client::Context;
 use serenity::framework::standard::{macros::command, CommandResult};
-use serenity::model::{channel::Message, Permissions};
+use serenity::model::channel::Message;
 use serenity::utils::Colour;
 
-use crate::check::{has_permission, IS_ADMIN_CHECK};
-use crate::constants::OWNER_ID;
+use crate::check::IS_ADMIN_CHECK;
+use crate::constants::{MANAGE_BOT_PERMS, OWNER_ID};
 use crate::database::{
     config::{get_minecraft_ip, get_prefix},
     custom_commands::get_custom_commands_list,
 };
 use crate::is_admin;
+use crate::utils::has_permission;
 
 #[command]
 #[sub_commands(json)]
 pub async fn help(ctx: &Context, msg: &Message) -> CommandResult {
     let is_admin = msg.author.id == OWNER_ID
         || is_admin!(ctx, msg)
-        || has_permission(
-            ctx,
-            msg.guild_id,
-            &msg.author,
-            Permissions::MANAGE_GUILD | Permissions::ADMINISTRATOR,
-        )
-        .await;
+        || has_permission(ctx, msg.guild_id, msg.author.id, *MANAGE_BOT_PERMS).await;
 
     let prefix = get_prefix(ctx, msg.guild_id)
         .await

@@ -1,8 +1,7 @@
 //! Constants used in commands and API bindings
 
 use lazy_static::lazy_static;
-use serenity::model::id::{GuildId, UserId};
-use serenity::model::Permissions;
+use serenity::model::prelude::*;
 
 /// User ID of the bot
 pub const BOT_ID: UserId = UserId(780858391383638057);

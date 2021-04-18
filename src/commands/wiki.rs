@@ -2,9 +2,9 @@ use serenity::client::Context;
 use serenity::framework::standard::{macros::command, Args, CommandResult};
 use serenity::model::channel::Message;
 
-use super::general::DISCORD_COMMAND;
 use crate::api;
-use api::structures::{Lang::*, Namespace::*, *};
+use crate::commands::general::DISCORD_COMMAND;
+use api::structures::{Lang, Lang::*, Namespace, Namespace::*, Wikis};
 use api::wiki;
 
 async fn wiki_search(

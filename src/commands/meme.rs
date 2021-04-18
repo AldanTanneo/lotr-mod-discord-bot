@@ -1,6 +1,7 @@
 use serenity::client::Context;
 use serenity::framework::standard::{macros::command, Args, CommandResult};
-use serenity::model::{channel::Message, error::Error::WrongGuild, prelude::ReactionType};
+use serenity::model::error::Error::WrongGuild;
+use serenity::model::prelude::*;
 
 use crate::check::ALLOWED_BLACKLIST_CHECK;
 use crate::constants::OWNER_ID;

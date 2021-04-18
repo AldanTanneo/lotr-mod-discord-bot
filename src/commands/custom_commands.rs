@@ -1,11 +1,11 @@
 use serde_json::Value;
 use serenity::client::Context;
 use serenity::framework::standard::{macros::command, Args, CommandResult};
-use serenity::model::{channel::Message, Permissions};
+use serenity::model::channel::Message;
 
 use crate::announcement::announce;
-use crate::check::{has_permission, IS_ADMIN_CHECK};
-use crate::constants::{OWNER_ID, RESERVED_NAMES};
+use crate::check::IS_ADMIN_CHECK;
+use crate::constants::{MANAGE_BOT_PERMS, OWNER_ID, RESERVED_NAMES};
 use crate::database::{
     blacklist::check_blacklist,
     custom_commands::{
@@ -14,7 +14,7 @@ use crate::database::{
     },
     Blacklist,
 };
-use crate::utils::{get_json_from_message, JsonMessageError::*};
+use crate::utils::{get_json_from_message, has_permission, JsonMessageError::*};
 use crate::{failure, handle_json_error, is_admin, success};
 
 #[command]
@@ -52,13 +52,7 @@ pub async fn custom_command(ctx: &Context, msg: &Message, mut args: Args) -> Com
         if let Value::String(s) = &message["type"] {
             let is_admin = msg.author.id == OWNER_ID
                 || is_admin!(ctx, msg)
-                || has_permission(
-                    ctx,
-                    msg.guild_id,
-                    &msg.author,
-                    Permissions::MANAGE_GUILD | Permissions::ADMINISTRATOR,
-                )
-                .await;
+                || has_permission(ctx, msg.guild_id, msg.author.id, *MANAGE_BOT_PERMS).await;
             if !is_admin {
                 if s == "meme"
                     && check_blacklist(ctx, msg, false)

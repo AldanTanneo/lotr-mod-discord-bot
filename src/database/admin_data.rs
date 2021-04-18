@@ -1,10 +1,8 @@
 use mysql_async::prelude::*;
 use serenity::client::Context;
 use serenity::framework::standard::CommandResult;
-use serenity::model::{
-    error::Error::WrongGuild,
-    id::{GuildId, UserId},
-};
+use serenity::model::error::Error::WrongGuild;
+use serenity::model::prelude::*;
 
 use super::DatabasePool;
 use crate::constants::TABLE_ADMINS;

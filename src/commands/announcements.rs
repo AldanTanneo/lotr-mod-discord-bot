@@ -1,9 +1,6 @@
 use serenity::client::Context;
 use serenity::framework::standard::{macros::command, Args, CommandResult};
-use serenity::model::{
-    channel::Message,
-    id::{ChannelId, MessageId},
-};
+use serenity::model::prelude::*;
 
 use crate::announcement;
 use crate::check::IS_ADMIN_CHECK;
@@ -68,7 +65,7 @@ pub async fn edit(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
             failure!(
                 ctx,
                 msg,
-                "You can only announce in the same server as the one you are in!"
+                "You can only edit announcements in the same server as the one you are in!"
             );
             return Ok(());
         };
