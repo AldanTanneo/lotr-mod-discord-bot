@@ -5,6 +5,7 @@ use serenity::model::{channel::Message, error::Error::WrongGuild, prelude::React
 use crate::check::ALLOWED_BLACKLIST_CHECK;
 use crate::constants::OWNER_ID;
 use crate::database::floppa::{add_floppa, get_floppa, is_floppadmin};
+use crate::success;
 
 #[command]
 #[only_in(guilds)]
@@ -75,7 +76,7 @@ async fn floppadd(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
             });
             add_floppa(ctx, floppa_url.clone()).await?;
             dm.await?.react(ctx, ReactionType::from('✅')).await?;
-            msg.react(ctx, ReactionType::from('✅')).await?;
+            success!(ctx, msg);
         }
     }
     Ok(())

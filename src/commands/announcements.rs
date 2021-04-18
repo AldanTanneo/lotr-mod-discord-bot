@@ -3,14 +3,12 @@ use serenity::framework::standard::{macros::command, Args, CommandResult};
 use serenity::model::{
     channel::Message,
     id::{ChannelId, MessageId},
-    prelude::ReactionType,
 };
 
 use crate::announcement;
 use crate::check::IS_ADMIN_CHECK;
-use crate::constants::MAX_JSON_FILE_SIZE;
 use crate::utils::{get_json_from_message, JsonMessageError::*};
-use crate::{failure, success};
+use crate::{failure, handle_json_error, success};
 
 #[command]
 #[only_in(guilds)]
@@ -45,27 +43,7 @@ pub async fn announce(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
                     failure!(ctx, msg, "Error sending the message! Check your JSON content and/or the bot permissions.");
                 }
             }
-            Err(FileTooBig) => {
-                failure!(
-                    ctx,
-                    msg,
-                    format!(
-                        "Attachment is too big! Filesize must be under {}KB.",
-                        MAX_JSON_FILE_SIZE / 1024
-                    )
-                );
-            }
-            Err(DownloadError) => {
-                failure!(ctx, msg, "Could not download attachment!");
-            }
-            Err(JsonError(e)) => {
-                println!("Error reading JSON content: {}", e);
-                failure!(
-                    ctx,
-                    msg,
-                    "Could not read your JSON content! Check for syntax errors."
-                );
-            }
+            Err(e) => handle_json_error!(ctx, msg, e),
         }
     } else {
         failure!(ctx, msg, "The first argument must be a channel mention!");
@@ -110,27 +88,7 @@ pub async fn edit(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
                         success!(ctx, msg);
                     }
                 }
-                Err(FileTooBig) => {
-                    failure!(
-                        ctx,
-                        msg,
-                        format!(
-                            "Attachment is too big! Filesize must be under {}KB.",
-                            MAX_JSON_FILE_SIZE / 1024
-                        )
-                    );
-                }
-                Err(DownloadError) => {
-                    failure!(ctx, msg, "Could not download attachment!");
-                }
-                Err(JsonError(e)) => {
-                    println!("Error reading JSON content: {}", e);
-                    failure!(
-                        ctx,
-                        msg,
-                        "Could not read your JSON content! Check for syntax errors."
-                    );
-                }
+                Err(e) => handle_json_error!(ctx, msg, e),
             }
         } else {
             failure!(ctx, msg, "The second argument must be a message ID!");

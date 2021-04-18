@@ -38,19 +38,19 @@ use serenity::framework::standard::{macros::command, Args, CommandResult};
 use serenity::model::{
     channel::Message,
     id::{GuildId, UserId},
-    prelude::ReactionType,
 };
 use serenity::prelude::*;
 
 use crate::check::{ALLOWED_BLACKLIST_CHECK, IS_ADMIN_CHECK};
 use crate::constants::{BOT_ID, LOTR_DISCORD, OWNER_ID};
 use crate::database::{
-    admin_data::{add_admin, get_admins, is_admin, remove_admin},
+    admin_data::{add_admin, get_admins, remove_admin},
     blacklist::{check_blacklist, update_blacklist},
     config::{get_prefix, set_prefix},
     floppa::is_floppadmin,
     Blacklist::IsBlacklisted,
 };
+use crate::{failure, is_admin, success};
 
 #[command]
 #[checks(is_admin)]
@@ -71,13 +71,12 @@ pub async fn prefix(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
         let new_prefix = args.single::<String>();
         if let Ok(p) = new_prefix {
             if !p.contains("<@") && set_prefix(ctx, msg.guild_id, &p, true).await.is_ok() {
-                msg.reply(ctx, format!("Set the new prefix to \"{}\"", p))
-                    .await?;
+                success!(ctx, msg, "Set the new prefix to \"{}\"", p);
             } else {
-                msg.reply(ctx, "Failed to set the new prefix!").await?;
+                failure!(ctx, msg, "Failed to set the new prefix!");
             }
         } else {
-            msg.reply(ctx, "Invalid new prefix!").await?;
+            failure!(ctx, msg, "Invalid new prefix!");
         }
     }
     Ok(())
@@ -119,19 +118,18 @@ pub async fn admin(ctx: &Context, msg: &Message) -> CommandResult {
 #[min_args(1)]
 pub async fn add(ctx: &Context, msg: &Message) -> CommandResult {
     if let Some(user) = msg.mentions.iter().find(|&user| user.id != BOT_ID) {
-        if !(is_admin(ctx, msg.guild_id, user.id).await.is_some() || user.id == OWNER_ID) {
+        if !(is_admin!(ctx, msg.guild_id, user.id) || user.id == OWNER_ID) {
             add_admin(ctx, msg.guild_id, user.id, false, false).await?;
-            msg.react(ctx, ReactionType::from('✅')).await?;
+            success!(ctx, msg);
         } else {
-            msg.reply(ctx, "This user is already a bot admin on this server!")
-                .await?;
+            failure!(ctx, msg, "This user is already a bot admin on this server!");
         }
     } else {
-        msg.reply(
+        failure!(
             ctx,
-            "Mention a user you wish to promote to bot admin for this server.",
-        )
-        .await?;
+            msg,
+            "Mention a user you wish to promote to bot admin for this server."
+        );
     }
     Ok(())
 }
@@ -144,26 +142,22 @@ pub async fn add(ctx: &Context, msg: &Message) -> CommandResult {
 pub async fn remove(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     if let Some(user) = msg.mentions.iter().find(|&user| user.id != BOT_ID) {
         if user.id == OWNER_ID {
-            msg.reply(ctx, "You cannot remove this bot admin!").await?;
-        } else if is_admin(ctx, msg.guild_id, user.id).await.is_some() {
+            failure!(ctx, msg, "You cannot remove this bot admin!");
+        } else if is_admin!(ctx, msg.guild_id, user.id) {
             remove_admin(ctx, msg.guild_id, user.id).await?;
-            msg.react(ctx, ReactionType::from('✅')).await?;
+            success!(ctx, msg);
         } else {
-            msg.reply(ctx, "This user is not a bot admin on this server!")
-                .await?;
+            failure!(ctx, msg, "This user is not a bot admin on this server!");
         }
-    } else if is_admin(ctx, msg.guild_id, UserId(args.parse().unwrap_or_default()))
-        .await
-        .is_some()
-    {
+    } else if is_admin!(ctx, msg.guild_id, UserId(args.parse().unwrap_or_default())) {
         remove_admin(ctx, msg.guild_id, UserId(args.single()?)).await?;
-        msg.react(ctx, ReactionType::from('✅')).await?;
+        success!(ctx, msg);
     } else {
-        msg.reply(
+        failure!(
             ctx,
+            msg,
             "Mention a user you wish to remove from bot admins for this server.",
-        )
-        .await?;
+        );
     }
     Ok(())
 }
@@ -225,7 +219,7 @@ pub async fn floppadmin(ctx: &Context, msg: &Message) -> CommandResult {
             .await
             .unwrap_or(false)
         {
-            if !is_admin(ctx, msg.guild_id, user.id).await.is_some() {
+            if !is_admin!(ctx, msg.guild_id, user.id) {
                 add_admin(ctx, msg.guild_id, user.id, false, true)
             } else {
                 add_admin(ctx, msg.guild_id, user.id, true, true)
@@ -234,13 +228,13 @@ pub async fn floppadmin(ctx: &Context, msg: &Message) -> CommandResult {
             add_admin(ctx, msg.guild_id, user.id, true, false)
         }
         .await?;
-        msg.react(ctx, ReactionType::from('✅')).await?;
+        success!(ctx, msg);
     } else {
-        msg.reply(
+        failure!(
             ctx,
+            msg,
             "Mention a user you wish to promote to floppadmin for this server.",
-        )
-        .await?;
+        );
     }
     Ok(())
 }

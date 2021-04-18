@@ -74,7 +74,8 @@ macro_rules! embed_parser {
                     }
                 }
             }
-            if let Some(field) = embed["field"].as_array() {
+            if embed["field"].is_array() {
+                let field = &embed["field"];
                 // single field, when multiple are not needed
                 let title = field[0].as_str();
                 let content = field[1].as_str();

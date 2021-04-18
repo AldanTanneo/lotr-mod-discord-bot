@@ -95,21 +95,16 @@ pub async fn is_floppadmin(
     let server_id: u64 = guild_id?.0;
 
     let res = conn
-        .exec_map(
+        .query_first(
             format!(
-                "SELECT user_id FROM {} WHERE server_id=:server_id AND floppadmin = true",
-                TABLE_ADMINS
+                "SELECT EXISTS(SELECT user_id FROM {} WHERE server_id={} AND user_id={} AND floppadmin = true LIMIT 1)",
+                TABLE_ADMINS, server_id, user_id.0
             )
-            .as_str(),
-            params! {
-                "server_id" => server_id
-            },
-            UserId,
         )
         .await
         .ok()?;
 
     drop(conn);
 
-    Some(res.contains(&user_id))
+    res
 }

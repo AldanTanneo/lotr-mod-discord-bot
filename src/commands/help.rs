@@ -4,18 +4,18 @@ use serenity::model::{channel::Message, Permissions};
 use serenity::utils::Colour;
 
 use crate::check::{has_permission, IS_ADMIN_CHECK};
+use crate::constants::OWNER_ID;
 use crate::database::{
-    admin_data::is_admin,
     config::{get_minecraft_ip, get_prefix},
     custom_commands::get_custom_commands_list,
 };
-use crate::OWNER_ID;
+use crate::is_admin;
 
 #[command]
 #[sub_commands(json)]
 pub async fn help(ctx: &Context, msg: &Message) -> CommandResult {
     let is_admin = msg.author.id == OWNER_ID
-        || is_admin(ctx, msg.guild_id, msg.author.id).await.is_some()
+        || is_admin!(ctx, msg)
         || has_permission(
             ctx,
             msg.guild_id,
@@ -32,7 +32,7 @@ pub async fn help(ctx: &Context, msg: &Message) -> CommandResult {
     let cclist = get_custom_commands_list(ctx, msg.guild_id)
         .await
         .unwrap_or_default();
-    let mut newline = 0;
+    let mut newline: u8 = 0;
     let cctext = cclist
         .into_iter()
         .filter_map(|(name, desc)| {

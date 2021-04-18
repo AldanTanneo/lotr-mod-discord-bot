@@ -8,9 +8,9 @@ use serenity::model::{
     prelude::Message,
 };
 
-use super::admin_data::is_admin;
 use super::{Blacklist, Blacklist::*, DatabasePool};
 use crate::constants::{MANAGE_BOT_PERMS, OWNER_ID, TABLE_CHANNEL_BLACKLIST, TABLE_USER_BLACKLIST};
+use crate::is_admin;
 
 pub async fn check_blacklist(ctx: &Context, msg: &Message, get_list: bool) -> Option<Blacklist> {
     let server_id: u64 = msg.guild_id?.0;
@@ -98,7 +98,7 @@ pub async fn update_blacklist(ctx: &Context, msg: &Message, mut args: Args) -> C
         println!("user...");
         if let Ok(member) = pguild.member(ctx, user.id).await {
             if user.id == OWNER_ID
-                || is_admin(ctx, msg.guild_id, user.id).await.is_some()
+                || is_admin!(ctx, msg.guild_id, user.id)
                 || member
                     .permissions(ctx)
                     .await

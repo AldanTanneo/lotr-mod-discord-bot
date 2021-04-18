@@ -29,20 +29,8 @@ use serenity::model::{
 use serenity::prelude::*;
 
 use crate::constants::{MANAGE_BOT_PERMS, OWNER_ID};
-use crate::database::{
-    admin_data, blacklist::check_blacklist, config::get_minecraft_ip, Blacklist,
-};
-
-/// Simple wrapper function for [`database::admin_data::is_admin`][crate::database::admin_data::is_admin].
-///
-/// Returns `true` if the message author is a bot admin in the current guild,
-/// `false` otherwise (or if the database query failed).
-#[doc(inline)]
-pub async fn bot_admin(ctx: &Context, msg: &Message) -> bool {
-    admin_data::is_admin(ctx, msg.guild_id, msg.author.id)
-        .await
-        .is_some()
-}
+use crate::database::{blacklist::check_blacklist, config::get_minecraft_ip, Blacklist};
+use crate::is_admin;
 
 /// Checks a [`User`]'s permissions.
 ///
@@ -75,7 +63,7 @@ pub async fn allowed_blacklist(ctx: &Context, msg: &Message) -> Result<(), Reaso
         .await
         .unwrap_or(Blacklist::IsBlacklisted(true))
         .is_blacklisted()
-        && !bot_admin(ctx, msg).await
+        && !is_admin!(ctx, msg)
         && msg.author.id != OWNER_ID
         && !has_permission(ctx, msg.guild_id, &msg.author, *MANAGE_BOT_PERMS).await
     {
@@ -94,7 +82,7 @@ pub async fn allowed_blacklist(ctx: &Context, msg: &Message) -> Result<(), Reaso
 #[check]
 pub async fn is_admin(ctx: &Context, msg: &Message) -> Result<(), Reason> {
     if msg.author.id == OWNER_ID
-        || bot_admin(ctx, msg).await
+        || is_admin!(ctx, msg)
         || has_permission(ctx, msg.guild_id, &msg.author, *MANAGE_BOT_PERMS).await
     {
         Ok(())
@@ -109,7 +97,7 @@ pub async fn is_admin(ctx: &Context, msg: &Message) -> Result<(), Reason> {
 pub async fn is_minecraft_server(ctx: &Context, msg: &Message) -> Result<(), Reason> {
     if get_minecraft_ip(ctx, msg.guild_id).await.is_some() {
         Ok(())
-    } else if bot_admin(ctx, msg).await
+    } else if is_admin!(ctx, msg)
         || msg.author.id == OWNER_ID
         || has_permission(ctx, msg.guild_id, &msg.author, *MANAGE_BOT_PERMS).await
     {

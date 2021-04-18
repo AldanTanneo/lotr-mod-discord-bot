@@ -9,7 +9,11 @@ use serenity::model::{
 use super::DatabasePool;
 use crate::constants::TABLE_ADMINS;
 
-pub async fn is_admin(ctx: &Context, guild_id: Option<GuildId>, user: UserId) -> Option<()> {
+pub async fn is_admin_function(
+    ctx: &Context,
+    guild_id: Option<GuildId>,
+    user: UserId,
+) -> Option<bool> {
     let server_id: u64 = guild_id?.0;
 
     let pool = {
@@ -24,15 +28,11 @@ pub async fn is_admin(ctx: &Context, guild_id: Option<GuildId>, user: UserId) ->
             TABLE_ADMINS, server_id, user.0
         ))
         .await
-        .ok()??;
+        .ok()?;
 
     drop(conn);
 
-    if res {
-        Some(())
-    } else {
-        None
-    }
+    res
 }
 
 pub async fn get_admins(ctx: &Context, guild_id: Option<GuildId>) -> Option<Vec<UserId>> {

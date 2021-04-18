@@ -6,6 +6,7 @@ use serenity::utils::Colour;
 use crate::api::minecraft::get_server_status;
 use crate::check::{IS_ADMIN_CHECK, IS_MINECRAFT_SERVER_CHECK};
 use crate::database::config::{delete_minecraft_ip, get_minecraft_ip, set_minecraft_ip};
+use crate::{failure, success};
 
 #[command]
 #[aliases("ip")]
@@ -27,8 +28,7 @@ async fn server_ip(ctx: &Context, msg: &Message) -> CommandResult {
             })
             .await?;
     } else {
-        msg.reply(ctx, "No registered Minecraft IP for this server.")
-            .await?;
+        failure!(ctx, msg, "No registered Minecraft IP for this server.");
     }
     Ok(())
 }
@@ -42,8 +42,7 @@ pub async fn set_ip(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
         println!("Setting up IP");
         let update = get_minecraft_ip(ctx, msg.guild_id).await.is_some();
         set_minecraft_ip(ctx, msg.guild_id, &ip, update).await?;
-        msg.reply(ctx, format!("Set Minecraft server IP to \"{}\"", &ip))
-            .await?;
+        success!(ctx, msg, "Set Minecraft server IP to  `{}`", ip);
     }
     Ok(())
 }
@@ -56,14 +55,14 @@ pub async fn remove_ip(ctx: &Context, msg: &Message) -> CommandResult {
     let ip = get_minecraft_ip(ctx, msg.guild_id).await;
     if let Some(ip) = ip {
         delete_minecraft_ip(ctx, msg.guild_id).await?;
-        msg.reply(
+        success!(
             ctx,
-            format!("Successfully removed ip `{}` from this server", ip),
-        )
-        .await?;
+            msg,
+            "Successfully removed ip  `{}`  from this server",
+            ip
+        );
     } else {
-        msg.reply(ctx, "No registered Minecraft IP for this server.")
-            .await?;
+        failure!(ctx, msg, "No registered Minecraft IP for this server.");
     }
     Ok(())
 }
@@ -77,8 +76,7 @@ pub async fn online(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
     } else if let Some(ip) = get_minecraft_ip(ctx, msg.guild_id).await {
         ip
     } else {
-        msg.reply(ctx, "No registered Minecraft IP for this server.")
-            .await?;
+        failure!(ctx, msg, "No registered Minecraft IP for this server.");
         return Ok(());
     };
     println!("Getting status for ip: \"{}\"", ip);
