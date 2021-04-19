@@ -16,11 +16,10 @@ pub mod database;
 pub mod utils;
 
 use mysql_async::*;
-use reqwest::redirect;
 use serenity::async_trait;
-use serenity::client::{Client, Context, EventHandler};
+use serenity::client::{ClientBuilder, Context, EventHandler};
 use serenity::framework::standard::{macros::group, StandardFramework};
-use serenity::futures::future::join;
+use serenity::http::client::Http;
 use serenity::model::prelude::*;
 use std::{env, sync::Arc};
 
@@ -69,15 +68,14 @@ struct Handler;
 #[async_trait]
 impl EventHandler for Handler {
     async fn ready(&self, ctx: Context, ready: Ready) {
-        let (_, owner) = join(
-            ctx.set_activity(Activity::playing(
-                "The Lord of the Rings Mod: Bringing Middle-earth to Minecraft",
-            )),
-            OWNER_ID.to_user(&ctx),
-        )
+        ctx.set_activity(Activity::playing(
+            "The Lord of the Rings Mod: Bringing Middle-earth to Minecraft",
+        ))
         .await;
 
-        owner
+        OWNER_ID
+            .to_user(&ctx)
+            .await
             .unwrap()
             .dm(ctx, |m| {
                 m.content(format!(
@@ -115,20 +113,14 @@ async fn main() {
             .tcp_port(db_port),
     );
 
-    // custom redirect policy, kinda superfluous
-    let custom_redirect_policy = redirect::Policy::custom(|attempt| {
-        if attempt.previous().len() > 5 {
-            attempt.error("too many redirects")
-        } else {
-            attempt.follow()
-        }
-    });
-
     // reqwest client for API calls
-    let request_client = reqwest::Client::builder()
-        .redirect(custom_redirect_policy)
-        .build()
-        .expect("Could not build the reqwest client");
+    let reqwest_client = Arc::new(
+        reqwest::Client::builder()
+            .use_rustls_tls()
+            .build()
+            .expect("Could not build the reqwest client"),
+    );
+    let cloned_client = Arc::clone(&reqwest_client);
 
     // initialize bot framework
     let framework = StandardFramework::new()
@@ -165,19 +157,14 @@ async fn main() {
         .await;
 
     // building client
-    let mut client = Client::builder(token)
-        .event_handler(Handler)
-        .framework(framework)
-        .await
-        .expect("Error creating client");
-
-    {
-        // storing the database pool and the reqwest client in the type map
-        let mut data = client.data.write().await;
-
-        data.insert::<DatabasePool>(Arc::new(pool));
-        data.insert::<ReqwestClient>(Arc::new(request_client));
-    }
+    let mut client =
+        ClientBuilder::new_with_http(Http::new(reqwest_client, &format!("Bot {}", token)))
+            .event_handler(Handler)
+            .framework(framework)
+            .type_map_insert::<DatabasePool>(Arc::new(pool))
+            .type_map_insert::<ReqwestClient>(cloned_client)
+            .await
+            .expect("Error creating client");
 
     // start listening for events by starting a single shard
     if let Err(why) = client.start().await {
