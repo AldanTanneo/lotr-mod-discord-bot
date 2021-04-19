@@ -238,8 +238,7 @@ pub async fn edit_message(
             reactions
                 .iter()
                 .filter_map(|s| s.as_str())
-                .filter_map(|s| ReactionType::try_from(s).ok())
-                .map(|r| msg.react(ctx, r)),
+                .filter_map(|s| ReactionType::try_from(s).map(|r| msg.react(ctx, r)).ok()),
         )
         .await;
     }
