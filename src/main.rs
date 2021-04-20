@@ -24,7 +24,7 @@ use serenity::model::prelude::*;
 use std::{env, sync::Arc};
 
 use api::structures::ReqwestClient;
-use check::dispatch_error_hook;
+use check::{after_hook, dispatch_error_hook};
 use commands::{
     admin::*, announcements::*, custom_commands::*, general::*, help::*, meme::*, servers::*,
     wiki::*,
@@ -147,6 +147,7 @@ async fn main() {
         })
         // failed checks handler
         .on_dispatch_error(dispatch_error_hook)
+        .after(after_hook)
         // command groups
         .group(&MEME_GROUP)
         .group(&WIKI_GROUP)

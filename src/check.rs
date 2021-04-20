@@ -20,7 +20,7 @@
 
 use serenity::framework::standard::{
     macros::{check, hook},
-    DispatchError, Reason,
+    CommandError, DispatchError, Reason,
 };
 use serenity::futures::future::join;
 use serenity::model::prelude::*;
@@ -108,5 +108,12 @@ pub async fn dispatch_error_hook(ctx: &Context, msg: &Message, error: DispatchEr
             }
             _ => (),
         }
+    }
+}
+
+#[hook]
+pub async fn after_hook(_: &Context, _: &Message, cmd_name: &str, error: Result<(), CommandError>) {
+    if let Err(why) = error {
+        println!("Error in `{}`: {:?}", cmd_name, why);
     }
 }
