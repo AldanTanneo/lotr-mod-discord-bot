@@ -89,7 +89,7 @@ pub async fn custom_command(ctx: &Context, msg: &Message, mut args: Args) -> Com
                 message = serde_json::from_str(&body.replace("\\$", "$"))?;
             }
         }
-        let delete = message["self_delete"].as_bool().unwrap_or(false);
+        let delete = message["self_delete"].as_bool().unwrap_or_default();
         announce(ctx, msg.channel_id, message).await?;
         if delete {
             msg.delete(ctx).await?;
@@ -115,7 +115,7 @@ pub async fn define(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
     }
     let update = check_command_exists(ctx, msg.guild_id, &name)
         .await
-        .unwrap_or(false);
+        .unwrap_or_default();
 
     match get_json_from_message(msg).await {
         Ok(mut message) => {
@@ -140,7 +140,7 @@ pub async fn define(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
             if db_res.is_ok()
                 && check_command_exists(ctx, msg.guild_id, &name)
                     .await
-                    .unwrap_or(false)
+                    .unwrap_or_default()
             {
                 success!(ctx, msg);
             } else {
@@ -160,13 +160,13 @@ async fn custom_command_remove(ctx: &Context, msg: &Message, mut args: Args) -> 
     let name: String = args.single()?;
     if check_command_exists(ctx, msg.guild_id, &name)
         .await
-        .unwrap_or(false)
+        .unwrap_or_default()
         && remove_custom_command(ctx, msg.guild_id, &name)
             .await
             .is_ok()
         && !check_command_exists(ctx, msg.guild_id, &name)
             .await
-            .unwrap_or(false)
+            .unwrap_or_default()
     {
         success!(ctx, msg);
     } else {

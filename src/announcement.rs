@@ -67,7 +67,7 @@ macro_rules! embed_parser {
                     let title = field[0].as_str();
                     let content = field[1].as_str();
                     // defaults to not inlined field
-                    let inlined = field[2].as_bool().unwrap_or(false);
+                    let inlined = field[2].as_bool().unwrap_or_default();
                     if let (Some(title), Some(content)) = (title, content) {
                         e.field(title, content, inlined);
                     }
@@ -79,7 +79,7 @@ macro_rules! embed_parser {
                 let title = field[0].as_str();
                 let content = field[1].as_str();
                 // still defaults to not inlined field
-                let inlined = field[2].as_bool().unwrap_or(false);
+                let inlined = field[2].as_bool().unwrap_or_default();
                 if let (Some(title), Some(content)) = (title, content) {
                     e.field(title, content, inlined);
                 }

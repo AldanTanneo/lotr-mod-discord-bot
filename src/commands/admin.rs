@@ -213,7 +213,7 @@ pub async fn floppadmin(ctx: &Context, msg: &Message) -> CommandResult {
     {
         if !is_floppadmin(ctx, msg.guild_id, user.id)
             .await
-            .unwrap_or(false)
+            .unwrap_or_default()
         {
             if !is_admin!(ctx, msg.guild_id, user.id) {
                 add_admin(ctx, msg.guild_id, user.id, false, true)

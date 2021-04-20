@@ -58,7 +58,7 @@ async fn floppadd(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
     if msg.author.id == OWNER_ID
         || is_floppadmin(ctx, msg.guild_id, msg.author.id)
             .await
-            .unwrap_or(false)
+            .unwrap_or_default()
     {
         let owner = OWNER_ID.to_user(ctx);
         let guild = msg.guild_id.ok_or(WrongGuild)?.to_partial_guild(ctx);

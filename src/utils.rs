@@ -99,7 +99,7 @@ macro_rules! is_admin {
     ($ctx:ident, $guild_id:expr, $user:expr) => {
         $crate::database::admin_data::is_admin_function($ctx, $guild_id, $user)
             .await
-            .unwrap_or(false)
+            .unwrap_or_default()
     };
 }
 
