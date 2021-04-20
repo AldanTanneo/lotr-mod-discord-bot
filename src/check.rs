@@ -114,8 +114,18 @@ pub async fn dispatch_error_hook(ctx: &Context, msg: &Message, error: DispatchEr
 }
 
 #[hook]
-pub async fn after_hook(_: &Context, _: &Message, cmd_name: &str, error: Result<(), CommandError>) {
+pub async fn after_hook(
+    _: &Context,
+    msg: &Message,
+    cmd_name: &str,
+    error: Result<(), CommandError>,
+) {
     if let Err(why) = error {
-        println!("Error in `{}`: {:?}", cmd_name, why);
+        println!(
+            "Guild {}: Error in `{}`: {:?}",
+            msg.guild_id.unwrap_or_default(),
+            cmd_name,
+            why
+        );
     }
 }
