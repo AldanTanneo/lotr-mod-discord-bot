@@ -31,7 +31,7 @@ pub async fn add_custom_command(
     ctx: &Context,
     guild_id: Option<GuildId>,
     name: &str,
-    body: String,
+    body: &str,
     description: Option<&str>,
     update: bool,
 ) -> CommandResult {

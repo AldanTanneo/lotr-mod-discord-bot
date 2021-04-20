@@ -132,7 +132,7 @@ pub async fn define(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
                 ctx,
                 msg.guild_id,
                 &name,
-                body,
+                &body,
                 documentation.as_str(),
                 update,
             )
