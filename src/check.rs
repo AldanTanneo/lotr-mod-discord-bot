@@ -17,6 +17,8 @@
 //!
 //! The [`dispatch_error_hook`] deals with the checks that fail and warns
 //! the user and/or log the error accordingly.
+//!
+//! The [`after_hook`] logs any command error to the bot console.
 
 use serenity::framework::standard::{
     macros::{check, hook},
