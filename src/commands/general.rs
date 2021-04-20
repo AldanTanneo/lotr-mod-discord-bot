@@ -34,13 +34,12 @@ For a list of features present in the renewed version, check [this page](https:/
 
 fn pretty_large_int<T: Into<u64>>(x: T) -> String {
     let mut num = x.into();
-    let mut s = format!("{}", num % 1000);
-    num /= 1000;
-    while num != 0 {
-        s = format!("{},{}", num % 1000, s);
+    let mut s = String::new();
+    while num / 1000 != 0 {
+        s = format!(",{:03}{}", num % 1000, s);
         num /= 1000;
     }
-    s
+    format!("{}{}", num % 1000, s)
 }
 
 #[command]
