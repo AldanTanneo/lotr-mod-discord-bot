@@ -86,30 +86,42 @@ pub async fn is_minecraft_server(ctx: &Context, msg: &Message) -> Result<(), Rea
 
 #[hook]
 pub async fn dispatch_error_hook(ctx: &Context, msg: &Message, error: DispatchError) {
-    if let DispatchError::CheckFailed(s, reason) = error {
-        println!("{}", s);
-        match reason {
-            Reason::User(err_message) => {
-                match join(
-                    msg.reply(ctx, err_message),
-                    msg.react(ctx, ReactionType::from('❌')),
-                )
-                .await
-                {
-                    (Err(_), _) | (_, Err(_)) => println!("Error sending failure message"),
-                    _ => (),
-                };
-            }
-            Reason::UserAndLog { user, log: _ } => {
-                if msg.author.dm(ctx, |m| m.content(user)).await.is_err() {
-                    println!("Error sending blacklist warning");
+    match error {
+        DispatchError::CheckFailed(s, reason) => {
+            println!("{}", s);
+            match reason {
+                Reason::User(err_message) => {
+                    match join(
+                        msg.reply(ctx, err_message),
+                        msg.react(ctx, ReactionType::from('❌')),
+                    )
+                    .await
+                    {
+                        (Err(_), _) | (_, Err(_)) => println!("Error sending failure message"),
+                        _ => (),
+                    };
                 }
+                Reason::UserAndLog { user, log: _ } => {
+                    if msg.author.dm(ctx, |m| m.content(user)).await.is_err() {
+                        println!("Error sending blacklist warning");
+                    }
+                }
+                Reason::Log(err_message) => {
+                    println!("Check failed: {}", err_message);
+                }
+                _ => (),
             }
-            Reason::Log(err_message) => {
-                println!("Check failed: {}", err_message);
-            }
-            _ => (),
         }
+        DispatchError::OnlyForGuilds => {
+            if msg
+                .reply(ctx, "This command cannot be executed in DMs!")
+                .await
+                .is_err()
+            {
+                println!("Error sending guild-only warning");
+            }
+        }
+        _ => println!("Dispatch error: {:?}", error),
     }
 }
 
