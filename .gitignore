@@ -11,3 +11,4 @@ Cargo.lock
 
 # Declares environment variables for local run
 env.sh
+lotr.zip
