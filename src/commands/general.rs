@@ -32,7 +32,7 @@ For a list of features present in the renewed version, check [this page](https:/
     Ok(())
 }
 
-fn pretty_large_int<T: Into<u64>>(x: T) -> String {
+fn pretty_large_int<T: Into<u128>>(x: T) -> String {
     let mut num = x.into();
     let mut s = String::new();
     while num / 1000 != 0 {
