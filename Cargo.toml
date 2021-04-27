@@ -16,6 +16,7 @@ serde = "1.0"
 rand = "0.8"
 mysql_async = "0.27"
 lazy_static = "1.4"
+chrono = "0.4"
 
 [dependencies.tokio]
 version = "1.4"

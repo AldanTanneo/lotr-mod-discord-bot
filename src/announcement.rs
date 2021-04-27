@@ -8,6 +8,8 @@ use serenity::model::prelude::*;
 use serenity::utils::Color;
 use std::convert::TryFrom;
 
+use chrono::Utc;
+
 /// Macro that builds an embed. Used in [`announce`] and [`edit_message`].
 macro_rules! embed_parser {
     ($m:ident, $message:ident) => {
@@ -106,7 +108,11 @@ macro_rules! embed_parser {
             if let Some(timestamp) = embed["timestamp"].as_str() {
                 // embed timestamp, displays the date right after the
                 // footer
-                e.timestamp(timestamp);
+                if timestamp.trim().to_lowercase() == "now" {
+                    e.timestamp(&Utc::now());
+                } else {
+                    e.timestamp(timestamp);
+                }
             }
             e
         });
@@ -196,7 +202,7 @@ pub async fn announce(ctx: &Context, channel: ChannelId, message: Value) -> Comm
                     reactions
                         .iter()
                         .filter_map(|s| s.as_str())
-                        .filter_map(|s| ReactionType::try_from(s).ok()),
+                        .filter_map(|s| ReactionType::try_from(s.trim()).ok()),
                 );
             }
             if message["embed"].is_object() {
