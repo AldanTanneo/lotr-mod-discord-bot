@@ -33,6 +33,7 @@ pub async fn custom_command(ctx: &Context, msg: &Message, mut args: Args) -> Com
         let command_type = if subcommand.is_some()
             && message["subcommands"][subcommand.unwrap()]["type"].is_string()
         {
+            // optionnally overriding the command type
             message["subcommands"][subcommand.unwrap()]["type"].as_str()
         } else {
             message["type"].as_str()
@@ -118,6 +119,7 @@ pub async fn custom_command(ctx: &Context, msg: &Message, mut args: Args) -> Com
         }
 
         if let Some(b) = message["self_delete"].as_bool() {
+            // optionnally overriding the self delete behavior
             delete = b;
         }
         announce(ctx, msg.channel_id, &message).await?;
@@ -149,10 +151,22 @@ pub async fn define(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
 
     match get_json_from_message(msg).await {
         Ok(mut message) => {
-            let documentation = message
+            let mut documentation = message
                 .as_object_mut()
                 .map(|map| map.remove("documentation").unwrap_or_default())
                 .unwrap_or_default();
+            if let Some(map) = message["subcommands"].as_object() {
+                let s = map
+                    .keys()
+                    .map(String::as_str)
+                    .collect::<Vec<&str>>()
+                    .join("`\n\t`");
+                documentation = Value::String(format!(
+                    "{}\n**Subcommands:**\n\t`{}`",
+                    documentation.as_str().unwrap_or_default(),
+                    s
+                ));
+            }
             let body = serde_json::to_string_pretty(&message)?;
             println!(
                 "adding custom command \"{}\": {}\n({:?})",
