@@ -160,9 +160,9 @@ pub async fn define(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
                     .keys()
                     .map(String::as_str)
                     .collect::<Vec<&str>>()
-                    .join("`\n\t`");
+                    .join("`, `");
                 documentation = Value::String(format!(
-                    "{}\n**Subcommands:**\n\t`{}`",
+                    "{}\n_Subcommands:_  `{}`",
                     documentation.as_str().unwrap_or_default(),
                     s
                 ));
@@ -226,11 +226,13 @@ async fn custom_command_display(ctx: &Context, msg: &Message, mut args: Args) ->
     if let Ok(name) = args.single::<String>() {
         if let Some(command) = get_command_data(ctx, msg.guild_id, &name, true).await {
             println!("Displaying command docs...");
+            let mut file_too_big = false;
+            let bytes = command.body.as_str().as_bytes();
             msg.channel_id
                 .send_message(ctx, |m| {
                     m.embed(|e| {
                         e.title(format!("Custom command: {}", name));
-                        if let Some(desc) = command.description {
+                        if let Some(desc) = &command.description {
                             e.description(desc);
                         }
 
@@ -239,14 +241,20 @@ async fn custom_command_display(ctx: &Context, msg: &Message, mut args: Args) ->
                             if command.body.len() < 1013 {
                                 format!(
                                     "```json\n{}```",
-                                    command.body.replace("```", "`\u{200B}``")
+                                    &command.body.replace("```", "`\u{200B}``")
                                 )
                             } else {
-                                "_Too long to display here_".into()
+                                file_too_big = true;
+                                "Command body in attachment.".into()
                             },
                             false,
-                        )
-                    })
+                        );
+                        e
+                    });
+                    if file_too_big {
+                        m.add_file((bytes, format!("{}.json", name).as_str()));
+                    }
+                    m
                 })
                 .await?;
         } else {
@@ -254,7 +262,7 @@ async fn custom_command_display(ctx: &Context, msg: &Message, mut args: Args) ->
         }
     } else if let Some(list) = get_custom_commands_list(ctx, msg.guild_id).await {
         println!("displaying a list of custom commands");
-        let mut newline = 0;
+        let mut newline: u32 = 0;
         msg.channel_id
             .send_message(ctx, |m| {
                 m.embed(|e| {
@@ -263,19 +271,19 @@ async fn custom_command_display(ctx: &Context, msg: &Message, mut args: Args) ->
                         list.iter()
                             .map(|(name, desc)| {
                                 format!(
-                                    "{skip}`{}`  {}\n",
+                                    "{newline}`{}`{}",
                                     name,
-                                    if desc.is_empty() {
-                                        newline += 1;
-                                        "_No description_"
-                                    } else {
-                                        desc
+                                    match newline {
+                                        0 => format!("  {}\n", desc),
+                                        _ => String::new(),
                                     },
-                                    skip = if newline == 1 {
-                                        newline += 1;
-                                        "\n"
-                                    } else {
-                                        ""
+                                    newline = match newline {
+                                        0 => "",
+                                        1 => {
+                                            newline += 1;
+                                            "\n"
+                                        }
+                                        _ => ", ",
                                     }
                                 )
                             })

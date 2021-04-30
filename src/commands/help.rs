@@ -28,29 +28,31 @@ pub async fn help(ctx: &Context, msg: &Message) -> CommandResult {
     let cclist = get_custom_commands_list(ctx, msg.guild_id)
         .await
         .unwrap_or_default();
-    let mut newline: u8 = 0;
+    let mut newline: u32 = 0;
     let cctext = cclist
         .into_iter()
         .filter_map(|(name, desc)| {
             if !is_admin && desc.is_empty() {
                 None
             } else {
-                let desc = if desc.is_empty() {
+                if desc.is_empty() {
                     newline += 1;
-                    "_No description_".into()
-                } else {
-                    desc
-                };
+                }
                 Some(format!(
-                    "{newline}`{}{}`  {}\n",
+                    "{newline}`{}{}`{}",
                     prefix,
                     name,
-                    desc,
-                    newline = if newline == 1 {
-                        newline += 1;
-                        "\n"
-                    } else {
-                        ""
+                    match newline {
+                        0 => format!("  {}\n", desc),
+                        _ => String::new(),
+                    },
+                    newline = match newline {
+                        0 => "",
+                        1 => {
+                            newline += 1;
+                            "\n"
+                        }
+                        _ => ", ",
                     }
                 ))
             }
@@ -146,7 +148,7 @@ Available languages: `en`, `de`, `fr`, `es`, `nl`, `ja`, `zh`, `ru`
                 if !cctext.is_empty() {
                     e.field(
                         "Custom commands",
-                        cctext,
+                        dbg!(cctext),
                         false,
                     );
                 }
