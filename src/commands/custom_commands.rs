@@ -23,33 +23,21 @@ use crate::{failure, handle_json_error, is_admin, success};
 #[sub_commands(define, custom_command_remove, custom_command_display)]
 pub async fn custom_command(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     println!("Custom command execution...");
-    let name = args.single::<String>()?.to_lowercase();
+    let name = args.single::<String>()?.to_lowercase(); // getting command name
+    let subcommand = args.current(); // getting possible subcommand but not advancing
+
     if let Some(command_data) = get_command_data(ctx, msg.guild_id, &name, false).await {
-        let mut body = if command_data.body.contains('$') {
-            command_data
-                .body
-                .replace('$', "\u{200B}$")
-                .replace("\\\u{200B}$", "\\$")
-        } else {
-            command_data.body
-        };
-        for (i, arg) in args.iter::<String>().enumerate() {
-            body = body.replace(
-                format!("\u{200B}${}", i).as_str(),
-                &arg?
-                    .as_str()
-                    .trim_matches('"')
-                    .replace('$', "\\$")
-                    .replace('@', "@\u{200B}")
-                    .replace('\\', "\\\\")
-                    .replace('\n', "\\n")
-                    .replace('"', "\\\""),
-            );
-        }
-        println!("{}", body);
-        let mut message: Value = serde_json::from_str(&body.replace("\\$", "$"))?;
+        let mut message: Value = serde_json::from_str(&command_data.body.replace("\\$", "$"))?;
+        let mut delete = message["self_delete"].as_bool().unwrap_or_default();
         // early interrupt in case of blacklist / admin command
-        if let Value::String(s) = &message["type"] {
+        let command_type = if subcommand.is_some()
+            && message["subcommands"][subcommand.unwrap()]["type"].is_string()
+        {
+            message["subcommands"][subcommand.unwrap()]["type"].as_str()
+        } else {
+            message["type"].as_str()
+        };
+        if let Some(s) = command_type {
             let is_admin = msg.author.id == OWNER_ID
                 || is_admin!(ctx, msg)
                 || has_permission(ctx, msg.guild_id, msg.author.id, *MANAGE_BOT_PERMS).await;
@@ -72,25 +60,67 @@ pub async fn custom_command(ctx: &Context, msg: &Message, mut args: Args) -> Com
                 }
             }
         }
-        // default args
-        if let Value::Array(a) = &message["default_args"] {
+
+        let mut command_body = command_data.body;
+        if let Some(subcommand) = subcommand {
+            if message["subcommands"][subcommand].is_object() {
+                message = message["subcommands"][subcommand].clone();
+                command_body = serde_json::to_string(&message)?;
+                args.advance();
+            } else if let Value::String(subcommand) = &message["subcommands"][subcommand] {
+                if message["subcommands"][subcommand].is_object() {
+                    message = message["subcommands"][subcommand].clone();
+                    command_body = serde_json::to_string(&message)?;
+                    args.advance();
+                }
+            }
+        }
+        if command_body.contains('$') {
+            let mut b = command_body
+                .replace('$', "\u{200B}$")
+                .replace("\\\u{200B}$", "\\$");
+            let mut changed = false;
+            for (i, arg) in args.iter::<String>().filter_map(Result::ok).enumerate() {
+                changed = true;
+                b = b.replace(
+                    format!("\u{200B}${}", i).as_str(),
+                    &arg.trim_matches('"')
+                        .replace('$', "\\$")
+                        .replace('@', "@\u{200B}")
+                        .replace('\\', "\\\\")
+                        .replace('\n', "\\n")
+                        .replace('"', "\\\""),
+                );
+            }
+
             let argc = args.len() - 1;
-            let changed = body.contains(format!("\u{200B}${}", argc).as_str());
-            for (i, arg) in a[argc.min(a.len())..].iter().enumerate() {
-                if let Value::String(s) = arg {
-                    println!("Default argument '{}'", s);
-                    body = body.replace(
+            if changed {
+                message = serde_json::from_str(&b.replace("\\$", "$"))?;
+            }
+            changed = false;
+            if let Value::Array(a) = &message["default_args"] {
+                for (i, arg) in a[argc.min(a.len())..]
+                    .iter()
+                    .filter_map(Value::as_str)
+                    .enumerate()
+                {
+                    changed = true;
+                    println!("Default argument '{}'", arg);
+                    b = b.replace(
                         format!("\u{200B}${}", i + argc).as_str(),
-                        &s.replace('$', "\\$"),
+                        &arg.replace('$', "\\$"),
                     );
                 }
             }
             if changed {
-                message = serde_json::from_str(&body.replace("\\$", "$"))?;
+                message = serde_json::from_str(&b.replace("\\$", "$"))?;
             }
         }
-        let delete = message["self_delete"].as_bool().unwrap_or_default();
-        announce(ctx, msg.channel_id, message).await?;
+
+        if let Some(b) = message["self_delete"].as_bool() {
+            delete = b;
+        }
+        announce(ctx, msg.channel_id, &message).await?;
         if delete {
             msg.delete(ctx).await?;
         }

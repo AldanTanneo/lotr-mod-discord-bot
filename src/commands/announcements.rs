@@ -31,7 +31,7 @@ pub async fn announce(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
         let message = get_json_from_message(msg).await;
         match message {
             Ok(value) => {
-                if announcement::announce(ctx, ChannelId(id), value)
+                if announcement::announce(ctx, ChannelId(id), &value)
                     .await
                     .is_ok()
                 {
@@ -77,7 +77,7 @@ pub async fn edit(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
                         ctx,
                         channel_id,
                         MessageId(msg_id.unwrap_or(0)),
-                        value,
+                        &value,
                     )
                     .await
                     .is_ok()

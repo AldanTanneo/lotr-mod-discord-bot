@@ -1,5 +1,6 @@
 //! Announcement function [`announce`] that posts a JSON message
 
+use chrono::Utc;
 use serde_json::Value;
 use serenity::client::Context;
 use serenity::framework::standard::CommandResult;
@@ -7,8 +8,6 @@ use serenity::futures::future::join_all;
 use serenity::model::prelude::*;
 use serenity::utils::Color;
 use std::convert::TryFrom;
-
-use chrono::Utc;
 
 /// Macro that builds an embed. Used in [`announce`] and [`edit_message`].
 macro_rules! embed_parser {
@@ -185,7 +184,7 @@ macro_rules! embed_parser {
 ///     }
 /// }
 /// ```
-pub async fn announce(ctx: &Context, channel: ChannelId, message: Value) -> CommandResult {
+pub async fn announce(ctx: &Context, channel: ChannelId, message: &Value) -> CommandResult {
     channel
         .send_message(ctx, |m| {
             if let Some(content) = message["content"].as_str() {
@@ -224,7 +223,7 @@ pub async fn edit_message(
     ctx: &Context,
     channel: ChannelId,
     msg_id: MessageId,
-    message: Value,
+    message: &Value,
 ) -> CommandResult {
     let msg = channel
         .edit_message(ctx, msg_id, |m| {

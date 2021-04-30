@@ -13,7 +13,7 @@ use crate::is_admin;
 use crate::utils::has_permission;
 
 #[command]
-#[sub_commands(json)]
+#[sub_commands(json, custom_commands)]
 pub async fn help(ctx: &Context, msg: &Message) -> CommandResult {
     let is_admin = msg.author.id == OWNER_ID
         || is_admin!(ctx, msg)
@@ -190,7 +190,7 @@ async fn json(ctx: &Context, msg: &Message) -> CommandResult {
     msg.author
         .direct_message(ctx, |m| {
             m.content(
-                r#"**JSON documentation for the announcement and define commands**
+                r#"**JSON documentation for the announcement command**
 *Almost all fields are optional. Try it out!*
 ```json
 {
@@ -227,18 +227,6 @@ async fn json(ctx: &Context, msg: &Message) -> CommandResult {
 		"timestamp": "a valid timestamp in the format [YYYY]-[MM]-[DD]T[HH]:[mm]:[ss]"
 					 // example: "2020-12-02T13:07:00"
 	}
-
-	// Only for custom commands:
-	"documentation": "A formatted string" 
-		// if this field is not present, your custom command will not be
-		// displayed in !help for regular users
-	"type": "default" // can be "meme", "admin" or "default";
-		// if the type is "meme", the command will be subject to the blacklist
-		// if the type is "admin", only admins will be able to use it.
-	"default_args": ["arg0", "arg1", ...]
-		// if $0, $1 are left in the json because there are not enough arguments
-		// to fill them, these values will be used.
-	"self_delete": true // or false: wether the command message is deleted after execution.
 }
 ```
 "#,
@@ -252,3 +240,48 @@ async fn json(ctx: &Context, msg: &Message) -> CommandResult {
 
     Ok(())
 }
+
+#[command]
+#[checks(is_admin)]
+#[aliases(custom)]
+async fn custom_commands(ctx: &Context, msg: &Message) -> CommandResult {
+    msg.author
+        .direct_message(ctx, |m| {
+            m.content(
+                r#"**JSON documentation for the announcement command**
+*Almost all fields are optional. Try it out!*
+```json
+{
+	"documentation": "A formatted string"
+		// if this field is not present, your custom command will not be
+		// displayed in !help for regular users
+	"type": "default" // can be "meme", "admin" or "default";
+		// if the type is "meme", the command will be subject to the blacklist
+		// if the type is "admin", only admins will be able to use it.
+	"default_args": ["arg0", "arg1", ...]
+		// if $0, $1 are left in the json because there are not enough arguments
+		// to fill them, these values will be used.
+	"self_delete": true // or false: wether the command message is deleted after execution.
+	"subcommands" : {
+		"subcommand_name": {...},
+		"other_subcommand_name": {...} // define subcommands. 
+			// They can override the 'type' and 'self_delete' tags,
+			// but all the other tags must be redefined.
+			// They do not show up in  `!help`, so, you need to mention
+			// them in the main "documentation" tag.
+	}
+}
+```
+"#,
+            )
+        })
+        .await?;
+
+    if msg.guild_id.is_some() {
+        msg.reply(ctx, "JSON help message sent to DMs!").await?;
+    }
+
+    Ok(())
+}
+
+/* */
