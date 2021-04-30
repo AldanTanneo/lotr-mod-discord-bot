@@ -13,6 +13,7 @@ use crate::is_admin;
 use crate::utils::has_permission;
 
 #[command]
+#[aliases("commands")]
 #[sub_commands(json, custom_commands)]
 pub async fn help(ctx: &Context, msg: &Message) -> CommandResult {
     let is_admin = msg.author.id == OWNER_ID
@@ -158,9 +159,9 @@ Available languages: `en`, `de`, `fr`, `es`, `nl`, `ja`, `zh`, `ru`
 `{prefix}admin remove <user mention>`  Removes admin rights for a user
 `{prefix}admin list`  Display a list of bot admins
 `{prefix}blacklist [user or channel mention]`  Prevent some commands to be used by the user or in the channel (except for bot admins). When used without arguments, displays the blacklist.
-`{prefix}announce <channel mention> <json message contents>`  Make the bot send a message to the mentioned channel. For the JSON argument documentation, type `{prefix}help json`
+`{prefix}announce <channel mention> <json message content>`  Make the bot send a message to the mentioned channel. For the JSON argument documentation, type `{prefix}help json`
 
-`{prefix}define <command name> <json command content>`  Define or update a custom command.  For the JSON argument documentation, type `{prefix}help json`
+`{prefix}define <command name> <json command content>`  Define or update a custom command.  For the JSON argument documentation, type  `{prefix}help custom`
 `{prefix}command display [command name]`  Provide an argument to get info on a specific command, or leave empty to get a list of commands
 `{prefix}command remove <command name>`  Remove a custom command
 
@@ -192,6 +193,7 @@ async fn json(ctx: &Context, msg: &Message) -> CommandResult {
             m.content(
                 r#"**JSON documentation for the announcement command**
 *Almost all fields are optional. Try it out!*
+*For custom commands documentation, use the command `help custom`.*
 ```json
 {
 	"content": "the message content",
@@ -248,8 +250,8 @@ async fn custom_commands(ctx: &Context, msg: &Message) -> CommandResult {
     msg.author
         .direct_message(ctx, |m| {
             m.content(
-                r#"**JSON documentation for the announcement command**
-*Almost all fields are optional. Try it out!*
+                r#"**JSON documentation for custom commands**
+*These fields are exclusive to custom commands. To add content to your custom command, see `help json`.*
 ```json
 {
 	"documentation": "A formatted string"
@@ -263,12 +265,14 @@ async fn custom_commands(ctx: &Context, msg: &Message) -> CommandResult {
 		// to fill them, these values will be used.
 	"self_delete": true // or false: wether the command message is deleted after execution.
 	"subcommands" : {
-		"subcommand_name": {...},
-		"other_subcommand_name": {...} // define subcommands. 
+		"subcommand_name": {"content": "some content", ...},
+		"other_subcommand_name": {...}, // define subcommands. 
 			// They can override the 'type' and 'self_delete' tags,
 			// but all the other tags must be redefined.
 			// They do not show up in  `!help`, so, you need to mention
 			// them in the main "documentation" tag.
+		"alias_name": "subcommand_name" // calling this subcommand will call
+			// the given existing subcommand.
 	}
 }
 ```
@@ -278,7 +282,8 @@ async fn custom_commands(ctx: &Context, msg: &Message) -> CommandResult {
         .await?;
 
     if msg.guild_id.is_some() {
-        msg.reply(ctx, "JSON help message sent to DMs!").await?;
+        msg.reply(ctx, "Custom commands help message sent to DMs!")
+            .await?;
     }
 
     Ok(())
