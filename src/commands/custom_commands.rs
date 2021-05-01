@@ -270,6 +270,9 @@ async fn custom_command_display(ctx: &Context, msg: &Message, mut args: Args) ->
                     e.description(
                         list.iter()
                             .map(|(name, desc)| {
+                                if desc.is_empty() {
+                                    newline += 1;
+                                }
                                 format!(
                                     "{newline}`{}`{}",
                                     name,
