@@ -4,8 +4,8 @@ use serenity::model::prelude::*;
 
 use crate::check::{IS_ADMIN_CHECK, IS_LOTR_DISCORD_CHECK};
 use crate::database::bug_reports::{
-    add_bug_report, change_bug_status, change_title, get_bug_from_id, get_bug_list, add_link,remove_link,
-    BugStatus,
+    add_bug_report, add_link, change_bug_status, change_title, get_bug_from_id, get_bug_list,
+    remove_link, BugStatus,
 };
 use crate::{failure, success};
 
@@ -133,7 +133,7 @@ pub async fn buglist(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
 
 #[command]
 #[checks(is_lotr_discord)]
-#[sub_commands(track, status, resolve, close, link, rename)]
+#[sub_commands(track, bug_status, resolve, bug_close, bug_link, bug_rename)]
 pub async fn bug(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     if let Ok(bug_id) = args.single::<String>() {
         if let Ok(bug_id) = bug_id
@@ -166,7 +166,7 @@ pub async fn bug(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult 
                                         .links
                                         .iter()
                                         .fold(
-                                            String::new(), 
+                                            String::new(),
                                             |acc, link| format!("[{}]({}) (#{})\n{}", link.2, link.1, link.0, acc)
                                         ),
                                     false
@@ -194,7 +194,7 @@ pub async fn bug(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult 
 
 #[command]
 #[checks(is_lotr_discord, is_admin)]
-pub async fn status(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+pub async fn bug_status(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     if let Ok(bug_id) = args.single::<String>() {
         if let Ok(bug_id) = bug_id
             .to_uppercase()
@@ -259,7 +259,7 @@ pub async fn resolve(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
 
 #[command]
 #[checks(is_lotr_discord, is_admin)]
-pub async fn close(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+pub async fn bug_close(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     if let Ok(bug_id) = args.single::<String>() {
         if let Ok(bug_id) = bug_id
             .to_uppercase()
@@ -285,8 +285,8 @@ pub async fn close(ctx: &Context, msg: &Message, mut args: Args) -> CommandResul
 
 #[command]
 #[checks(is_lotr_discord, is_admin)]
-#[sub_commands(remove)]
-pub async fn link(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+#[sub_commands(bug_link_remove)]
+pub async fn bug_link(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     if let Ok(bug_id) = args.single::<String>() {
         if let Ok(bug_id) = bug_id
             .to_uppercase()
@@ -300,13 +300,7 @@ pub async fn link(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
                     return Ok(());
                 }
                 if let Some(link_id) = add_link(ctx, bug_id, &message.link(), title).await {
-                    success!(
-                        ctx,
-                        msg,
-                        "Added link #{} to LOTR-{}",
-                        link_id,
-                        bug_id
-                    );
+                    success!(ctx, msg, "Added link #{} to LOTR-{}", link_id, bug_id);
                 } else {
                     failure!(ctx, msg, "LOTR-{} does not exist!", bug_id);
                 }
@@ -337,7 +331,8 @@ pub async fn link(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
 
 #[command]
 #[checks(is_admin, is_lotr_discord)]
-pub async fn remove(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+#[aliases(remove)]
+pub async fn bug_link_remove(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     if let Ok(bug_id) = args.single::<String>() {
         if let Ok(bug_id) = bug_id
             .to_uppercase()
@@ -348,9 +343,21 @@ pub async fn remove(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
             if let Ok(link_id) = link_id {
                 if let Ok(link_id) = link_id.trim_start_matches("#").parse::<u64>() {
                     if remove_link(ctx, bug_id, link_id).await.is_ok() {
-                        success!(ctx, msg, "Successfully removed link #{} from LOTR-{}", link_id, bug_id);
+                        success!(
+                            ctx,
+                            msg,
+                            "Successfully removed link #{} from LOTR-{}",
+                            link_id,
+                            bug_id
+                        );
                     } else {
-                        failure!(ctx, msg, "Link #{} does not exist in LOTR-{}", link_id, bug_id);
+                        failure!(
+                            ctx,
+                            msg,
+                            "Link #{} does not exist in LOTR-{}",
+                            link_id,
+                            bug_id
+                        );
                     }
                 } else {
                     failure!(ctx, msg, "`{}` is not a valid link id!", link_id);
@@ -369,7 +376,7 @@ pub async fn remove(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
 
 #[command]
 #[checks(is_lotr_discord, is_admin)]
-pub async fn rename(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+pub async fn bug_rename(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     if let Ok(bug_id) = args.single::<String>() {
         if let Ok(bug_id) = bug_id
             .to_uppercase()
