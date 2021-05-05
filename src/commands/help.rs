@@ -14,7 +14,7 @@ use crate::utils::has_permission;
 
 #[command]
 #[aliases("commands")]
-#[sub_commands(json, custom_commands)]
+#[sub_commands(json, custom_commands, bugtracker)]
 pub async fn help(ctx: &Context, msg: &Message) -> CommandResult {
     let is_admin = msg.author.id == OWNER_ID
         || is_admin!(ctx, msg)
@@ -168,6 +168,7 @@ Available languages: `en`, `de`, `fr`, `es`, `nl`, `ja`, `zh`, `ru`
 `{prefix}command remove <command name>`  Remove a custom command
 
 *Only bot admins can use these commands*
+*For bugtracker help, use  `{prefix}help bugtracker`*
 ", prefix=prefix),
                         false,
                     );
@@ -291,4 +292,65 @@ async fn custom_commands(ctx: &Context, msg: &Message) -> CommandResult {
     Ok(())
 }
 
-/* */
+#[command]
+#[checks(is_admin)]
+pub async fn bugtracker(ctx: &Context, msg: &Message) -> CommandResult {
+    let prefix = get_prefix(ctx, msg.guild_id)
+        .await
+        .unwrap_or_else(|| "!".into());
+    msg.author
+        .dm(ctx, |m| {
+            m.embed(|e| {
+                e.author(|a| {
+                    a.icon_url("https://media.discordapp.net/attachments/781837314975989772/839479742457839646/termite.png");
+                    a.name("The bugtracker is only available in the LOTR Mod Community Discord");
+                    a
+                });
+                e.title("Available bugtracker commands");
+                e.field(
+                    "Creating a bug report",
+                    format!(
+"`{prefix}track [status] <bug title>`  Creates a new bug report with the optional specified `status`: one of `low`, `medium`, `high`, `critical`. The command returns a unique bug id.
+\t**Must be used with an inline reply to a message that will constitute the initial bug report content.**
+`{prefix}bug link <bug id> [link url] [link title]`  Adds additional information to the bug report referenced by its `bug id`. Can also be used with an inline reply to a message, in which case you don't need to specify a url.
+\tThe command returns a unique link id which you can remove with the command  `{prefix}bug link remove <link id>`.
+",
+                        prefix = prefix,
+                    ),
+                    false
+                );
+                e.field(
+                    "Displaying and editing bug reports",
+                    format!(
+"`{prefix}bugs [latest|oldest] [status] [limit]`  Displays a list of bugs. By default, it will display all bugs that are not `resolved` or `closed`, in chronological order starting from the latest one, and with a default limit of 10 bugs.
+\tAvailable statuses are `low`, `medium`, `high`, `critical`, `resolved` and `closed`.
+\t_Coming soon: pagination!_
+`{prefix}bug <bug id>`  Displays a single bug.
+`{prefix}bug rename <bug id> <new title>`  Change a bug's title.
+`{prefix}bug status <bug id> <new status>`  Change a bug's status.
+",
+                        prefix = prefix
+                    ),
+                    false
+                );
+                e.field(
+                    "Closing a bug report",
+                    format!(
+"`{prefix}resolve <bug id>`  Marks a bug as resolved. Equivalent to  `{prefix}bug status <bug id> resolved`.
+`{prefix}bug close <bug id>`  Marks a bug as closed. Equivalent to  `{prefix}bug status <bug id> closed`.
+",
+                        prefix = prefix,
+                    ),
+                    false
+                );
+                e
+            })
+        })
+        .await?;
+
+    if msg.guild_id.is_some() {
+        msg.reply(ctx, "Bugtracker help message sent to DMs!")
+            .await?;
+    }
+    Ok(())
+}
