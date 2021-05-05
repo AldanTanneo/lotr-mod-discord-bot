@@ -26,8 +26,8 @@ use std::{env, sync::Arc};
 use api::structures::ReqwestClient;
 use check::{after_hook, dispatch_error_hook};
 use commands::{
-    admin::*, announcements::*, custom_commands::*, general::*, help::*, meme::*, servers::*,
-    wiki::*,
+    admin::*, announcements::*, bug_reports::*, custom_commands::*, general::*, help::*, meme::*,
+    servers::*, wiki::*,
 };
 use constants::{BOT_ID, OWNER_ID};
 use database::{config::get_prefix, DatabasePool};
@@ -58,6 +58,10 @@ struct Meme;
 #[group]
 #[commands(wiki, tolkien, minecraft)]
 struct Wiki;
+
+#[group]
+#[commands(track, buglist, bug, resolve)]
+struct BugReports;
 
 #[group]
 #[commands(admin, floppadd, blacklist, announce, floppadmin, listguilds, define)]
@@ -152,6 +156,7 @@ async fn main() {
         .group(&MEME_GROUP)
         .group(&WIKI_GROUP)
         .group(&MODERATION_GROUP)
+        .group(&BUGREPORTS_GROUP)
         .group(&GENERAL_GROUP)
         // rate limiting some commands
         .bucket("basic", |b| b.delay(2).time_span(10).limit(3))

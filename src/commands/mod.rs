@@ -5,6 +5,7 @@
 
 pub mod admin;
 pub mod announcements;
+pub mod bug_reports;
 pub mod custom_commands;
 pub mod general;
 pub mod help;

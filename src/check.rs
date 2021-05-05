@@ -28,7 +28,7 @@ use serenity::futures::future::join;
 use serenity::model::prelude::*;
 use serenity::prelude::*;
 
-use crate::constants::{MANAGE_BOT_PERMS, OWNER_ID};
+use crate::constants::{LOTR_DISCORD, MANAGE_BOT_PERMS, OWNER_ID};
 use crate::database::{blacklist::check_blacklist, config::get_minecraft_ip, Blacklist};
 use crate::is_admin;
 use crate::utils::has_permission;
@@ -45,10 +45,10 @@ pub async fn allowed_blacklist(ctx: &Context, msg: &Message) -> Result<(), Reaso
     {
         msg.delete(ctx)
             .await
-            .map_err(|_| Reason::Log("Blacklisted".to_string()))?;
+            .map_err(|_| Reason::Log("Blacklisted".into()))?;
         Err(Reason::UserAndLog {
-            user: "You are not allowed to use this command here.".to_string(),
-            log: "Sending DM warning".to_string(),
+            user: "You are not allowed to use this command here.".into(),
+            log: "Sending DM warning".into(),
         })
     } else {
         Ok(())
@@ -63,9 +63,7 @@ pub async fn is_admin(ctx: &Context, msg: &Message) -> Result<(), Reason> {
     {
         Ok(())
     } else {
-        Err(Reason::User(
-            "You are not an admin on this server!".to_string(),
-        ))
+        Err(Reason::User("You are not an admin on this server!".into()))
     }
 }
 
@@ -80,7 +78,18 @@ pub async fn is_minecraft_server(ctx: &Context, msg: &Message) -> Result<(), Rea
         println!("Bypassed minecraft server check");
         Ok(())
     } else {
-        Err(Reason::Log("Not a minecraft server".to_string()))
+        Err(Reason::Log("Not a minecraft server".into()))
+    }
+}
+
+#[check]
+pub async fn is_lotr_discord(_: &Context, msg: &Message) -> Result<(), Reason> {
+    if msg.guild_id == Some(LOTR_DISCORD) || msg.author.id == OWNER_ID {
+        Ok(())
+    } else {
+        Err(Reason::Log(
+            "Tried to use the bug tracker outside of LOTR Discord".into(),
+        ))
     }
 }
 
