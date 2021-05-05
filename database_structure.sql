@@ -1,3 +1,7 @@
+-- phpMyAdmin SQL Dump
+-- version 4.8.4
+-- https://www.phpmyadmin.net/
+
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 SET AUTOCOMMIT = 0;
 START TRANSACTION;
@@ -25,6 +29,34 @@ CREATE TABLE `bot_admins` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `bug_reports`
+--
+
+CREATE TABLE `bug_reports` (
+  `bug_id` int(11) NOT NULL,
+  `channel_id` bigint(20) NOT NULL,
+  `message_id` bigint(20) NOT NULL,
+  `title` tinytext COLLATE utf8mb4_bin NOT NULL,
+  `status` enum('resolved','low','medium','high','critical','closed') COLLATE utf8mb4_bin NOT NULL DEFAULT 'medium',
+  `timestamp` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `bug_reports__links`
+--
+
+CREATE TABLE `bug_reports__links` (
+  `link_id` int(11) NOT NULL,
+  `bug_id` int(11) NOT NULL,
+  `link_url` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+  `link_title` tinytext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin ROW_FORMAT=COMPACT;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `channel_blacklist`
 --
 
@@ -45,7 +77,7 @@ CREATE TABLE `custom_commands` (
   `server_id` bigint(20) NOT NULL,
   `name` tinytext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
   `command_json` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
-  `documentation` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin
+  `documentation` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 -- --------------------------------------------------------
@@ -56,7 +88,7 @@ CREATE TABLE `custom_commands` (
 
 CREATE TABLE `floppa_images` (
   `id` int(11) NOT NULL,
-  `image_url` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin
+  `image_url` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 -- --------------------------------------------------------
@@ -67,7 +99,7 @@ CREATE TABLE `floppa_images` (
 
 CREATE TABLE `lotr_mod_bot_prefix` (
   `server_id` bigint(20) NOT NULL,
-  `prefix` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL
+  `prefix` tinytext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 -- --------------------------------------------------------
@@ -102,6 +134,18 @@ CREATE TABLE `user_blacklist` (
 --
 ALTER TABLE `bot_admins`
   ADD PRIMARY KEY (`perm_id`);
+
+--
+-- Indexes for table `bug_reports`
+--
+ALTER TABLE `bug_reports`
+  ADD PRIMARY KEY (`bug_id`);
+
+--
+-- Indexes for table `bug_reports__links`
+--
+ALTER TABLE `bug_reports__links`
+  ADD PRIMARY KEY (`link_id`);
 
 --
 -- Indexes for table `channel_blacklist`
@@ -148,6 +192,18 @@ ALTER TABLE `user_blacklist`
 --
 ALTER TABLE `bot_admins`
   MODIFY `perm_id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `bug_reports`
+--
+ALTER TABLE `bug_reports`
+  MODIFY `bug_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `bug_reports__links`
+--
+ALTER TABLE `bug_reports__links`
+  MODIFY `link_id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `channel_blacklist`
