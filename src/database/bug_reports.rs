@@ -49,11 +49,11 @@ impl<'a> BugStatus {
     pub fn colour(&self) -> Colour {
         match self {
             Resolved => Colour::FOOYOO,
-            Low => Colour::FABLED_PINK,
+            Low => Colour::KERBAL,
             Medium => Colour::GOLD,
             High => Colour::ORANGE,
             Critical => Colour::RED,
-            Closed => Colour::KERBAL,
+            Closed => Colour::FABLED_PINK,
         }
     }
 
