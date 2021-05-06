@@ -56,11 +56,13 @@ pub const TABLE_MC_SERVER_IP: &str = "mc_server_ip";
 pub const TABLE_CUSTOM_COMMANDS: &str = "custom_commands";
 /// SQL table name for [bug reports][crate::database::bug_reports]
 pub const TABLE_BUG_REPORTS: &str = "bug_reports";
-///SQL table name for [bug report links][crate::database::bug_reports]
+/// SQL table name for [bug report links][crate::database::bug_reports]
 pub const TABLE_BUG_REPORTS_LINKS: &str = "bug_reports__links";
+/// SQL table name for guild list and database cleanup
+pub const TABLE_LIST_GUILDS: &str = "list_guilds";
 
 /// Reserved command names that cannot be used as [custom commands][crate::commands::custom_commands]
-pub const RESERVED_NAMES: [&str; 37] = [
+pub const RESERVED_NAMES: [&str; 43] = [
     "legacy",
     "renewed",
     "download",
@@ -98,4 +100,10 @@ pub const RESERVED_NAMES: [&str; 37] = [
     "tolkiengateway",
     "mc",
     "minecraft",
+    "track",
+    "bug",
+    "bugs",
+    "buglist",
+    "resolve",
+    "clean_database",
 ];

@@ -30,7 +30,7 @@ use commands::{
     servers::*, wiki::*,
 };
 use constants::{BOT_ID, OWNER_ID};
-use database::{config::get_prefix, DatabasePool};
+use database::{config::get_prefix, maintenance::*, DatabasePool};
 
 #[group]
 #[default_command(custom_command)]
@@ -81,7 +81,7 @@ impl EventHandler for Handler {
             .to_user(&ctx)
             .await
             .unwrap()
-            .dm(ctx, |m| {
+            .dm(&ctx, |m| {
                 m.content(format!(
                     "Bot started and ready!\n\tGuilds: {}\n\t_Do `!guilds` to see all guilds_",
                     ready.guilds.len(),
@@ -89,6 +89,14 @@ impl EventHandler for Handler {
             })
             .await
             .unwrap();
+
+        match update_list_guilds(&ctx).await {
+            Ok(n) => println!(
+                "Successfully updated list_guilds table, before - after = {}",
+                n
+            ),
+            Err(e) => println!("Error updating list_guilds table: {:?}", e),
+        }
     }
 }
 

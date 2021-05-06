@@ -73,6 +73,7 @@ pub struct BugReport {
     pub title: String,
     pub status: BugStatus,
     pub timestamp: DateTime<Utc>,
+    pub legacy: bool,
     pub links: Vec<(u64, String, String)>,
 }
 
@@ -84,6 +85,7 @@ impl BugReport {
         title: String,
         status: &str,
         timestamp: NaiveDateTime,
+        legacy: bool,
         links: Vec<(u64, String, String)>,
     ) -> Option<Self> {
         Some(Self {
@@ -93,6 +95,7 @@ impl BugReport {
             title,
             status: status.into(),
             timestamp: DateTime::from_utc(timestamp, Utc),
+            legacy,
             links,
         })
     }
@@ -104,6 +107,7 @@ pub struct PartialBugReport {
     pub title: String,
     pub status: BugStatus,
     pub timestamp: DateTime<Utc>,
+    pub legacy: bool,
 }
 
 impl std::fmt::Display for PartialBugReport {
@@ -129,17 +133,24 @@ impl std::fmt::Display for PartialBugReport {
 }
 
 impl PartialBugReport {
-    fn new(bug_id: u64, title: String, status: String, timestamp: NaiveDateTime) -> Option<Self> {
+    fn new(
+        bug_id: u64,
+        title: String,
+        status: String,
+        timestamp: NaiveDateTime,
+        legacy: bool,
+    ) -> Option<Self> {
         Some(Self {
             bug_id,
             title,
             status: status.as_str().into(),
             timestamp: DateTime::from_utc(timestamp, Utc),
+            legacy,
         })
     }
 
-    fn new_from_tuple(data: (u64, String, String, NaiveDateTime)) -> Option<Self> {
-        Self::new(data.0, data.1, data.2, data.3)
+    fn new_from_tuple(data: (u64, String, String, NaiveDateTime, bool)) -> Option<Self> {
+        Self::new(data.0, data.1, data.2, data.3, data.4)
     }
 }
 
@@ -150,15 +161,16 @@ pub async fn get_bug_from_id(ctx: &Context, bug_id: u64) -> Option<BugReport> {
     };
     let mut conn = pool.get_conn().await.ok()?;
 
-    let (channel_id, message_id, title, status, timestamp): (
+    let (channel_id, message_id, title, status, timestamp, legacy): (
         u64,
         u64,
         String,
         String,
         NaiveDateTime,
+        bool,
     ) = conn
         .query_first(format!(
-            "SELECT channel_id, message_id, title, status, timestamp FROM {} WHERE bug_id={}",
+            "SELECT channel_id, message_id, title, status, timestamp, legacy FROM {} WHERE bug_id={}",
             TABLE_BUG_REPORTS, bug_id
         ))
         .await
@@ -179,7 +191,7 @@ pub async fn get_bug_from_id(ctx: &Context, bug_id: u64) -> Option<BugReport> {
     .ok()?;
 
     BugReport::new(
-        bug_id, channel_id, message_id, title, &status, timestamp, links,
+        bug_id, channel_id, message_id, title, &status, timestamp, legacy, links,
     )
 }
 
@@ -188,6 +200,7 @@ pub async fn add_bug_report(
     msg: &Message,
     title: String,
     status: BugStatus,
+    legacy: bool,
 ) -> Option<u64> {
     let pool = {
         let data_read = ctx.data.read().await;
@@ -197,14 +210,15 @@ pub async fn add_bug_report(
 
     conn.exec_drop(
         format!(
-            "INSERT INTO {} (channel_id, message_id, title, status) VALUES (:channel_id, :message_id, :title, :status)",
+            "INSERT INTO {} (channel_id, message_id, title, status, legacy) VALUES (:channel_id, :message_id, :title, :status, :legacy)",
             TABLE_BUG_REPORTS
         ),
         params! {
             "channel_id" => msg.channel_id.0,
             "message_id" => msg.id.0,
             "title" => title,
-            "status" => status.as_str()
+            "status" => status.as_str(),
+            "legacy" => legacy,
         }
     ).await.ok()?;
 
@@ -218,6 +232,7 @@ pub async fn get_bug_list(
     status: Option<BugStatus>,
     limit: u32,
     ascending: bool,
+    legacy: Option<bool>,
 ) -> Option<Vec<PartialBugReport>> {
     let pool = {
         let data_read = ctx.data.read().await;
@@ -227,14 +242,19 @@ pub async fn get_bug_list(
 
     conn.exec_map(
         format!(
-            "SELECT bug_id, title, status, timestamp FROM {}{} ORDER BY timestamp {} LIMIT :limit",
+            "SELECT bug_id, title, status, timestamp, legacy FROM {} WHERE {} {legacy} ORDER BY timestamp {order} LIMIT :limit",
             TABLE_BUG_REPORTS,
             if let Some(status) = status {
-                format!(" WHERE status = '{}'", status.as_str())
+                format!("status = '{}'", status.as_str())
             } else {
-                " WHERE status != 'resolved' AND status != 'closed'".into()
+                "status != 'resolved' AND status != 'closed'".into()
             },
-            if ascending { "ASC" } else { "DESC" }
+            legacy = if let Some(b) = legacy {
+                format!("AND legacy = {}", b as u8)
+            } else {
+                "".into()
+            },
+            order = if ascending { "ASC" } else { "DESC" },
         ),
         params! {
             "limit" => limit,

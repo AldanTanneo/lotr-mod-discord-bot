@@ -4,6 +4,7 @@ pub mod bug_reports;
 pub mod config;
 pub mod custom_commands;
 pub mod floppa;
+pub mod maintenance;
 
 use mysql_async::Pool;
 use serenity::model::prelude::*;

@@ -13,6 +13,10 @@ use crate::{failure, success};
 #[checks(is_admin, is_lotr_discord)]
 #[aliases(report)]
 pub async fn track(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+    let legacy = args.current().map(|s| s == "legacy").unwrap_or_default();
+    if legacy {
+        args.advance();
+    }
     let tmp = args.single::<String>().unwrap_or_default();
     let status = tmp.as_str().into();
     if status == BugStatus::Medium && tmp.to_lowercase() != "medium" {
@@ -32,7 +36,9 @@ pub async fn track(ctx: &Context, msg: &Message, mut args: Args) -> CommandResul
         return Ok(());
     };
 
-    if let Some(bug_id) = add_bug_report(ctx, referenced_message, title.to_string(), status).await {
+    if let Some(bug_id) =
+        add_bug_report(ctx, referenced_message, title.to_string(), status, legacy).await
+    {
         success!(
             ctx,
             msg,
@@ -60,6 +66,17 @@ pub async fn track(ctx: &Context, msg: &Message, mut args: Args) -> CommandResul
 #[checks(is_lotr_discord)]
 #[aliases(bugs)]
 pub async fn buglist(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+    let legacy = args
+        .current()
+        .map(|s| match s {
+            "legacy" => Some(true),
+            "renewed" => Some(false),
+            _ => None,
+        })
+        .unwrap_or_default();
+    if legacy.is_some() {
+        args.advance();
+    }
     let tmp = args.single::<String>().unwrap_or_default();
     let mut status: Option<BugStatus> = Some(tmp.as_str().into());
     if status == Some(BugStatus::Medium) && tmp.to_lowercase().as_str() != "medium" {
@@ -71,7 +88,7 @@ pub async fn buglist(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
         .map(|s| s == "latest")
         .unwrap_or_default();
     let limit = args.single::<u32>().unwrap_or(10);
-    if let Some(bugs) = get_bug_list(ctx, status, limit, ascending).await {
+    if let Some(bugs) = get_bug_list(ctx, status, limit, ascending, legacy).await {
         if let Some(status) = status {
             msg.channel_id
                 .send_message(ctx, |m| {
@@ -83,12 +100,34 @@ pub async fn buglist(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
                         });
                         e.colour(status.colour());
                         e.field(
-                            format!("Bug reports (Status: {:?})", status),
+                            format!(
+                                "Bug reports (Status: {:?}){}", 
+                                status, 
+                                if let Some(b) = legacy {
+                                    if b {
+                                        " [legacy]"
+                                    } else {
+                                        " [renewed]"
+                                    }
+                                } else {
+                                    ""
+                                }
+                            ),
                             if bugs.is_empty() {
                                 "_No bugs with this status!_".to_string()
                             } else {
                                 bugs.iter()
-                                    .map(|b| format!("{}", b))
+                                    .map(|b|
+                                        format!(
+                                            "{}{}",
+                                            b,
+                                            if legacy.is_none() && b.legacy {
+                                                " [legacy]"
+                                            } else {
+                                                ""
+                                            }
+                                        )
+                                    )
                                     .collect::<Vec<_>>()
                                     .join("\n")
                             },
@@ -109,12 +148,32 @@ pub async fn buglist(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
                         });
                         e.colour(serenity::utils::Colour::LIGHT_GREY);
                         e.field(
-                            "Bug reports",
+                            format!(
+                                "Bug reports{}",
+                                if let Some(b) = legacy {
+                                    if b {
+                                        " [legacy]"
+                                    } else {
+                                        " [renewed]"
+                                    }
+                                } else {
+                                    ""
+                                }
+                            ),
                             if bugs.is_empty() {
                                 "_No bugs registered!_".to_string()
                             } else {
                                 bugs.iter()
-                                    .map(|b| format!("{}  `{:?}`", b, b.status))
+                                    .map(|b| format!(
+                                        "{}  `{:?}`{}",
+                                        b, 
+                                        b.status,
+                                        if legacy.is_none() && b.legacy {
+                                            " [legacy]"
+                                        } else {
+                                            ""
+                                        }
+                                    ))
                                     .collect::<Vec<_>>()
                                     .join("\n")
                             },
@@ -152,7 +211,16 @@ pub async fn bug(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult 
                                 a
                             });
                             e.colour(bug.status.colour());
-                            e.title(format!("LOTR-{}: {}", bug_id, bug.title));
+                            e.title(format!(
+                                "LOTR-{}: {}{}",
+                                bug_id,
+                                bug.title,
+                                if bug.legacy {
+                                    " [legacy]"
+                                } else {
+                                    ""
+                                }
+                            ));
                             if let Ok(message) = linked_message {
                                 e.description(message.content);
                                 if let Some(image) = message.attachments.get(0) {
