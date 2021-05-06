@@ -102,7 +102,7 @@ pub async fn buglist(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
                         e.field(
                             format!(
                                 "Bug reports (Status: {:?}){}", 
-                                status, 
+                                status,
                                 if let Some(b) = legacy {
                                     if b {
                                         " [legacy]"
@@ -166,7 +166,7 @@ pub async fn buglist(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
                                 bugs.iter()
                                     .map(|b| format!(
                                         "{}  `{:?}`{}",
-                                        b, 
+                                        b,
                                         b.status,
                                         if legacy.is_none() && b.legacy {
                                             " [legacy]"
