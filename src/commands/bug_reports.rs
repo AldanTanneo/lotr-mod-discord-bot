@@ -354,6 +354,7 @@ pub async fn bug_close(ctx: &Context, msg: &Message, mut args: Args) -> CommandR
 #[command]
 #[checks(is_lotr_discord, is_admin)]
 #[sub_commands(bug_link_remove)]
+#[aliases(link)]
 pub async fn bug_link(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     if let Ok(bug_id) = args.single::<String>() {
         if let Ok(bug_id) = bug_id
