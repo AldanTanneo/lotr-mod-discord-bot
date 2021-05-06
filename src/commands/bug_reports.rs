@@ -85,7 +85,7 @@ pub async fn buglist(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
     }
     let ascending = args
         .single::<String>()
-        .map(|s| s == "latest")
+        .map(|s| s != "latest")
         .unwrap_or_default();
     let limit = args.single::<u32>().unwrap_or(10);
     if let Some(bugs) = get_bug_list(ctx, status, limit, ascending, legacy).await {
