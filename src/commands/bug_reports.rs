@@ -9,6 +9,34 @@ use crate::database::bug_reports::{
 };
 use crate::{failure, success};
 
+macro_rules! termite {
+    ($ctx:ident, $msg:ident) => {
+        $msg.react(
+            $ctx,
+            ReactionType::from(EmojiIdentifier {
+                animated: false,
+                id: EmojiId(839479605467152384),
+                name: "bug".into(),
+            }),
+        )
+        .await?;
+    };
+}
+
+macro_rules! termite_success {
+    ($ctx:ident, $msg:ident) => {
+        termite!($ctx, $msg);
+    };
+    ($ctx:ident, $msg:ident, $single_message:expr) => {
+        $msg.reply($ctx, $single_message).await?;
+        termite!($ctx, $msg);
+    };
+    ($ctx:ident, $msg:ident, $($success:tt)*) => {
+        $msg.reply($ctx, format!($($success)*)).await?;
+        termite!($ctx, $msg);
+    };
+}
+
 #[command]
 #[checks(is_admin, is_lotr_discord)]
 #[aliases(report)]
@@ -39,23 +67,13 @@ pub async fn track(ctx: &Context, msg: &Message, mut args: Args) -> CommandResul
     if let Some(bug_id) =
         add_bug_report(ctx, referenced_message, title.to_string(), status, legacy).await
     {
-        success!(
+        termite_success!(
             ctx,
             msg,
             "Tracking bug LOTR-{} (priority: `{:?}`)",
             bug_id,
             status
         );
-        referenced_message
-            .react(
-                ctx,
-                ReactionType::from(EmojiIdentifier {
-                    animated: false,
-                    id: EmojiId(839479605467152384),
-                    name: "bug".into(),
-                }),
-            )
-            .await?;
     } else {
         failure!(ctx, msg, "Could not submit the bug report!");
     }
@@ -94,9 +112,9 @@ pub async fn buglist(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
                 .send_message(ctx, |m| {
                     m.embed(|e| {
                         e.author(|a| {
-                                a.name("LOTR Mod Bugtracker");
-                                a.icon_url("https://media.discordapp.net/attachments/781837314975989772/839479742457839646/termite.png");
-                                a
+                            a.name("LOTR Mod Bugtracker");
+                            a.icon_url("https://media.discordapp.net/attachments/781837314975989772/839479742457839646/termite.png");
+                            a
                         });
                         e.colour(status.colour());
                         e.field(
@@ -117,17 +135,15 @@ pub async fn buglist(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
                                 "_No bugs with this status!_".to_string()
                             } else {
                                 bugs.iter()
-                                    .map(|b|
-                                        format!(
-                                            "{}{}",
-                                            b,
-                                            if legacy.is_none() && b.legacy {
-                                                " [legacy]"
-                                            } else {
-                                                ""
-                                            }
-                                        )
-                                    )
+                                    .map(|b| format!(
+                                        "{}{}",
+                                        b,
+                                        if legacy.is_none() && b.legacy {
+                                            " [legacy]"
+                                        } else {
+                                            ""
+                                        }
+                                    ))
                                     .collect::<Vec<_>>()
                                     .join("\n")
                             },
@@ -184,6 +200,7 @@ pub async fn buglist(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
                 })
                 .await?;
         }
+        termite!(ctx, msg);
     } else {
         failure!(ctx, msg, "Could not get bug list!");
     }
@@ -248,6 +265,7 @@ pub async fn bug(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult 
                         })
                     })
                     .await?;
+                termite!(ctx, msg);
             } else {
                 failure!(ctx, msg, "Bug LOTR-{} does not exist!", bug_id);
             }
@@ -262,6 +280,7 @@ pub async fn bug(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult 
 
 #[command]
 #[checks(is_lotr_discord, is_admin)]
+#[aliases(status)]
 pub async fn bug_status(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     if let Ok(bug_id) = args.single::<String>() {
         if let Ok(bug_id) = bug_id
@@ -275,7 +294,7 @@ pub async fn bug_status(ctx: &Context, msg: &Message, mut args: Args) -> Command
                     failure!(ctx, msg, "`{}` is not a valid bug status!", status);
                 } else {
                     if let Some(old_status) = change_bug_status(ctx, bug_id, new_status).await {
-                        success!(
+                        termite_success!(
                             ctx,
                             msg,
                             "Status changed for LOTR-{} from {:?} to {:?}!",
@@ -312,7 +331,7 @@ pub async fn resolve(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
                 .await
                 .is_some()
             {
-                success!(ctx, msg, "LOTR-{} has been marked as resolved.", bug_id);
+                termite_success!(ctx, msg, "LOTR-{} has been marked as resolved.", bug_id);
             } else {
                 failure!(ctx, msg, "The bug LOTR-{} does not exist!", bug_id);
             }
@@ -327,6 +346,7 @@ pub async fn resolve(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
 
 #[command]
 #[checks(is_lotr_discord, is_admin)]
+#[aliases(close)]
 pub async fn bug_close(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     if let Ok(bug_id) = args.single::<String>() {
         if let Ok(bug_id) = bug_id
@@ -338,7 +358,7 @@ pub async fn bug_close(ctx: &Context, msg: &Message, mut args: Args) -> CommandR
                 .await
                 .is_some()
             {
-                success!(ctx, msg, "LOTR-{} has been marked as closed.", bug_id);
+                termite_success!(ctx, msg, "LOTR-{} has been marked as closed.", bug_id);
             } else {
                 failure!(ctx, msg, "The bug LOTR-{} does not exist!", bug_id);
             }
@@ -369,7 +389,7 @@ pub async fn bug_link(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
                     return Ok(());
                 }
                 if let Some(link_id) = add_link(ctx, bug_id, &message.link(), title).await {
-                    success!(ctx, msg, "Added link #{} to LOTR-{}", link_id, bug_id);
+                    termite_success!(ctx, msg, "Added link #{} to LOTR-{}", link_id, bug_id);
                 } else {
                     failure!(ctx, msg, "LOTR-{} does not exist!", bug_id);
                 }
@@ -381,7 +401,7 @@ pub async fn bug_link(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
                         return Ok(());
                     }
                     if let Some(link_id) = add_link(ctx, bug_id, &link, title).await {
-                        success!(ctx, msg, "Added link #{} to LOTR-{}", link_id, bug_id);
+                        termite_success!(ctx, msg, "Added link #{} to LOTR-{}", link_id, bug_id);
                     } else {
                         failure!(ctx, msg, "LOTR-{} does not exist!", bug_id);
                     }
@@ -412,7 +432,7 @@ pub async fn bug_link_remove(ctx: &Context, msg: &Message, mut args: Args) -> Co
             if let Ok(link_id) = link_id {
                 if let Ok(link_id) = link_id.trim_start_matches("#").parse::<u64>() {
                     if remove_link(ctx, bug_id, link_id).await.is_ok() {
-                        success!(
+                        termite_success!(
                             ctx,
                             msg,
                             "Successfully removed link #{} from LOTR-{}",
@@ -445,6 +465,7 @@ pub async fn bug_link_remove(ctx: &Context, msg: &Message, mut args: Args) -> Co
 
 #[command]
 #[checks(is_lotr_discord, is_admin)]
+#[aliases(rename)]
 pub async fn bug_rename(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     if let Ok(bug_id) = args.single::<String>() {
         if let Ok(bug_id) = bug_id
@@ -457,7 +478,7 @@ pub async fn bug_rename(ctx: &Context, msg: &Message, mut args: Args) -> Command
                 failure!(ctx, msg, "You must specify a new title for LOTR-{}", bug_id);
             } else {
                 if change_title(ctx, bug_id, new_title).await.is_ok() {
-                    success!(
+                    termite_success!(
                         ctx,
                         msg,
                         "Successfully changed the title of LOTR-{}",
