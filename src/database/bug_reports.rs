@@ -77,30 +77,6 @@ pub struct BugReport {
     pub links: Vec<(u64, String, String)>,
 }
 
-impl BugReport {
-    fn new(
-        bug_id: u64,
-        channel_id: u64,
-        message_id: u64,
-        title: String,
-        status: &str,
-        timestamp: NaiveDateTime,
-        legacy: bool,
-        links: Vec<(u64, String, String)>,
-    ) -> Option<Self> {
-        Some(Self {
-            bug_id,
-            channel_id: ChannelId(channel_id),
-            message_id: MessageId(message_id),
-            title,
-            status: status.into(),
-            timestamp: DateTime::from_utc(timestamp, Utc),
-            legacy,
-            links,
-        })
-    }
-}
-
 #[derive(Debug, Clone)]
 pub struct PartialBugReport {
     pub bug_id: u64,
@@ -190,9 +166,16 @@ pub async fn get_bug_from_id(ctx: &Context, bug_id: u64) -> Option<BugReport> {
     )
     .ok()?;
 
-    BugReport::new(
-        bug_id, channel_id, message_id, title, &status, timestamp, legacy, links,
-    )
+    Some(BugReport {
+        bug_id,
+        channel_id: ChannelId(channel_id),
+        message_id: MessageId(message_id),
+        title,
+        status: status.as_str().into(),
+        timestamp: DateTime::from_utc(timestamp, Utc),
+        legacy,
+        links,
+    })
 }
 
 pub async fn add_bug_report(

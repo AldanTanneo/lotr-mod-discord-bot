@@ -7,7 +7,7 @@ use crate::database::bug_reports::{
     add_bug_report, add_link, change_bug_status, change_title, get_bug_from_id, get_bug_list,
     remove_link, BugStatus,
 };
-use crate::{failure, success};
+use crate::failure;
 
 macro_rules! termite {
     ($ctx:ident, $msg:ident) => {
@@ -292,19 +292,17 @@ pub async fn bug_status(ctx: &Context, msg: &Message, mut args: Args) -> Command
                 let new_status: BugStatus = status.as_str().into();
                 if new_status == BugStatus::Medium && status != "medium" {
                     failure!(ctx, msg, "`{}` is not a valid bug status!", status);
+                } else if let Some(old_status) = change_bug_status(ctx, bug_id, new_status).await {
+                    termite_success!(
+                        ctx,
+                        msg,
+                        "Status changed for LOTR-{} from {:?} to {:?}!",
+                        bug_id,
+                        old_status,
+                        new_status
+                    );
                 } else {
-                    if let Some(old_status) = change_bug_status(ctx, bug_id, new_status).await {
-                        termite_success!(
-                            ctx,
-                            msg,
-                            "Status changed for LOTR-{} from {:?} to {:?}!",
-                            bug_id,
-                            old_status,
-                            new_status
-                        );
-                    } else {
-                        failure!(ctx, msg, "The bug LOTR-{} does not exist!", bug_id);
-                    }
+                    failure!(ctx, msg, "The bug LOTR-{} does not exist!", bug_id);
                 }
             } else {
                 failure!(ctx, msg, "The second argument must be a bug status.");
@@ -393,21 +391,19 @@ pub async fn bug_link(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
                 } else {
                     failure!(ctx, msg, "LOTR-{} does not exist!", bug_id);
                 }
-            } else {
-                if let Ok(link) = args.single::<String>() {
-                    let title = args.rest();
-                    if title.is_empty() {
-                        failure!(ctx, msg, "Specify a title for your message link!");
-                        return Ok(());
-                    }
-                    if let Some(link_id) = add_link(ctx, bug_id, &link, title).await {
-                        termite_success!(ctx, msg, "Added link #{} to LOTR-{}", link_id, bug_id);
-                    } else {
-                        failure!(ctx, msg, "LOTR-{} does not exist!", bug_id);
-                    }
-                } else {
-                    failure!(ctx, msg, "You need to either reference a message or specify a link to add to the bug report.");
+            } else if let Ok(link) = args.single::<String>() {
+                let title = args.rest();
+                if title.is_empty() {
+                    failure!(ctx, msg, "Specify a title for your message link!");
+                    return Ok(());
                 }
+                if let Some(link_id) = add_link(ctx, bug_id, &link, title).await {
+                    termite_success!(ctx, msg, "Added link #{} to LOTR-{}", link_id, bug_id);
+                } else {
+                    failure!(ctx, msg, "LOTR-{} does not exist!", bug_id);
+                }
+            } else {
+                failure!(ctx, msg, "You need to either reference a message or specify a link to add to the bug report.");
             }
         } else {
             failure!(ctx, msg, "`{}` is not a valid bug id!", bug_id);
@@ -430,7 +426,7 @@ pub async fn bug_link_remove(ctx: &Context, msg: &Message, mut args: Args) -> Co
         {
             let link_id = args.single::<String>();
             if let Ok(link_id) = link_id {
-                if let Ok(link_id) = link_id.trim_start_matches("#").parse::<u64>() {
+                if let Ok(link_id) = link_id.trim_start_matches('#').parse::<u64>() {
                     if remove_link(ctx, bug_id, link_id).await.is_ok() {
                         termite_success!(
                             ctx,
@@ -476,17 +472,15 @@ pub async fn bug_rename(ctx: &Context, msg: &Message, mut args: Args) -> Command
             let new_title = args.rest();
             if new_title.is_empty() {
                 failure!(ctx, msg, "You must specify a new title for LOTR-{}", bug_id);
+            } else if change_title(ctx, bug_id, new_title).await.is_ok() {
+                termite_success!(
+                    ctx,
+                    msg,
+                    "Successfully changed the title of LOTR-{}",
+                    bug_id
+                );
             } else {
-                if change_title(ctx, bug_id, new_title).await.is_ok() {
-                    termite_success!(
-                        ctx,
-                        msg,
-                        "Successfully changed the title of LOTR-{}",
-                        bug_id
-                    );
-                } else {
-                    failure!(ctx, msg, "LOTR-{} does not exist!", bug_id);
-                }
+                failure!(ctx, msg, "LOTR-{} does not exist!", bug_id);
             }
         } else {
             failure!(ctx, msg, "`{}` is not a valid bug id!", bug_id);
