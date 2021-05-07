@@ -18,7 +18,7 @@ use crate::utils::has_permission;
 pub async fn help(ctx: &Context, msg: &Message) -> CommandResult {
     let is_admin = msg.author.id == OWNER_ID
         || is_admin!(ctx, msg)
-        || has_permission(ctx, msg.guild_id, msg.author.id, *MANAGE_BOT_PERMS).await;
+        || has_permission(ctx, msg.guild_id, msg.author.id, MANAGE_BOT_PERMS).await;
 
     let prefix = get_prefix(ctx, msg.guild_id)
         .await

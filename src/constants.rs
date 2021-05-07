@@ -1,6 +1,5 @@
 //! Constants used in commands and API bindings
 
-use lazy_static::lazy_static;
 use serenity::model::prelude::*;
 
 /// User ID of the bot
@@ -14,15 +13,14 @@ pub const LOTR_DISCORD: GuildId = GuildId(405091134327619587);
 /// and [custom commands][crate::commands::custom_commands]
 pub const MAX_JSON_FILE_SIZE: u64 = 10240;
 
-lazy_static! {
-    /// Set of [permissions][Permissions] needed to manage the bot (bot admins and owner excepted).
-    ///
-    /// Equivalent to `ADMINISTRATOR | MANAGE_GUILD | MANAGE_CHANNELS`
-    ///
-    /// This is a lazy static.
-    pub static ref MANAGE_BOT_PERMS: Permissions =
-        Permissions::ADMINISTRATOR | Permissions::MANAGE_GUILD | Permissions::MANAGE_CHANNELS;
-}
+/// Set of [permissions][Permissions] needed to manage the bot (bot admins and owner excepted).
+///
+/// Equivalent to `ADMINISTRATOR | MANAGE_GUILD | MANAGE_CHANNELS`
+pub const MANAGE_BOT_PERMS: Permissions = Permissions {
+    bits: Permissions::ADMINISTRATOR.bits
+        | Permissions::MANAGE_GUILD.bits
+        | Permissions::MANAGE_CHANNELS.bits,
+};
 
 /// [LOTR Mod Wiki](https://lotrminecraftmod.fandom.com) adress
 pub const WIKI_DOMAIN: &str = "lotrminecraftmod.fandom.com";

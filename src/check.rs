@@ -41,7 +41,7 @@ pub async fn allowed_blacklist(ctx: &Context, msg: &Message) -> Result<(), Reaso
         .is_blacklisted()
         && !is_admin!(ctx, msg)
         && msg.author.id != OWNER_ID
-        && !has_permission(ctx, msg.guild_id, msg.author.id, *MANAGE_BOT_PERMS).await
+        && !has_permission(ctx, msg.guild_id, msg.author.id, MANAGE_BOT_PERMS).await
     {
         msg.delete(ctx)
             .await
@@ -59,7 +59,7 @@ pub async fn allowed_blacklist(ctx: &Context, msg: &Message) -> Result<(), Reaso
 pub async fn is_admin(ctx: &Context, msg: &Message) -> Result<(), Reason> {
     if msg.author.id == OWNER_ID
         || is_admin!(ctx, msg)
-        || has_permission(ctx, msg.guild_id, msg.author.id, *MANAGE_BOT_PERMS).await
+        || has_permission(ctx, msg.guild_id, msg.author.id, MANAGE_BOT_PERMS).await
     {
         Ok(())
     } else {
@@ -73,7 +73,7 @@ pub async fn is_minecraft_server(ctx: &Context, msg: &Message) -> Result<(), Rea
         Ok(())
     } else if is_admin!(ctx, msg)
         || msg.author.id == OWNER_ID
-        || has_permission(ctx, msg.guild_id, msg.author.id, *MANAGE_BOT_PERMS).await
+        || has_permission(ctx, msg.guild_id, msg.author.id, MANAGE_BOT_PERMS).await
     {
         println!("Bypassed minecraft server check");
         Ok(())

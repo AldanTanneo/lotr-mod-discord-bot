@@ -41,7 +41,7 @@ pub async fn custom_command(ctx: &Context, msg: &Message, mut args: Args) -> Com
         if let Some(s) = command_type {
             let is_admin = msg.author.id == OWNER_ID
                 || is_admin!(ctx, msg)
-                || has_permission(ctx, msg.guild_id, msg.author.id, *MANAGE_BOT_PERMS).await;
+                || has_permission(ctx, msg.guild_id, msg.author.id, MANAGE_BOT_PERMS).await;
             if !is_admin {
                 if s == "meme"
                     && check_blacklist(ctx, msg, false)
