@@ -546,8 +546,9 @@ _Open bugs:_
 {} critical bugs
 
 **Total: {} tracked bugs**
+\t_including {} legacy bugs_
 ",
-                        stats[0], stats[5], stats[1], stats[2], stats[3], stats[4], stats[6]),
+                        stats[0], stats[5], stats[1], stats[2], stats[3], stats[4], stats[6], stats[7]),
                         false
                     );
                     e

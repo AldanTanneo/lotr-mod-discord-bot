@@ -385,7 +385,7 @@ pub async fn change_title(ctx: &Context, bug_id: u64, new_title: &str) -> Comman
     Ok(())
 }
 
-pub async fn get_bug_statistics(ctx: &Context) -> Option<[u32; 7]> {
+pub async fn get_bug_statistics(ctx: &Context) -> Option<[u32; 8]> {
     let pool = {
         let data_read = ctx.data.read().await;
         data_read.get::<DatabasePool>()?.clone()
@@ -394,7 +394,7 @@ pub async fn get_bug_statistics(ctx: &Context) -> Option<[u32; 7]> {
 
     let statuses = ["resolved", "low", "medium", "high", "critical", "closed"];
 
-    let mut counts = [0; 7];
+    let mut counts = [0; 8];
 
     for (i, s) in statuses.iter().enumerate() {
         let x = conn
@@ -408,6 +408,14 @@ pub async fn get_bug_statistics(ctx: &Context) -> Option<[u32; 7]> {
     }
 
     counts[6] = counts.iter().sum();
+
+    counts[7] = conn
+        .query_first(format!(
+            "SELECT COUNT(bug_id) FROM {} WHERE legacy = 1",
+            TABLE_BUG_REPORTS
+        ))
+        .await
+        .ok()??;
 
     Some(counts)
 }
