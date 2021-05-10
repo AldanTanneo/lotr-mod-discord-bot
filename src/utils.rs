@@ -92,6 +92,22 @@ macro_rules! failure {
 }
 
 #[macro_export]
+#[allow(dead_code)]
+macro_rules! warn {
+    ($ctx:ident, $msg:ident) => {
+        $msg.react($ctx, serenity::model::prelude::ReactionType::from('⚠')).await?;
+    };
+    ($ctx:ident, $msg:ident, $single_message:expr) => {
+        $msg.reply($ctx, $single_message).await?;
+        warn!($ctx, $msg);
+    };
+    ($ctx:ident, $msg:ident, $($error:tt)*) => {
+        $msg.reply($ctx, format!($($error)*)).await?;
+        warn!($ctx, $msg);
+    };
+}
+
+#[macro_export]
 macro_rules! is_admin {
     ($ctx:ident, $msg:ident) => {
         is_admin!($ctx, $msg.guild_id, $msg.author.id)

@@ -5,7 +5,7 @@ use serenity::model::prelude::*;
 use crate::check::{IS_ADMIN_CHECK, IS_LOTR_DISCORD_CHECK};
 use crate::database::bug_reports::{
     add_bug_report, add_link, change_bug_status, change_title, get_bug_from_id, get_bug_list,
-    remove_link, BugStatus,
+    get_bug_statistics, remove_link, BugStatus,
 };
 use crate::failure;
 
@@ -101,14 +101,110 @@ pub async fn buglist(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
         status = None;
         args.rewind();
     }
-    let ascending = args
-        .single::<String>()
-        .map(|s| s != "latest")
-        .unwrap_or_default();
-    let limit = args.single::<u32>().unwrap_or(10);
-    if let Some(bugs) = get_bug_list(ctx, status, limit, ascending, legacy).await {
+    let ascending = match args.current() {
+        Some("latest") => Some(false),
+        Some("oldest") => Some(true),
+        _ => None,
+    };
+    if ascending.is_some() {
+        args.advance();
+    }
+    let page = match args.single::<u32>() {
+        Ok(0) => {
+            println!("Invalid page number entered!");
+            1
+        }
+        Ok(n) => n,
+        Err(_) => 1,
+    };
+    let limit = if args.current() == Some("limit") {
+        args.advance();
+        args.single::<u32>().ok()
+    } else {
+        None
+    }
+    .unwrap_or(10);
+    if let Some((bugs, total_bugs)) = get_bug_list(
+        ctx,
+        status,
+        limit,
+        ascending.unwrap_or_default(),
+        legacy,
+        page - 1,
+    )
+    .await
+    {
+        let title;
+        let content_alt;
+        let content;
+        let colour;
         if let Some(status) = status {
-            msg.channel_id
+            title = format!(
+                "Bug reports (Status: {:?}){} (Total: {})",
+                status,
+                if let Some(b) = legacy {
+                    if b {
+                        " [legacy]"
+                    } else {
+                        " [renewed]"
+                    }
+                } else {
+                    ""
+                },
+                total_bugs
+            );
+            content_alt = "_No open bugs!_";
+            content = bugs
+                .iter()
+                .map(|b| {
+                    format!(
+                        "{}{}",
+                        b,
+                        if legacy.is_none() && b.legacy {
+                            " [legacy]"
+                        } else {
+                            ""
+                        }
+                    )
+                })
+                .collect::<Vec<_>>()
+                .join("\n");
+            colour = status.colour();
+        } else {
+            title = format!(
+                "Open bug reports{} (Total: {})",
+                if let Some(b) = legacy {
+                    if b {
+                        " [legacy]"
+                    } else {
+                        " [renewed]"
+                    }
+                } else {
+                    ""
+                },
+                total_bugs
+            );
+            content_alt = "_No bugs with this status!_";
+            content = bugs
+                .iter()
+                .map(|b| {
+                    format!(
+                        "{}  `{:?}`{}",
+                        b,
+                        b.status,
+                        if legacy.is_none() && b.legacy {
+                            " [legacy]"
+                        } else {
+                            ""
+                        }
+                    )
+                })
+                .collect::<Vec<_>>()
+                .join("\n");
+            colour = serenity::utils::Colour::LIGHT_GREY;
+        }
+
+        msg.channel_id
                 .send_message(ctx, |m| {
                     m.embed(|e| {
                         e.author(|a| {
@@ -116,90 +212,23 @@ pub async fn buglist(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
                             a.icon_url("https://media.discordapp.net/attachments/781837314975989772/839479742457839646/termite.png");
                             a
                         });
-                        e.colour(status.colour());
+                        e.colour(colour);
                         e.field(
-                            format!(
-                                "Bug reports (Status: {:?}){}", 
-                                status,
-                                if let Some(b) = legacy {
-                                    if b {
-                                        " [legacy]"
-                                    } else {
-                                        " [renewed]"
-                                    }
-                                } else {
-                                    ""
-                                }
-                            ),
-                            if bugs.is_empty() {
-                                "_No bugs with this status!_".to_string()
+                            title,
+                            if bugs.is_empty() && page == 1 {
+                                content_alt
+                            } else if bugs.is_empty() {
+                                "_Page number too high!_"
                             } else {
-                                bugs.iter()
-                                    .map(|b| format!(
-                                        "{}{}",
-                                        b,
-                                        if legacy.is_none() && b.legacy {
-                                            " [legacy]"
-                                        } else {
-                                            ""
-                                        }
-                                    ))
-                                    .collect::<Vec<_>>()
-                                    .join("\n")
+                                &content
                             },
                             false,
                         );
+                        e.footer(|f| f.text(format!("Page {}/{}", page, (total_bugs - 1) / limit + 1)));
                         e
                     })
                 })
                 .await?;
-        } else {
-            msg.channel_id
-                .send_message(ctx, |m| {
-                    m.embed(|e| {
-                        e.author(|a| {
-                                a.name("LOTR Mod Bugtracker");
-                                a.icon_url("https://media.discordapp.net/attachments/781837314975989772/839479742457839646/termite.png");
-                                a
-                        });
-                        e.colour(serenity::utils::Colour::LIGHT_GREY);
-                        e.field(
-                            format!(
-                                "Bug reports{}",
-                                if let Some(b) = legacy {
-                                    if b {
-                                        " [legacy]"
-                                    } else {
-                                        " [renewed]"
-                                    }
-                                } else {
-                                    ""
-                                }
-                            ),
-                            if bugs.is_empty() {
-                                "_No bugs registered!_".to_string()
-                            } else {
-                                bugs.iter()
-                                    .map(|b| format!(
-                                        "{}  `{:?}`{}",
-                                        b,
-                                        b.status,
-                                        if legacy.is_none() && b.legacy {
-                                            " [legacy]"
-                                        } else {
-                                            ""
-                                        }
-                                    ))
-                                    .collect::<Vec<_>>()
-                                    .join("\n")
-                            },
-                            false,
-                        );
-                        e
-                    })
-                })
-                .await?;
-        }
         termite!(ctx, msg);
     } else {
         failure!(ctx, msg, "Could not get bug list!");
@@ -209,7 +238,7 @@ pub async fn buglist(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
 
 #[command]
 #[checks(is_lotr_discord)]
-#[sub_commands(track, bug_status, resolve, bug_close, bug_link, bug_rename)]
+#[sub_commands(track, bug_status, resolve, bug_close, bug_link, bug_rename, stats)]
 pub async fn bug(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     if let Ok(bug_id) = args.single::<String>() {
         if let Ok(bug_id) = bug_id
@@ -487,6 +516,46 @@ pub async fn bug_rename(ctx: &Context, msg: &Message, mut args: Args) -> Command
         }
     } else {
         failure!(ctx, msg, "The first argument must be a bug id.");
+    }
+    Ok(())
+}
+
+#[command]
+#[checks(is_lotr_discord)]
+#[aliases(statistics)]
+pub async fn stats(ctx: &Context, msg: &Message) -> CommandResult {
+    if let Some(stats) = get_bug_statistics(ctx).await {
+        msg.channel_id
+            .send_message(ctx, |m| {
+                m.embed(|e| {
+                    e.author(|a| {
+                                a.name("LOTR Mod Bugtracker");
+                                a.icon_url("https://media.discordapp.net/attachments/781837314975989772/839479742457839646/termite.png");
+                                a
+                            });
+                    e.colour(serenity::utils::Colour::TEAL);
+                    e.field(
+                        "Bugtracker statistics",
+                        format!("{} resolved
+{} closed
+
+_Open bugs:_
+{} with low priority
+{} with medium priority
+{} with high priority
+{} critical bugs
+
+**Total: {} tracked bugs**
+",
+                        stats[0], stats[5], stats[1], stats[2], stats[3], stats[4], stats[6]),
+                        false
+                    );
+                    e
+                })
+            })
+            .await?;
+    } else {
+        failure!(ctx, msg, "Could not fetch bugtracker statistics");
     }
     Ok(())
 }

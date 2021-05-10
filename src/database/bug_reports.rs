@@ -216,16 +216,35 @@ pub async fn get_bug_list(
     limit: u32,
     ascending: bool,
     legacy: Option<bool>,
-) -> Option<Vec<PartialBugReport>> {
+    page: u32,
+) -> Option<(Vec<PartialBugReport>, u32)> {
     let pool = {
         let data_read = ctx.data.read().await;
         data_read.get::<DatabasePool>()?.clone()
     };
     let mut conn = pool.get_conn().await.ok()?;
 
+    let total: u32 = conn
+        .query_first(format!(
+            "SELECT COUNT(bug_id) FROM {} WHERE {} {legacy}",
+            TABLE_BUG_REPORTS,
+            if let Some(status) = status {
+                format!("status = '{}'", status.as_str())
+            } else {
+                "status != 'resolved' AND status != 'closed'".into()
+            },
+            legacy = if let Some(b) = legacy {
+                format!("AND legacy = {}", b as u8)
+            } else {
+                "".into()
+            },
+        ))
+        .await
+        .ok()??;
+
     conn.exec_map(
         format!(
-            "SELECT bug_id, title, status, timestamp, legacy FROM {} WHERE {} {legacy} ORDER BY timestamp {order} LIMIT :limit",
+            "SELECT bug_id, title, status, timestamp, legacy FROM {} WHERE {} {legacy} ORDER BY timestamp {order} LIMIT :limit OFFSET :offset",
             TABLE_BUG_REPORTS,
             if let Some(status) = status {
                 format!("status = '{}'", status.as_str())
@@ -241,12 +260,13 @@ pub async fn get_bug_list(
         ),
         params! {
             "limit" => limit,
+            "offset" => limit * page
         },
         PartialBugReport::new_from_tuple,
     )
     .await
     .ok()
-    .map(|v| v.iter().filter_map(|x| x.clone()).collect())
+    .map(|v| v.iter().filter_map(|x| x.clone()).collect()).map(|v| (v, total))
 }
 
 pub async fn change_bug_status(
@@ -363,4 +383,31 @@ pub async fn change_title(ctx: &Context, bug_id: u64, new_title: &str) -> Comman
     .await?;
 
     Ok(())
+}
+
+pub async fn get_bug_statistics(ctx: &Context) -> Option<[u32; 7]> {
+    let pool = {
+        let data_read = ctx.data.read().await;
+        data_read.get::<DatabasePool>()?.clone()
+    };
+    let mut conn = pool.get_conn().await.ok()?;
+
+    let statuses = ["resolved", "low", "medium", "high", "critical", "closed"];
+
+    let mut counts = [0; 7];
+
+    for (i, s) in statuses.iter().enumerate() {
+        let x = conn
+            .query_first(format!(
+                "SELECT COUNT(bug_id) FROM {} WHERE status = '{}'",
+                TABLE_BUG_REPORTS, s
+            ))
+            .await
+            .ok()??;
+        counts[i] = x;
+    }
+
+    counts[6] = counts.iter().sum();
+
+    Some(counts)
 }
