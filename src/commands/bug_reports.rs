@@ -268,13 +268,12 @@ pub async fn bug(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult 
                                     ""
                                 }
                             ));
-                            let mut message_link = None;
                             if let Ok(message) = linked_message {
-                                message_link = Some(message.link());
-                                e.description(message.content);
+                                e.description(&message.content);
                                 if let Some(image) = message.attachments.get(0) {
                                     e.image(&image.url);
                                 }
+                                e.url(&message.link());
                             }
                             if !bug.links.is_empty() {
                                 e.field(
@@ -290,11 +289,7 @@ pub async fn bug(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult 
                                 );
                             }
                             e.footer(|f| {
-                                f.text(format!("{} Status: {:?}{}", bug.status.icon(), bug.status, if let Some(link) = message_link {
-                                    format!(" • [message link]({})", link)
-                                } else {
-                                    String::new()
-                                }))
+                                f.text(format!("{} Status: {:?}", bug.status.icon(), bug.status))
                             });
                             e.timestamp(&bug.timestamp);
                             e
