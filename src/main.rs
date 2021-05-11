@@ -15,7 +15,10 @@ pub mod constants;
 pub mod database;
 pub mod utils;
 
-use mysql_async::*;
+use mysql_async::{
+    prelude::Queryable,
+    {OptsBuilder, Pool},
+};
 use serenity::async_trait;
 use serenity::client::{ClientBuilder, Context, EventHandler};
 use serenity::framework::standard::{macros::group, StandardFramework};
@@ -29,8 +32,8 @@ use commands::{
     admin::*, announcements::*, bug_reports::*, custom_commands::*, general::*, help::*, meme::*,
     servers::*, wiki::*,
 };
-use constants::{BOT_ID, OWNER_ID};
-use database::{config::get_prefix, maintenance::*, DatabasePool};
+use constants::{BOT_ID, OWNER_ID, TABLE_LIST_GUILDS};
+use database::{config::get_prefix, maintenance::update_list_guilds, DatabasePool};
 
 #[group]
 #[default_command(custom_command)]
@@ -96,6 +99,65 @@ impl EventHandler for Handler {
                 n
             ),
             Err(e) => println!("Error updating list_guilds table: {:?}", e),
+        }
+    }
+
+    async fn guild_delete(&self, ctx: Context, incomplete: GuildUnavailable, _: Option<Guild>) {
+        if !incomplete.unavailable {
+            let pool = {
+                let data_read = ctx.data.read().await;
+                data_read
+                    .get::<DatabasePool>()
+                    .expect("Could not retrieve database pool")
+                    .clone()
+            };
+            let guild_name: Option<String> = if let Ok(mut conn) = pool.get_conn().await {
+                if let Ok(option) = conn
+                    .query_first(format!(
+                        "SELECT guild_name FROM {} WHERE guild_id = {}",
+                        TABLE_LIST_GUILDS, incomplete.id.0
+                    ))
+                    .await
+                {
+                    option
+                } else {
+                    Some("unknown (database query failed)".into())
+                }
+            } else {
+                Some("unknown (database connection failed)".into())
+            };
+            OWNER_ID
+                .to_user(&ctx)
+                .await
+                .unwrap()
+                .dm(&ctx, |m| {
+                    m.content(format!(
+                        "Bot was kicked from {} (`{}`)",
+                        guild_name.unwrap_or_else(|| "unregistered guild".into()),
+                        incomplete.id.0
+                    ))
+                })
+                .await
+                .unwrap();
+        } else {
+            println!("Guild {} went offline", incomplete.id.0);
+        }
+    }
+
+    async fn guild_create(&self, ctx: Context, guild: Guild, is_new: bool) {
+        if is_new {
+            OWNER_ID
+                .to_user(&ctx)
+                .await
+                .unwrap()
+                .dm(&ctx, |m| {
+                    m.content(format!(
+                        "Bot was added to {} (`{}`)",
+                        guild.name, guild.id.0
+                    ))
+                })
+                .await
+                .unwrap();
         }
     }
 }

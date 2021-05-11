@@ -268,7 +268,9 @@ pub async fn bug(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult 
                                     ""
                                 }
                             ));
+                            let mut message_link = None;
                             if let Ok(message) = linked_message {
+                                message_link = Some(message.link());
                                 e.description(message.content);
                                 if let Some(image) = message.attachments.get(0) {
                                     e.image(&image.url);
@@ -288,7 +290,11 @@ pub async fn bug(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult 
                                 );
                             }
                             e.footer(|f| {
-                                f.text(format!("{} Status: {:?}", bug.status.icon(), bug.status))
+                                f.text(format!("{} Status: {:?}{}", bug.status.icon(), bug.status, if let Some(link) = message_link {
+                                    format!(" • [message link]({})", link)
+                                } else {
+                                    String::new()
+                                }))
                             });
                             e.timestamp(&bug.timestamp);
                             e
