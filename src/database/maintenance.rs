@@ -3,25 +3,17 @@ use serenity::client::Context;
 use serenity::framework::standard::CommandError;
 use serenity::model::prelude::*;
 
-use super::DatabasePool;
 use crate::constants::TABLE_LIST_GUILDS;
+use crate::get_database_conn;
 
 pub async fn update_list_guilds(ctx: &Context) -> Result<i64, CommandError> {
-    let pool = {
-        let data_read = ctx.data.read().await;
-        if let Some(p) = data_read.get::<DatabasePool>() {
-            p.clone()
-        } else {
-            println!("Could not get database pool");
-            return Ok(i64::MIN);
-        }
-    };
-    let mut conn = pool.get_conn().await?;
+    let mut conn;
+    get_database_conn!(ctx, conn, Result, i64::MIN);
 
-    let before: i64 = dbg!(conn
+    let before: i64 = conn
         .query_first(format!("SELECT COUNT(guild_id) FROM {}", TABLE_LIST_GUILDS))
         .await?
-        .unwrap_or(0));
+        .unwrap_or(0);
 
     conn.query_drop(format!(
         "DELETE FROM {} WHERE guild_name != 'last_cleanup'",
@@ -54,10 +46,10 @@ pub async fn update_list_guilds(ctx: &Context) -> Result<i64, CommandError> {
         .await?;
     }
 
-    let after: i64 = dbg!(conn
+    let after: i64 = conn
         .query_first(format!("SELECT COUNT(guild_id) FROM {}", TABLE_LIST_GUILDS))
         .await?
-        .unwrap_or(0));
+        .unwrap_or(0);
 
     Ok(after - before)
 }

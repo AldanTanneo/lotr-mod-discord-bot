@@ -23,7 +23,7 @@ use serenity::http::client::Http;
 use serenity::model::prelude::*;
 use std::{env, sync::Arc};
 
-use api::structures::ReqwestClient;
+use api::ReqwestClient;
 use check::{after_hook, dispatch_error_hook};
 use commands::{
     admin::*, announcements::*, bug_reports::*, custom_commands::*, general::*, help::*, meme::*,

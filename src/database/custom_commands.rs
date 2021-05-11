@@ -3,8 +3,9 @@ use serenity::client::Context;
 use serenity::framework::standard::CommandResult;
 use serenity::model::{error::Error::WrongGuild, id::GuildId};
 
-use super::{CustomCommand, DatabasePool};
+use super::CustomCommand;
 use crate::constants::TABLE_CUSTOM_COMMANDS;
+use crate::get_database_conn;
 
 pub async fn check_command_exists(
     ctx: &Context,
@@ -13,11 +14,8 @@ pub async fn check_command_exists(
 ) -> Option<bool> {
     let server_id: u64 = guild_id?.0;
 
-    let pool = {
-        let data_read = ctx.data.read().await;
-        data_read.get::<DatabasePool>()?.clone()
-    };
-    let mut conn = pool.get_conn().await.ok()?;
+    let mut conn;
+    get_database_conn!(ctx, conn);
 
     conn.query_first(format!(
         "SELECT EXISTS(SELECT command_id FROM {} WHERE server_id={} AND name=\"{}\" LIMIT 1)",
@@ -37,16 +35,8 @@ pub async fn add_custom_command(
 ) -> CommandResult {
     let server_id: u64 = guild_id.ok_or(WrongGuild)?.0;
 
-    let pool = {
-        let data_read = ctx.data.read().await;
-        if let Some(p) = data_read.get::<DatabasePool>() {
-            p.clone()
-        } else {
-            println!("Could not retrieve the database pool");
-            return Ok(());
-        }
-    };
-    let mut conn = pool.get_conn().await?;
+    let mut conn;
+    get_database_conn!(ctx, conn, Result);
 
     let req = if update {
         println!("updating...");
@@ -83,16 +73,8 @@ pub async fn remove_custom_command(
 ) -> CommandResult {
     let server_id: u64 = guild_id.ok_or(WrongGuild)?.0;
 
-    let pool = {
-        let data_read = ctx.data.read().await;
-        if let Some(p) = data_read.get::<DatabasePool>() {
-            p.clone()
-        } else {
-            println!("Could not retrieve the database pool");
-            return Ok(());
-        }
-    };
-    let mut conn = pool.get_conn().await?;
+    let mut conn;
+    get_database_conn!(ctx, conn, Result);
 
     let req = format!(
         "DELETE FROM {} WHERE server_id = :server_id AND name = :name LIMIT 1",
@@ -119,11 +101,8 @@ pub async fn get_command_data(
 ) -> Option<CustomCommand> {
     let server_id: u64 = guild_id?.0;
 
-    let pool = {
-        let data_read = ctx.data.read().await;
-        data_read.get::<DatabasePool>()?.clone()
-    };
-    let mut conn = pool.get_conn().await.ok()?;
+    let mut conn;
+    get_database_conn!(ctx, conn);
 
     let body = conn
         .query_first(format!(
@@ -157,13 +136,10 @@ pub async fn get_custom_commands_list(
 ) -> Option<Vec<(String, String)>> {
     let server_id: u64 = guild_id?.0;
 
-    let pool = {
-        let data_read = ctx.data.read().await;
-        data_read.get::<DatabasePool>()?.clone()
-    };
-    let mut conn = pool.get_conn().await.ok()?;
+    let mut conn;
+    get_database_conn!(ctx, conn);
 
-    conn.exec_map(
+    conn.exec(
         format!(
             "SELECT name, documentation FROM {} WHERE server_id=:server_id ORDER BY documentation DESC",
             TABLE_CUSTOM_COMMANDS
@@ -171,8 +147,7 @@ pub async fn get_custom_commands_list(
         .as_str(),
         params! {
             "server_id" => server_id
-        },
-        |(name, documentation)| (name, documentation),
+        }
     )
     .await
     .ok()

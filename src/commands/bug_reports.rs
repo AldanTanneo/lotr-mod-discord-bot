@@ -5,8 +5,9 @@ use serenity::model::prelude::*;
 use crate::check::{IS_ADMIN_CHECK, IS_LOTR_DISCORD_CHECK};
 use crate::database::bug_reports::{
     add_bug_report, add_link, change_bug_status, change_title, get_bug_from_id, get_bug_list,
-    get_bug_statistics, remove_link, BugStatus,
+    get_bug_statistics, remove_link,
 };
+use crate::database::BugStatus;
 use crate::failure;
 
 macro_rules! termite {

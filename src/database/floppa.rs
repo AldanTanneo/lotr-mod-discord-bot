@@ -3,15 +3,12 @@ use serenity::client::Context;
 use serenity::framework::standard::CommandResult;
 use serenity::model::prelude::*;
 
-use super::DatabasePool;
 use crate::constants::{OWNER_ID, TABLE_ADMINS, TABLE_FLOPPA};
+use crate::get_database_conn;
 
 pub async fn get_floppa(ctx: &Context, n: Option<i64>) -> Option<String> {
-    let pool = {
-        let data_read = ctx.data.read().await;
-        data_read.get::<DatabasePool>()?.clone()
-    };
-    let mut conn = pool.get_conn().await.ok()?;
+    let mut conn;
+    get_database_conn!(ctx, conn);
 
     if let Some(n) = n {
         let max_len: i64 = conn
@@ -35,14 +32,8 @@ pub async fn get_floppa(ctx: &Context, n: Option<i64>) -> Option<String> {
 }
 
 pub async fn add_floppa(ctx: &Context, floppa_url: String) -> CommandResult {
-    let pool = {
-        let data_read = ctx.data.read().await;
-        data_read
-            .get::<DatabasePool>()
-            .expect("Expected DatabasePool in TypeMap")
-            .clone()
-    };
-    let mut conn = pool.get_conn().await?;
+    let mut conn;
+    get_database_conn!(ctx, conn, Result);
 
     let images: Vec<String> = conn
         .exec_map(
@@ -87,12 +78,10 @@ pub async fn is_floppadmin(
     guild_id: Option<GuildId>,
     user_id: UserId,
 ) -> Option<bool> {
-    let pool = {
-        let data_read = ctx.data.read().await;
-        data_read.get::<DatabasePool>()?.clone()
-    };
-    let mut conn = pool.get_conn().await.ok()?;
     let server_id: u64 = guild_id?.0;
+
+    let mut conn;
+    get_database_conn!(ctx, conn);
 
     let res = conn
         .query_first(

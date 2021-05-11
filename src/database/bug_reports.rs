@@ -3,139 +3,14 @@ use mysql_async::prelude::*;
 use serenity::client::Context;
 use serenity::framework::standard::CommandResult;
 use serenity::model::prelude::*;
-use serenity::utils::Colour;
 
-use super::DatabasePool;
+use super::{BugReport, BugStatus, PartialBugReport};
 use crate::constants::{TABLE_BUG_REPORTS, TABLE_BUG_REPORTS_LINKS};
-
-use BugStatus::*;
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum BugStatus {
-    Resolved,
-    Low,
-    Medium,
-    High,
-    Critical,
-    Closed,
-}
-
-impl<'a, S: Into<&'a str>> From<S> for BugStatus {
-    fn from(s: S) -> Self {
-        match s.into().to_lowercase().as_str() {
-            "resolved" => Resolved,
-            "low" => Low,
-            "medium" => Medium,
-            "high" => High,
-            "critical" => Critical,
-            "closed" => Closed,
-            _ => Medium,
-        }
-    }
-}
-
-impl<'a> BugStatus {
-    pub fn as_str(&self) -> &'a str {
-        match self {
-            Resolved => "resolved",
-            Low => "low",
-            Medium => "medium",
-            High => "high",
-            Critical => "critical",
-            Closed => "closed",
-        }
-    }
-
-    pub fn colour(&self) -> Colour {
-        match self {
-            Resolved => Colour::FOOYOO,
-            Low => Colour::KERBAL,
-            Medium => Colour::GOLD,
-            High => Colour::ORANGE,
-            Critical => Colour::RED,
-            Closed => Colour::FABLED_PINK,
-        }
-    }
-
-    pub fn icon(&self) -> &'a str {
-        match self {
-            Resolved => "✅",
-            Low | Medium | High | Critical => "⚠️",
-            Closed => "❌",
-        }
-    }
-}
-
-pub struct BugReport {
-    pub bug_id: u64,
-    pub channel_id: ChannelId,
-    pub message_id: MessageId,
-    pub title: String,
-    pub status: BugStatus,
-    pub timestamp: DateTime<Utc>,
-    pub legacy: bool,
-    pub links: Vec<(u64, String, String)>,
-}
-
-#[derive(Debug, Clone)]
-pub struct PartialBugReport {
-    pub bug_id: u64,
-    pub title: String,
-    pub status: BugStatus,
-    pub timestamp: DateTime<Utc>,
-    pub legacy: bool,
-}
-
-impl std::fmt::Display for PartialBugReport {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let duration = Utc::now()
-            .signed_duration_since(self.timestamp)
-            .num_minutes();
-        let tmp = format!("{}mins ago", duration + 1);
-        let format_str = match duration {
-            0..=59 => tmp.as_str(),
-            60..=1439 => "Today at %R",
-            1440..=2879 => "Yesterday at %R",
-            _ => "%d/%m/%Y",
-        };
-        write!(
-            f,
-            "LOTR-{} — {}  ({})",
-            self.bug_id,
-            self.title,
-            self.timestamp.format(format_str)
-        )
-    }
-}
-
-impl PartialBugReport {
-    fn new(
-        bug_id: u64,
-        title: String,
-        status: String,
-        timestamp: NaiveDateTime,
-        legacy: bool,
-    ) -> Option<Self> {
-        Some(Self {
-            bug_id,
-            title,
-            status: status.as_str().into(),
-            timestamp: DateTime::from_utc(timestamp, Utc),
-            legacy,
-        })
-    }
-
-    fn new_from_tuple(data: (u64, String, String, NaiveDateTime, bool)) -> Option<Self> {
-        Self::new(data.0, data.1, data.2, data.3, data.4)
-    }
-}
+use crate::get_database_conn;
 
 pub async fn get_bug_from_id(ctx: &Context, bug_id: u64) -> Option<BugReport> {
-    let pool = {
-        let data_read = ctx.data.read().await;
-        data_read.get::<DatabasePool>()?.clone()
-    };
-    let mut conn = pool.get_conn().await.ok()?;
+    let mut conn;
+    get_database_conn!(ctx, conn);
 
     let (channel_id, message_id, title, status, timestamp, legacy): (
         u64,
@@ -185,11 +60,8 @@ pub async fn add_bug_report(
     status: BugStatus,
     legacy: bool,
 ) -> Option<u64> {
-    let pool = {
-        let data_read = ctx.data.read().await;
-        data_read.get::<DatabasePool>()?.clone()
-    };
-    let mut conn = pool.get_conn().await.ok()?;
+    let mut conn;
+    get_database_conn!(ctx, conn);
 
     conn.exec_drop(
         format!(
@@ -218,11 +90,8 @@ pub async fn get_bug_list(
     legacy: Option<bool>,
     page: u32,
 ) -> Option<(Vec<PartialBugReport>, u32)> {
-    let pool = {
-        let data_read = ctx.data.read().await;
-        data_read.get::<DatabasePool>()?.clone()
-    };
-    let mut conn = pool.get_conn().await.ok()?;
+    let mut conn;
+    get_database_conn!(ctx, conn);
 
     let total: u32 = conn
         .query_first(format!(
@@ -274,11 +143,9 @@ pub async fn change_bug_status(
     bug_id: u64,
     new_status: BugStatus,
 ) -> Option<BugStatus> {
-    let pool = {
-        let data_read = ctx.data.read().await;
-        data_read.get::<DatabasePool>()?.clone()
-    };
-    let mut conn = pool.get_conn().await.ok()?;
+    let mut conn;
+    get_database_conn!(ctx, conn);
+
     let old_status: String = conn
         .query_first(format!(
             "SELECT status FROM {} WHERE bug_id = {} LIMIT 1",
@@ -304,11 +171,8 @@ pub async fn change_bug_status(
 }
 
 pub async fn add_link(ctx: &Context, bug_id: u64, link_url: &str, link_title: &str) -> Option<u64> {
-    let pool = {
-        let data_read = ctx.data.read().await;
-        data_read.get::<DatabasePool>()?.clone()
-    };
-    let mut conn = pool.get_conn().await.ok()?;
+    let mut conn;
+    get_database_conn!(ctx, conn);
 
     conn.exec_drop(
         format!(
@@ -332,16 +196,8 @@ pub async fn add_link(ctx: &Context, bug_id: u64, link_url: &str, link_title: &s
 }
 
 pub async fn remove_link(ctx: &Context, bug_id: u64, link_num: u64) -> CommandResult {
-    let pool = {
-        let data_read = ctx.data.read().await;
-        if let Some(p) = data_read.get::<DatabasePool>() {
-            p.clone()
-        } else {
-            println!("Could not get database pool");
-            return Ok(());
-        }
-    };
-    let mut conn = pool.get_conn().await?;
+    let mut conn;
+    get_database_conn!(ctx, conn, Result);
 
     conn.exec_drop(
         format!(
@@ -359,16 +215,8 @@ pub async fn remove_link(ctx: &Context, bug_id: u64, link_num: u64) -> CommandRe
 }
 
 pub async fn change_title(ctx: &Context, bug_id: u64, new_title: &str) -> CommandResult {
-    let pool = {
-        let data_read = ctx.data.read().await;
-        if let Some(p) = data_read.get::<DatabasePool>() {
-            p.clone()
-        } else {
-            println!("Could not get database pool");
-            return Ok(());
-        }
-    };
-    let mut conn = pool.get_conn().await?;
+    let mut conn;
+    get_database_conn!(ctx, conn, Result);
 
     conn.exec_drop(
         format!(
@@ -386,11 +234,8 @@ pub async fn change_title(ctx: &Context, bug_id: u64, new_title: &str) -> Comman
 }
 
 pub async fn get_bug_statistics(ctx: &Context) -> Option<[u32; 8]> {
-    let pool = {
-        let data_read = ctx.data.read().await;
-        data_read.get::<DatabasePool>()?.clone()
-    };
-    let mut conn = pool.get_conn().await.ok()?;
+    let mut conn;
+    get_database_conn!(ctx, conn);
 
     let statuses = ["resolved", "low", "medium", "high", "critical", "closed"];
 

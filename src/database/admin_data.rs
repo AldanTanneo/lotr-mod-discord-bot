@@ -4,8 +4,8 @@ use serenity::framework::standard::CommandResult;
 use serenity::model::error::Error::WrongGuild;
 use serenity::model::prelude::*;
 
-use super::DatabasePool;
 use crate::constants::TABLE_ADMINS;
+use crate::get_database_conn;
 
 pub async fn is_admin_function(
     ctx: &Context,
@@ -14,11 +14,8 @@ pub async fn is_admin_function(
 ) -> Option<bool> {
     let server_id: u64 = guild_id?.0;
 
-    let pool = {
-        let data_read = ctx.data.read().await;
-        data_read.get::<DatabasePool>()?.clone()
-    };
-    let mut conn = pool.get_conn().await.ok()?;
+    let mut conn;
+    get_database_conn!(ctx, conn);
 
     let res = conn
         .query_first(format!(
@@ -36,11 +33,8 @@ pub async fn is_admin_function(
 pub async fn get_admins(ctx: &Context, guild_id: Option<GuildId>) -> Option<Vec<UserId>> {
     let server_id: u64 = guild_id?.0;
 
-    let pool = {
-        let data_read = ctx.data.read().await;
-        data_read.get::<DatabasePool>()?.clone()
-    };
-    let mut conn = pool.get_conn().await.ok()?;
+    let mut conn;
+    get_database_conn!(ctx, conn);
 
     let res = conn
         .exec_map(
@@ -71,16 +65,8 @@ pub async fn add_admin(
 ) -> CommandResult {
     let server_id: u64 = guild_id.ok_or(WrongGuild)?.0;
 
-    let pool = {
-        let data_read = ctx.data.read().await;
-        if let Some(p) = data_read.get::<DatabasePool>() {
-            p.clone()
-        } else {
-            println!("Could not retrieve the database pool");
-            return Ok(());
-        }
-    };
-    let mut conn = pool.get_conn().await?;
+    let mut conn;
+    get_database_conn!(ctx, conn, Result);
 
     let req = if update {
         format!(
@@ -114,16 +100,8 @@ pub async fn remove_admin(
 ) -> CommandResult {
     let server_id: u64 = guild_id.ok_or(WrongGuild)?.0;
 
-    let pool = {
-        let data_read = ctx.data.read().await;
-        if let Some(p) = data_read.get::<DatabasePool>() {
-            p.clone()
-        } else {
-            println!("Could not retrieve the database pool");
-            return Ok(());
-        }
-    };
-    let mut conn = pool.get_conn().await?;
+    let mut conn;
+    get_database_conn!(ctx, conn, Result);
 
     conn.exec_drop(
         format!(

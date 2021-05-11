@@ -62,6 +62,52 @@ macro_rules! handle_json_error {
 }
 
 #[macro_export]
+macro_rules! get_reqwest_client {
+    ($ctx:ident) => {{
+        let data_read = $ctx.data.read().await;
+        data_read.get::<$crate::api::ReqwestClient>()?.clone()
+    }};
+    ($ctx:ident, Result) => {{
+        let data_read = $ctx.data.read().await;
+        if let Some(rclient) = data_read.get::<$crate::api::ReqwestClient>() {
+            rclient.clone()
+        } else {
+            println!("Could not get reqwest client");
+            return Ok(());
+        }
+    }};
+}
+
+#[macro_export]
+macro_rules! get_database_conn {
+    ($ctx:ident, $conn:ident) => {
+        let pool = {
+            let data_read = $ctx.data.read().await;
+            data_read.get::<$crate::database::DatabasePool>()?.clone()
+        };
+        $conn = pool.get_conn().await.ok()?;
+    };
+    ($ctx:ident, $conn:ident, Option) => {
+        get_database_conn!($ctx, $conn)
+    };
+    ($ctx:ident, $conn:ident, Result) => {
+        get_database_conn!($ctx, $conn, Result, ());
+    };
+    ($ctx:ident, $conn:ident, Result, $default:expr) => {
+        let pool = {
+            let data_read = $ctx.data.read().await;
+            if let Some(p) = data_read.get::<$crate::database::DatabasePool>() {
+                p.clone()
+            } else {
+                println!("Could not get database pool");
+                return Ok($default);
+            }
+        };
+        $conn = pool.get_conn().await?;
+    };
+}
+
+#[macro_export]
 macro_rules! success {
     ($ctx:ident, $msg:ident) => {
         $msg.react($ctx, serenity::model::prelude::ReactionType::from('✅')).await?;

@@ -4,18 +4,15 @@ use serenity::framework::standard::{Args, CommandResult};
 use serenity::model::error::Error::WrongGuild;
 use serenity::model::prelude::*;
 
-use super::{Blacklist, Blacklist::*, DatabasePool};
+use super::{Blacklist, Blacklist::*};
 use crate::constants::{MANAGE_BOT_PERMS, OWNER_ID, TABLE_CHANNEL_BLACKLIST, TABLE_USER_BLACKLIST};
-use crate::is_admin;
+use crate::{get_database_conn, is_admin};
 
 pub async fn check_blacklist(ctx: &Context, msg: &Message, get_list: bool) -> Option<Blacklist> {
     let server_id: u64 = msg.guild_id?.0;
 
-    let pool = {
-        let data_read = ctx.data.read().await;
-        data_read.get::<DatabasePool>()?.clone()
-    };
-    let mut conn = pool.get_conn().await.ok()?;
+    let mut conn;
+    get_database_conn!(ctx, conn);
 
     if get_list {
         let user_blacklist: Vec<UserId> = conn
@@ -71,17 +68,8 @@ pub async fn check_blacklist(ctx: &Context, msg: &Message, get_list: bool) -> Op
 }
 
 pub async fn update_blacklist(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    println!("updating blacklist");
-    let pool = {
-        let data_read = ctx.data.read().await;
-        if let Some(p) = data_read.get::<DatabasePool>() {
-            p.clone()
-        } else {
-            println!("Could not retrieve the database pool");
-            return Ok(());
-        }
-    };
-    let mut conn = pool.get_conn().await?;
+    let mut conn;
+    get_database_conn!(ctx, conn, Result);
 
     let server_id: u64 = msg.guild_id.ok_or(WrongGuild)?.0;
     let pguild = GuildId(server_id).to_partial_guild(ctx).await?;
@@ -91,7 +79,6 @@ pub async fn update_blacklist(ctx: &Context, msg: &Message, mut args: Args) -> C
         .get_list();
 
     for user in &msg.mentions {
-        println!("user...");
         if let Ok(member) = pguild.member(ctx, user.id).await {
             if user.id == OWNER_ID
                 || is_admin!(ctx, msg.guild_id, user.id)
@@ -111,7 +98,6 @@ pub async fn update_blacklist(ctx: &Context, msg: &Message, mut args: Args) -> C
             }
         }
         if users.contains(&user.id) {
-            println!("deleting {}", user.id);
             conn.exec_drop(
                 format!(
                     "DELETE FROM {} WHERE server_id = :server_id AND user_id = :user_id LIMIT 1",
@@ -157,9 +143,7 @@ pub async fn update_blacklist(ctx: &Context, msg: &Message, mut args: Args) -> C
         .map(|c| ChannelId(c.unwrap()));
 
     for channel in mentioned_channels {
-        println!("channel...");
         if channels.contains(&channel) {
-            println!("deleting");
             conn.exec_drop(
                 format!(
                     "DELETE FROM {} WHERE server_id = :server_id AND channel_id = :channel_id LIMIT 1",
@@ -179,7 +163,6 @@ pub async fn update_blacklist(ctx: &Context, msg: &Message, mut args: Args) -> C
                 )
                 .await?;
         } else {
-            println!("adding");
             conn.exec_drop(
                 format!(
                     "INSERT INTO {} (server_id, channel_id) VALUES (:server_id, :channel_id)",

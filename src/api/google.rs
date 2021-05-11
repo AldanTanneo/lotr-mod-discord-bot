@@ -1,17 +1,15 @@
 use serenity::client::Context;
 use std::env;
 
-use super::structures::{GoogleSearch, ReqwestClient, Wikis};
+use super::{GoogleSearch, Wikis};
 use crate::constants::GOOGLE_API;
+use crate::get_reqwest_client;
 
 pub async fn google_search(ctx: &Context, query: &str, wiki: &Wikis) -> Option<[String; 3]> {
     let api_key = env::var("GOOGLE_API_KEY").expect("Expected a google api key in the environment");
     let search_engine_id =
         env::var("GOOGLE_CX").expect("Expected a google search engine id in the environment");
-    let rclient = {
-        let data_read = ctx.data.read().await;
-        data_read.get::<ReqwestClient>()?.clone()
-    };
+    let rclient = get_reqwest_client!(ctx);
 
     let req: [(&str, &str); 5] = [
         ("key", &api_key),

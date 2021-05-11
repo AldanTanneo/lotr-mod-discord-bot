@@ -5,8 +5,8 @@ use serenity::model::prelude::Message;
 use serenity::utils::Colour;
 
 use super::google::google_search;
-use super::structures::*;
-use super::structures::{Namespace::*, Wikis::*};
+use super::{GenericPage, Namespace, Namespace::*, RandomRes, Wikis, Wikis::*};
+use crate::get_reqwest_client;
 
 pub async fn search(
     ctx: &Context,
@@ -14,6 +14,7 @@ pub async fn search(
     srsearch: &str,
     wiki: &Wikis,
 ) -> Option<GenericPage> {
+    let rclient = get_reqwest_client!(ctx);
     if ns == &Page {
         let [hit, link, desc] = google_search(ctx, srsearch, &wiki).await?;
         println!("hit '{}'", hit);
@@ -25,10 +26,6 @@ pub async fn search(
             .trim();
 
         println!("query '{}'", query);
-        let rclient = {
-            let data_read = ctx.data.read().await;
-            data_read.get::<ReqwestClient>()?.clone()
-        };
 
         let ns_code: String = ns.into();
 
@@ -66,11 +63,6 @@ pub async fn search(
             None
         }
     } else {
-        let rclient = {
-            let data_read = ctx.data.read().await;
-            data_read.get::<ReqwestClient>()?.clone()
-        };
-
         let ns_code: String = ns.into();
 
         let req = [
@@ -104,10 +96,7 @@ pub async fn search(
 }
 
 pub async fn random(ctx: &Context, wiki: &Wikis) -> Option<GenericPage> {
-    let rclient = {
-        let data_read = ctx.data.read().await;
-        data_read.get::<ReqwestClient>()?.clone()
-    };
+    let rclient = get_reqwest_client!(ctx);
 
     let req = [
         ("format", "json"),
@@ -144,13 +133,7 @@ pub async fn display(
     wiki: &Wikis,
 ) -> CommandResult {
     println!("display");
-    let rclient = {
-        let data_read = ctx.data.read().await;
-        data_read
-            .get::<ReqwestClient>()
-            .expect("Expected ReqwestClient in TypeMap")
-            .clone()
-    };
+    let rclient = get_reqwest_client!(ctx, Result);
 
     let img = match wiki {
         LotrMod(_) | Minecraft => {
