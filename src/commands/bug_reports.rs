@@ -268,8 +268,9 @@ pub async fn bug(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult 
                                     ""
                                 }
                             ));
-                            if let Ok(message) = linked_message {
-                                e.description(format!("{}\n[message link]({})", &message.content, &message.link()));
+                            if let Ok(mut message) = linked_message {
+                                message.guild_id = msg.guild_id;
+                                e.description(format!("{}\n[[message link]]({})", &message.content, &message.link()));
                                 if let Some(image) = message.attachments.get(0) {
                                     e.image(&image.url);
                                 }
