@@ -3,6 +3,7 @@ use serenity::framework::standard::{macros::command, Args, CommandResult};
 use serenity::model::prelude::*;
 
 use crate::check::{IS_ADMIN_CHECK, IS_LOTR_DISCORD_CHECK};
+use crate::constants::LOTR_DISCORD;
 use crate::database::bug_reports::{
     add_bug_report, add_link, change_bug_status, change_title, get_bug_from_id, get_bug_list,
     get_bug_statistics, remove_link,
@@ -269,7 +270,7 @@ pub async fn bug(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult 
                                 }
                             ));
                             if let Ok(mut message) = linked_message {
-                                message.guild_id = msg.guild_id;
+                                message.guild_id = Some(LOTR_DISCORD);
                                 e.description(format!("{}\n[[message link]]({})", &message.content, &message.link()));
                                 if let Some(image) = message.attachments.get(0) {
                                     e.image(&image.url);
@@ -526,7 +527,9 @@ pub async fn bug_rename(ctx: &Context, msg: &Message, mut args: Args) -> Command
 #[checks(is_lotr_discord)]
 #[aliases(statistics)]
 pub async fn stats(ctx: &Context, msg: &Message) -> CommandResult {
-    if let Some(stats) = get_bug_statistics(ctx).await {
+    if let Some([resolved, low, medium, high, critical, closed, total, legacy]) =
+        get_bug_statistics(ctx).await
+    {
         msg.channel_id
             .send_message(ctx, |m| {
                 m.embed(|e| {
@@ -541,7 +544,7 @@ pub async fn stats(ctx: &Context, msg: &Message) -> CommandResult {
                         format!("{} resolved
 {} closed
 
-_Open bugs:_
+_Open bugs: {}_
 {} with low priority
 {} with medium priority
 {} with high priority
@@ -550,7 +553,8 @@ _Open bugs:_
 **Total: {} tracked bugs**
 \t_including {} legacy bugs_
 ",
-                        stats[0], stats[5], stats[1], stats[2], stats[3], stats[4], stats[6], stats[7]),
+                            resolved, closed, total - resolved - closed, low, medium, high, critical, total, legacy,
+                        ),
                         false
                     );
                     e
