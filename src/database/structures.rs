@@ -3,7 +3,7 @@ use mysql_async::Pool;
 use serenity::model::prelude::*;
 use serenity::prelude::TypeMapKey;
 use serenity::utils::Colour;
-use std::sync::Arc;
+use std::{str::FromStr, sync::Arc};
 
 use Blacklist::*;
 
@@ -52,17 +52,32 @@ pub enum BugStatus {
     Closed,
 }
 
-impl<'a, S: Into<&'a str>> From<S> for BugStatus {
-    fn from(s: S) -> Self {
-        match s.into().to_lowercase().as_str() {
-            "resolved" => Resolved,
-            "low" => Low,
-            "medium" => Medium,
-            "high" => High,
-            "critical" => Critical,
-            "closed" => Closed,
-            _ => Medium,
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ParseStatusError {
+    pub msg: &'static str,
+}
+
+impl FromStr for BugStatus {
+    type Err = ParseStatusError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "resolved" => Ok(Resolved),
+            "low" => Ok(Low),
+            "medium" => Ok(Medium),
+            "high" => Ok(High),
+            "critical" => Ok(Critical),
+            "closed" => Ok(Closed),
+            _ => Err(Self::Err {
+                msg: "Could not parse status",
+            }),
         }
+    }
+}
+
+impl std::default::Default for BugStatus {
+    fn default() -> Self {
+        Medium
     }
 }
 
@@ -151,7 +166,7 @@ impl PartialBugReport {
         Some(Self {
             bug_id,
             title,
-            status: status.as_str().into(),
+            status: status.parse().unwrap_or_default(),
             timestamp: DateTime::from_utc(timestamp, Utc),
             legacy,
         })

@@ -47,11 +47,7 @@ pub async fn track(ctx: &Context, msg: &Message, mut args: Args) -> CommandResul
     if legacy {
         args.advance();
     }
-    let tmp = args.single::<String>().unwrap_or_default();
-    let status = tmp.as_str().into();
-    if status == BugStatus::Medium && tmp.to_lowercase() != "medium" {
-        args.rewind();
-    }
+    let status = args.single::<BugStatus>().unwrap_or_default();
 
     let title = args.rest();
     if title.is_empty() {
@@ -97,12 +93,7 @@ pub async fn buglist(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
     if legacy.is_some() {
         args.advance();
     }
-    let tmp = args.single::<String>().unwrap_or_default();
-    let mut status: Option<BugStatus> = Some(tmp.as_str().into());
-    if status == Some(BugStatus::Medium) && tmp.to_lowercase().as_str() != "medium" {
-        status = None;
-        args.rewind();
-    }
+    let status = args.single::<BugStatus>().ok();
     let ascending = match args.current() {
         Some("latest") => Some(false),
         Some("oldest") => Some(true),
@@ -320,11 +311,8 @@ pub async fn bug_status(ctx: &Context, msg: &Message, mut args: Args) -> Command
             .trim_start_matches("LOTR-")
             .parse::<u64>()
         {
-            if let Ok(status) = args.single::<String>().map(|s| s.to_lowercase()) {
-                let new_status: BugStatus = status.as_str().into();
-                if new_status == BugStatus::Medium && status != "medium" {
-                    failure!(ctx, msg, "`{}` is not a valid bug status!", status);
-                } else if let Some(old_status) = change_bug_status(ctx, bug_id, new_status).await {
+            if let Ok(new_status) = args.single::<BugStatus>() {
+                if let Some(old_status) = change_bug_status(ctx, bug_id, new_status).await {
                     termite_success!(
                         ctx,
                         msg,

@@ -46,7 +46,7 @@ pub async fn get_bug_from_id(ctx: &Context, bug_id: u64) -> Option<BugReport> {
         channel_id: ChannelId(channel_id),
         message_id: MessageId(message_id),
         title,
-        status: status.as_str().into(),
+        status: status.as_str().parse().unwrap_or_default(),
         timestamp: DateTime::from_utc(timestamp, Utc),
         legacy,
         links,
@@ -167,7 +167,7 @@ pub async fn change_bug_status(
     .await
     .ok()?;
 
-    Some(old_status.as_str().into())
+    Some(old_status.parse().unwrap_or_default())
 }
 
 pub async fn add_link(ctx: &Context, bug_id: u64, link_url: &str, link_title: &str) -> Option<u64> {
