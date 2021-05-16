@@ -215,6 +215,7 @@ pub async fn user_info(ctx: &Context, msg: &Message, mut args: Args) -> CommandR
         .send_message(ctx, |m| {
             m.embed(|e| {
                 e.title(&user.name);
+                e.colour(Colour::PURPLE);
                 if user.bot {
                     e.description("This user is a bot");
                 }
@@ -225,13 +226,13 @@ pub async fn user_info(ctx: &Context, msg: &Message, mut args: Args) -> CommandR
                 e.field(
                     "Account created at",
                     &user.id.created_at().format("%d %B %Y at %R"),
-                    false,
+                    true,
                 );
                 if let Some(joined_at) = member.joined_at {
                     e.field(
                         "Account joined at",
                         joined_at.format("%d %B %Y at %R"),
-                        false,
+                        true,
                     );
                 }
                 if !member.roles.is_empty() {
