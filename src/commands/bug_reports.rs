@@ -68,7 +68,7 @@ pub async fn track(ctx: &Context, msg: &Message, mut args: Args) -> CommandResul
         termite_success!(
             ctx,
             msg,
-            "Tracking bug LOTR-{} (priority: `{:?}`)",
+            "Tracking bug LOTR-{} (priority: `{}`)",
             bug_id,
             status
         );
@@ -133,7 +133,7 @@ pub async fn buglist(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
         let colour;
         if let Some(status) = status {
             title = format!(
-                "Bug reports (Status: {:?}){} (Total: {})",
+                "Bug reports (Status: {}){} (Total: {})",
                 status,
                 if let Some(b) = legacy {
                     if b {
@@ -289,7 +289,7 @@ pub async fn bug(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult 
                                 );
                             }
                             e.footer(|f| {
-                                f.text(format!("{} Status: {:?}", bug.status.icon(), bug.status))
+                                f.text(format!("{} Status: {}", bug.status.icon(), bug.status))
                             });
                             e.timestamp(&bug.timestamp);
                             e
@@ -324,7 +324,7 @@ pub async fn bug_status(ctx: &Context, msg: &Message, mut args: Args) -> Command
                     termite_success!(
                         ctx,
                         msg,
-                        "Status changed for LOTR-{} from {:?} to {:?}!",
+                        "Status changed for LOTR-{} from `{}` to `{}`!",
                         bug_id,
                         old_status,
                         new_status
