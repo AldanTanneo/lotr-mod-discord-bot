@@ -1,7 +1,7 @@
 use bytesize::ByteSize;
 use serenity::client::Context;
 use serenity::framework::standard::{macros::command, Args, CommandResult};
-use serenity::model::channel::Message;
+use serenity::model::prelude::*;
 use serenity::utils::Colour;
 
 use crate::api::curseforge;
@@ -189,5 +189,66 @@ pub async fn donate(ctx: &Context, msg: &Message) -> CommandResult {
         e.title("Donate to the mod!");
         e
     })).await?;
+    Ok(())
+}
+
+#[command]
+#[only_in(guilds)]
+#[checks(allowed_blacklist)]
+#[aliases(user)]
+pub async fn user_info(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+    let user_id = if let Some(user) = msg.mentions.first() {
+        user.id
+    } else if let Ok(user_id) = args.single::<UserId>() {
+        user_id
+    } else {
+        msg.author.id
+    };
+    let member = msg
+        .guild_id
+        .unwrap_or_default()
+        .member(ctx, user_id)
+        .await?;
+    let user = &member.user;
+
+    msg.channel_id
+        .send_message(ctx, |m| {
+            m.embed(|e| {
+                e.title(&user.name);
+                if user.bot {
+                    e.description("This user is a bot");
+                }
+                e.thumbnail(user.face());
+                if let Some(nick) = &member.nick {
+                    e.field("Nickname", nick, false);
+                }
+                e.field(
+                    "Account created at",
+                    &user.id.created_at().format("%d %B %Y at %R"),
+                    false,
+                );
+                if let Some(joined_at) = member.joined_at {
+                    e.field(
+                        "Account joined at",
+                        joined_at.format("%d %B %Y at %R"),
+                        false,
+                    );
+                }
+                if !member.roles.is_empty() {
+                    e.field(
+                        "Roles",
+                        member
+                            .roles
+                            .iter()
+                            .map(|r| r.mention().to_string())
+                            .collect::<Vec<_>>()
+                            .join(", "),
+                        false,
+                    );
+                }
+                e
+            })
+        })
+        .await?;
     Ok(())
 }

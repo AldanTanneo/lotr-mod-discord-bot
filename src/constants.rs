@@ -60,7 +60,7 @@ pub const TABLE_BUG_REPORTS_LINKS: &str = "bug_reports__links";
 pub const TABLE_LIST_GUILDS: &str = "list_guilds";
 
 /// Reserved command names that cannot be used as [custom commands][crate::commands::custom_commands]
-pub const RESERVED_NAMES: [&str; 43] = [
+pub const RESERVED_NAMES: [&str; 45] = [
     "legacy",
     "renewed",
     "download",
@@ -104,4 +104,6 @@ pub const RESERVED_NAMES: [&str; 43] = [
     "buglist",
     "resolve",
     "clean_database",
+    "user",
+    "user_info",
 ];

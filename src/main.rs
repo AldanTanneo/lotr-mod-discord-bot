@@ -50,7 +50,8 @@ use database::{config::get_prefix, maintenance::update_list_guilds, DatabasePool
     online,
     donate,
     facebook,
-    discord
+    discord,
+    user_info
 )]
 struct General;
 
