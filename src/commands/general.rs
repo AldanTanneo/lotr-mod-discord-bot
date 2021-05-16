@@ -214,23 +214,33 @@ pub async fn user_info(ctx: &Context, msg: &Message, mut args: Args) -> CommandR
     msg.channel_id
         .send_message(ctx, |m| {
             m.embed(|e| {
-                e.title(&user.name);
                 e.colour(Colour::PURPLE);
-                if user.bot {
-                    e.description("This user is a bot");
-                }
                 e.thumbnail(user.face());
                 if let Some(nick) = &member.nick {
-                    e.field("Nickname", nick, false);
+                    e.title(nick);
+                    e.description(format!(
+                        "Username: **{}**{}",
+                        &user.name,
+                        if user.bot {
+                            "\n_This user is a bot_"
+                        } else {
+                            ""
+                        }
+                    ));
+                } else {
+                    e.title(&user.name);
+                    if user.bot {
+                        e.description("_This user is a bot_");
+                    }
                 }
                 e.field(
-                    "Account created at",
+                    "Account creation date",
                     &user.id.created_at().format("%d %B %Y at %R"),
                     true,
                 );
                 if let Some(joined_at) = member.joined_at {
                     e.field(
-                        "Account joined at",
+                        "Account join date",
                         joined_at.format("%d %B %Y at %R"),
                         true,
                     );
