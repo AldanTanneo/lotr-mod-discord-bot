@@ -50,6 +50,25 @@ pub enum BugStatus {
     High,
     Critical,
     Closed,
+    ForgeVanilla,
+}
+
+impl std::fmt::Display for BugStatus {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                Resolved => "Resolved",
+                Low => "Low",
+                Medium => "Medium",
+                High => "High",
+                Critical => "Critical",
+                Closed => "Closed",
+                ForgeVanilla => "Forge or Vanilla",
+            }
+        )
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -68,6 +87,7 @@ impl FromStr for BugStatus {
             "high" => Ok(High),
             "critical" => Ok(Critical),
             "closed" => Ok(Closed),
+            "forgevanilla" | "forge" | "vanilla" => Ok(ForgeVanilla),
             _ => Err(Self::Err {
                 msg: "Could not parse status",
             }),
@@ -90,6 +110,7 @@ impl<'a> BugStatus {
             High => "high",
             Critical => "critical",
             Closed => "closed",
+            ForgeVanilla => "forgevanilla",
         }
     }
 
@@ -101,6 +122,7 @@ impl<'a> BugStatus {
             High => Colour::ORANGE,
             Critical => Colour::RED,
             Closed => Colour::FABLED_PINK,
+            ForgeVanilla => Colour::PURPLE,
         }
     }
 
@@ -109,6 +131,7 @@ impl<'a> BugStatus {
             Resolved => "✅",
             Low | Medium | High | Critical => "⚠️",
             Closed => "❌",
+            ForgeVanilla => "❓",
         }
     }
 }

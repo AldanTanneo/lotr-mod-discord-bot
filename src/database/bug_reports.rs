@@ -100,7 +100,7 @@ pub async fn get_bug_list(
             if let Some(status) = status {
                 format!("status = '{}'", status.as_str())
             } else {
-                "status != 'resolved' AND status != 'closed'".into()
+                "status != 'resolved' AND status != 'closed' AND status != 'forgevanilla'".into()
             },
             legacy = if let Some(b) = legacy {
                 format!("AND legacy = {}", b as u8)
@@ -118,7 +118,7 @@ pub async fn get_bug_list(
             if let Some(status) = status {
                 format!("status = '{}'", status.as_str())
             } else {
-                "status != 'resolved' AND status != 'closed'".into()
+                "status != 'resolved' AND status != 'closed' AND status != 'forgevanilla'".into()
             },
             legacy = if let Some(b) = legacy {
                 format!("AND legacy = {}", b as u8)
@@ -233,13 +233,21 @@ pub async fn change_title(ctx: &Context, bug_id: u64, new_title: &str) -> Comman
     Ok(())
 }
 
-pub async fn get_bug_statistics(ctx: &Context) -> Option<[u32; 8]> {
+pub async fn get_bug_statistics(ctx: &Context) -> Option<[u32; 9]> {
     let mut conn;
     get_database_conn!(ctx, conn);
 
-    let statuses = ["resolved", "low", "medium", "high", "critical", "closed"];
+    let statuses = [
+        "resolved",
+        "low",
+        "medium",
+        "high",
+        "critical",
+        "closed",
+        "forgevanilla",
+    ];
 
-    let mut counts = [0; 8];
+    let mut counts = [0; 9];
 
     for (i, s) in statuses.iter().enumerate() {
         let x = conn
@@ -252,9 +260,9 @@ pub async fn get_bug_statistics(ctx: &Context) -> Option<[u32; 8]> {
         counts[i] = x;
     }
 
-    counts[6] = counts.iter().sum();
+    counts[7] = counts.iter().sum();
 
-    counts[7] = conn
+    counts[8] = conn
         .query_first(format!(
             "SELECT COUNT(bug_id) FROM {} WHERE legacy = 1",
             TABLE_BUG_REPORTS

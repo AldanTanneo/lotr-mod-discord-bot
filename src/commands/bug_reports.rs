@@ -182,7 +182,7 @@ pub async fn buglist(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
                 .iter()
                 .map(|b| {
                     format!(
-                        "{}  `{:?}`{}",
+                        "{}  `{}`{}",
                         b,
                         b.status,
                         if legacy.is_none() && b.legacy {
@@ -523,7 +523,7 @@ pub async fn bug_rename(ctx: &Context, msg: &Message, mut args: Args) -> Command
 #[checks(is_lotr_discord)]
 #[aliases(statistics)]
 pub async fn stats(ctx: &Context, msg: &Message) -> CommandResult {
-    if let Some([resolved, low, medium, high, critical, closed, total, legacy]) =
+    if let Some([resolved, low, medium, high, critical, closed, forgevanilla, total, legacy]) =
         get_bug_statistics(ctx).await
     {
         msg.channel_id
@@ -539,6 +539,7 @@ pub async fn stats(ctx: &Context, msg: &Message) -> CommandResult {
                         "Bugtracker statistics",
                         format!("{} resolved
 {} closed
+{} forge or vanilla
 
 _Open bugs: {}_
 {} with low priority
@@ -549,7 +550,7 @@ _Open bugs: {}_
 **Total: {} tracked bugs**
 \t_including {} legacy bugs_
 ",
-                            resolved, closed, total - resolved - closed, low, medium, high, critical, total, legacy,
+                            resolved, closed, forgevanilla, total - resolved - closed - forgevanilla, low, medium, high, critical, total, legacy,
                         ),
                         false
                     );
