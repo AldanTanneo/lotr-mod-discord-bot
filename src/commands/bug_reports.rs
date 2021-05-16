@@ -197,6 +197,15 @@ pub async fn buglist(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
             colour = serenity::utils::Colour::LIGHT_GREY;
         }
 
+        if content.len() > 2048 {
+            failure!(
+                ctx,
+                msg,
+                "Too many bugs to display. Consider lowering the limit."
+            );
+            return Ok(());
+        }
+
         msg.channel_id
                 .send_message(ctx, |m| {
                     m.embed(|e| {
@@ -206,8 +215,8 @@ pub async fn buglist(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
                             a
                         });
                         e.colour(colour);
-                        e.field(
-                            title,
+                        e.title(title);
+                        e.description(
                             if bugs.is_empty() && page == 1 {
                                 content_alt
                             } else if bugs.is_empty() {
@@ -215,7 +224,6 @@ pub async fn buglist(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
                             } else {
                                 &content
                             },
-                            false,
                         );
                         e.footer(|f| f.text(format!("Page {}/{}", page, (total_bugs - 1) / limit + 1)));
                         e

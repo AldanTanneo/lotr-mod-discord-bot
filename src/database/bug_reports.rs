@@ -4,7 +4,7 @@ use serenity::client::Context;
 use serenity::framework::standard::CommandResult;
 use serenity::model::prelude::*;
 
-use super::{BugReport, BugStatus, PartialBugReport};
+pub use super::{BugReport, BugStatus, PartialBugReport};
 use crate::constants::{TABLE_BUG_REPORTS, TABLE_BUG_REPORTS_LINKS};
 use crate::get_database_conn;
 
