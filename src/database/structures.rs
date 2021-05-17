@@ -55,19 +55,10 @@ pub enum BugStatus {
 
 impl std::fmt::Display for BugStatus {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                Resolved => "Resolved",
-                Low => "Low",
-                Medium => "Medium",
-                High => "High",
-                Critical => "Critical",
-                Closed => "Closed",
-                ForgeVanilla => "Forge or Vanilla",
-            }
-        )
+        match self {
+            ForgeVanilla => write!(f, "Forge or Vanilla"),
+            _ => write!(f, "{:?}", self),
+        }
     }
 }
 
