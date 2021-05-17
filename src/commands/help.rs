@@ -80,6 +80,7 @@ pub async fn help(ctx: &Context, msg: &Message) -> CommandResult {
 `{prefix}renewed`  Technical support command
 `{prefix}forge`  Technical support command
 `{prefix}coremod`  Technical support command
+`{prefix}user`  Display information about a user
 ",
                         prefix=prefix,
                         json=if is_admin {" [json]"} else {""}
@@ -310,7 +311,7 @@ pub async fn bugtracker(ctx: &Context, msg: &Message) -> CommandResult {
                 e.field(
                     "Creating a bug report",
                     format!(
-"`{prefix}track [status] <bug title>`  Creates a new bug report with the optional specified `status`: one of `low`, `medium`, `high`, `critical`. The command returns a unique bug id.
+"`{prefix}track [status] <bug title>`  Creates a new bug report with the optional specified `status`: one of `low`, `medium`, `high`, `critical`, and `forge` or `vanilla`. The command returns a unique bug id.
  \t**Must be used with an inline reply to a message that will constitute the initial bug report content.**
 \tYou can optionnally use  `{prefix}track legacy [status] <bug title>`  to create a legacy bug report.
 `{prefix}bug link <bug id> [link url] [link title]`  Adds additional information to the bug report referenced by its `bug id`. Can also be used with an inline reply to a message, in which case you don't need to specify a url.
@@ -323,9 +324,9 @@ pub async fn bugtracker(ctx: &Context, msg: &Message) -> CommandResult {
                 e.field(
                     "Displaying and editing bug reports",
                     format!(
-"`{prefix}bugs [latest|oldest] [status] [page] [limit n]`  Displays a list of bugs. By default, it will display all bugs that are not `resolved` or `closed`, in chronological order starting from the latest one, and with a default limit of 10 bugs.
+"`{prefix}bugs [latest|oldest] [status] [page] [limit n]`  Displays a list of bugs. By default, it will display all bugs that are not `resolved`, `forge` or `closed`, in chronological order starting from the latest one, and with a default limit of 10 bugs.
  \tThe `limit` keyword is necessary to specify a custom limit.
- \tAvailable statuses are `low`, `medium`, `high`, `critical`, `resolved` and `closed`.
+ \tAvailable statuses are `low`, `medium`, `high`, `critical`, `resolved`, `forge` (or `vanilla`) and `closed`.
  \tYou can optionnally use  `{prefix}bugs [legacy|renewed] [latest|oldest] [status] [limit]`  to display legacy only or renewed only bugs.
 `{prefix}bug <bug id>`  Displays a single bug.
 `{prefix}bug rename <bug id> <new title>`  Change a bug's title.
