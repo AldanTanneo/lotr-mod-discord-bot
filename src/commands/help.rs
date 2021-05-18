@@ -315,7 +315,7 @@ pub async fn bugtracker(ctx: &Context, msg: &Message) -> CommandResult {
  \t**Must be used with an inline reply to a message that will constitute the initial bug report content.**
 \tYou can optionnally use  `{prefix}track legacy [status] <bug title>`  to create a legacy bug report.
 `{prefix}bug link <bug id> [link url] [link title]`  Adds additional information to the bug report referenced by its `bug id`. Can also be used with an inline reply to a message, in which case you don't need to specify a url.
- \tThe command returns a unique link id which you can remove with the command  `{prefix}bug link remove <link id>`.
+ \tThe command returns a unique link id which you can remove with the command  `{prefix}bug link remove <bug id> <link id>`.
 ",
                         prefix = prefix,
                     ),
