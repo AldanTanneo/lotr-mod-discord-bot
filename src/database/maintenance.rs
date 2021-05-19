@@ -7,8 +7,10 @@ use crate::constants::TABLE_LIST_GUILDS;
 use crate::get_database_conn;
 
 pub async fn update_list_guilds(ctx: &Context) -> Result<i64, CommandError> {
+    println!("trying to update the list of guilds");
     let mut conn;
     get_database_conn!(ctx, conn, Result, i64::MIN);
+    println!("got db connection");
 
     let before: i64 = conn
         .query_first(format!("SELECT COUNT(guild_id) FROM {}", TABLE_LIST_GUILDS))

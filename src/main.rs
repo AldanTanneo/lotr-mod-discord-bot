@@ -81,7 +81,7 @@ impl EventHandler for Handler {
         ))
         .await;
 
-        OWNER_ID
+        if let Err(e) = OWNER_ID
             .to_user(&ctx)
             .await
             .unwrap()
@@ -92,8 +92,11 @@ impl EventHandler for Handler {
                 ))
             })
             .await
-            .unwrap();
+        {
+            println!("Error starting the bot: {:?}", e);
+        }
 
+        println!("UPDATING GUILD LIST");
         match update_list_guilds(&ctx).await {
             Ok(n) => println!(
                 "Successfully updated list_guilds table, before - after = {}",
