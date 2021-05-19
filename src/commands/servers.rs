@@ -28,7 +28,11 @@ async fn server_ip(ctx: &Context, msg: &Message) -> CommandResult {
             })
             .await?;
     } else {
-        failure!(ctx, msg, "No registered Minecraft IP for this server.");
+        failure!(
+            ctx,
+            msg,
+            "No registered Minecraft IP for this server. Set one using `ip set <server ip>`."
+        );
     }
     Ok(())
 }
@@ -76,7 +80,11 @@ pub async fn online(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
     } else if let Some(ip) = get_minecraft_ip(ctx, msg.guild_id).await {
         ip
     } else {
-        failure!(ctx, msg, "No registered Minecraft IP for this server.");
+        failure!(
+            ctx,
+            msg,
+            "No registered Minecraft IP for this server. Set one using `ip set <server ip>`."
+        );
         return Ok(());
     };
     println!("Getting status for ip: \"{}\"", ip);
