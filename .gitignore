@@ -12,3 +12,5 @@ Cargo.lock
 # Declares environment variables for local run
 env.sh
 lotr.zip
+database_backup/mysql_447ff735-ddc1-454b-b69d-7aa7853d18af-20210518091714.sql.gz
+database_backup/mysql_447ff735-ddc1-454b-b69d-7aa7853d18af-20210518091714.sql/mysql_447ff735-ddc1-454b-b69d-7aa7853d18af-20210518091714.sql
