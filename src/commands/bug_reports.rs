@@ -82,6 +82,7 @@ pub async fn track(ctx: &Context, msg: &Message, mut args: Args) -> CommandResul
 #[checks(is_lotr_discord)]
 #[aliases(bugs)]
 pub async fn buglist(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+    println!("displaying bugs");
     let legacy = args
         .current()
         .map(|s| match s {
