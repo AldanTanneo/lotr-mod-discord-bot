@@ -4,9 +4,6 @@ version = "0.1.0"
 authors = ["AldanTanneo <aldantanneo@gmail.com>"]
 edition = "2018"
 
-[profile.release]
-lto = true
-
 [dependencies]
 bytesize = "1.0"
 itertools = "0.10"
@@ -38,4 +35,4 @@ features = [
     "rustls_backend",
     "cache"
 ]
-version = "0.10.7"
+version = "0.10.5"
