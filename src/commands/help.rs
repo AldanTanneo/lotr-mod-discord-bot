@@ -3,7 +3,7 @@ use serenity::framework::standard::{macros::command, CommandResult};
 use serenity::model::channel::Message;
 use serenity::utils::Colour;
 
-use crate::check::IS_ADMIN_CHECK;
+use crate::check::*;
 use crate::constants::{MANAGE_BOT_PERMS, OWNER_ID};
 use crate::database::{
     config::{get_minecraft_ip, get_prefix},

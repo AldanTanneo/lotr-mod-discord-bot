@@ -3,7 +3,7 @@ use serenity::framework::standard::{macros::command, Args, CommandResult};
 use serenity::model::prelude::*;
 
 use crate::announcement;
-use crate::check::IS_ADMIN_CHECK;
+use crate::check::*;
 use crate::utils::{get_json_from_message, JsonMessageError::*};
 use crate::{failure, handle_json_error, success};
 

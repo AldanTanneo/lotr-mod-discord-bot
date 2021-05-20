@@ -2,7 +2,7 @@ use serenity::client::Context;
 use serenity::framework::standard::{macros::command, Args, CommandResult};
 use serenity::model::prelude::*;
 
-use crate::check::{IS_ADMIN_CHECK, IS_LOTR_DISCORD_CHECK};
+use crate::check::*;
 use crate::constants::LOTR_DISCORD;
 use crate::database::bug_reports::{
     add_bug_report, add_link, change_bug_status, change_title, get_bug_from_id, get_bug_list,

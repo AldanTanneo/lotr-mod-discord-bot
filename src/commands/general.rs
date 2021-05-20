@@ -5,7 +5,7 @@ use serenity::model::prelude::*;
 use serenity::utils::Colour;
 
 use crate::api::curseforge;
-use crate::check::ALLOWED_BLACKLIST_CHECK;
+use crate::check::*;
 use crate::constants::{CURSEFORGE_ID_LEGACY, CURSEFORGE_ID_RENEWED};
 
 #[command]

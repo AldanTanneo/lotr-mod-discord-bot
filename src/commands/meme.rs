@@ -3,7 +3,7 @@ use serenity::framework::standard::{macros::command, Args, CommandResult};
 use serenity::model::error::Error::WrongGuild;
 use serenity::model::prelude::*;
 
-use crate::check::ALLOWED_BLACKLIST_CHECK;
+use crate::check::*;
 use crate::constants::OWNER_ID;
 use crate::database::floppa::{add_floppa, get_floppa, is_floppadmin};
 use crate::success;

@@ -4,7 +4,7 @@ use serenity::framework::standard::{macros::command, Args, CommandResult};
 use serenity::model::channel::Message;
 
 use crate::announcement::announce;
-use crate::check::IS_ADMIN_CHECK;
+use crate::check::*;
 use crate::constants::{MANAGE_BOT_PERMS, OWNER_ID, RESERVED_NAMES};
 use crate::database::{
     blacklist::check_blacklist,

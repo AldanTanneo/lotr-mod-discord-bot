@@ -37,7 +37,7 @@ use serenity::client::Context;
 use serenity::framework::standard::{macros::command, Args, CommandResult};
 use serenity::model::prelude::*;
 
-use crate::check::{ALLOWED_BLACKLIST_CHECK, IS_ADMIN_CHECK};
+use crate::check::*;
 use crate::constants::{BOT_ID, LOTR_DISCORD, OWNER_ID};
 use crate::database::{
     admin_data::{add_admin, get_admins, remove_admin},

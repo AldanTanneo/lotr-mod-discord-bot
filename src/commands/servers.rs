@@ -4,7 +4,7 @@ use serenity::model::channel::Message;
 use serenity::utils::Colour;
 
 use crate::api::minecraft::get_server_status;
-use crate::check::{IS_ADMIN_CHECK, IS_MINECRAFT_SERVER_CHECK};
+use crate::check::*;
 use crate::database::config::{delete_minecraft_ip, get_minecraft_ip, set_minecraft_ip};
 use crate::{failure, success};
 
