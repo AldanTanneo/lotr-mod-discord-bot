@@ -19,7 +19,7 @@ pub enum Blacklist {
 }
 
 impl Blacklist {
-    pub fn is_blacklisted(&self) -> bool {
+    pub const fn is_blacklisted(&self) -> bool {
         match self {
             IsBlacklisted(b) => *b,
             _ => false,
@@ -34,6 +34,7 @@ impl Blacklist {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct CustomCommand {
     pub name: String,
     pub body: String,
@@ -92,8 +93,8 @@ impl std::default::Default for BugStatus {
     }
 }
 
-impl<'a> BugStatus {
-    pub fn as_str(&self) -> &'a str {
+impl BugStatus {
+    pub const fn as_str(&self) -> &str {
         match self {
             Resolved => "resolved",
             Low => "low",
@@ -105,7 +106,7 @@ impl<'a> BugStatus {
         }
     }
 
-    pub fn colour(&self) -> Colour {
+    pub const fn colour(&self) -> Colour {
         match self {
             Resolved => Colour::FOOYOO,
             Low => Colour::KERBAL,
@@ -117,7 +118,7 @@ impl<'a> BugStatus {
         }
     }
 
-    pub fn icon(&self) -> &'a str {
+    pub const fn icon(&self) -> &str {
         match self {
             Resolved => "✅",
             Low | Medium | High | Critical => "⚠️",
