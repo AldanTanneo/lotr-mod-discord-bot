@@ -9,11 +9,11 @@ use crate::database::config::{delete_minecraft_ip, get_minecraft_ip, set_minecra
 use crate::{failure, success};
 
 #[command]
+#[only_in(guilds)]
 #[aliases("ip")]
 #[bucket = "basic"]
 #[sub_commands(set_ip, remove_ip)]
 #[checks(is_minecraft_server)]
-#[only_in(guilds)]
 async fn server_ip(ctx: &Context, msg: &Message) -> CommandResult {
     let ip = get_minecraft_ip(ctx, msg.guild_id).await;
     if let Some(ip) = ip {
@@ -38,9 +38,9 @@ async fn server_ip(ctx: &Context, msg: &Message) -> CommandResult {
 }
 
 #[command]
+#[only_in(guilds)]
 #[checks(is_admin)]
 #[aliases("set")]
-#[only_in(guilds)]
 pub async fn set_ip(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     if let Ok(ip) = args.single_quoted::<String>() {
         println!("Setting up IP");
@@ -52,9 +52,9 @@ pub async fn set_ip(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
 }
 
 #[command]
+#[only_in(guilds)]
 #[checks(is_admin)]
 #[aliases("remove", "unset")]
-#[only_in(guilds)]
 pub async fn remove_ip(ctx: &Context, msg: &Message) -> CommandResult {
     let ip = get_minecraft_ip(ctx, msg.guild_id).await;
     if let Some(ip) = ip {
@@ -72,8 +72,9 @@ pub async fn remove_ip(ctx: &Context, msg: &Message) -> CommandResult {
 }
 
 #[command]
-#[checks(is_minecraft_server)]
 #[only_in(guilds)]
+#[checks(is_minecraft_server)]
+#[bucket = "basic"]
 pub async fn online(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let ip = if !args.is_empty() {
         args.single::<String>()?
