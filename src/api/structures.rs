@@ -119,7 +119,7 @@ pub enum Lang {
 }
 
 impl Lang {
-    pub(crate) fn main(&self) -> String {
+    pub(crate) const fn main(&self) -> &str {
         match self {
             En => "The Lord of the Rings Minecraft Mod Wiki",
             Fr => "Wiki du Mod Minecraft Seigneur des Anneaux",
@@ -130,7 +130,6 @@ impl Lang {
             Es => "Wiki Lotrminecraftmod",
             Ja => "マインクラフト　指輪物語MOD Wiki",
         }
-        .into()
     }
 
     fn maindesc(&self, username: &str) -> String {
@@ -240,12 +239,20 @@ pub enum Wikis {
 }
 
 impl Wikis {
-    pub(crate) fn get_api(&self) -> String {
+    pub(crate) const fn get_api(&self) -> &str {
         match self {
-            LotrMod(En) => "https://lotrminecraftmod.fandom.com/api.php?".to_string(),
-            LotrMod(lang) => format!("https://lotrminecraftmod.fandom.com/{}/api.php?", lang),
-            TolkienGateway => "http://tolkiengateway.net/w/api.php?".to_string(),
-            Minecraft => "https://minecraft.gamepedia.com/api.php?".to_string(),
+            LotrMod(lang) => match lang {
+                En => "https://lotrminecraftmod.fandom.com/api.php?",
+                Fr => "https://lotrminecraftmod.fandom.com/fr/api.php?",
+                De => "https://lotrminecraftmod.fandom.com/de/api.php?",
+                Nl => "https://lotrminecraftmod.fandom.com/nl/api.php?",
+                Zh => "https://lotrminecraftmod.fandom.com/zh/api.php?",
+                Ru => "https://lotrminecraftmod.fandom.com/ru/api.php?",
+                Es => "https://lotrminecraftmod.fandom.com/es/api.php?",
+                Ja => "https://lotrminecraftmod.fandom.com/ja/api.php?",
+            },
+            TolkienGateway => "http://tolkiengateway.net/w/api.php?",
+            Minecraft => "https://minecraft.gamepedia.com/api.php?",
         }
     }
 
@@ -268,7 +275,7 @@ impl Wikis {
         .into()
     }
 
-    pub fn icon(&self) -> String {
+    pub const fn icon(&self) -> &str {
         match self {
             LotrMod(_) => "https://i.ibb.co/v1hHg3G/test.png",
             TolkienGateway => "https://i.ibb.co/VYKWK7V/favicon.png",
@@ -276,14 +283,13 @@ impl Wikis {
                 "https://toppng.com/uploads/preview/minecraft-block-icon-11531077309p00lhxolea.png"
             }
         }
-        .to_string()
     }
 
-    pub fn name(&self) -> String {
+    pub const fn name(&self) -> &str {
         match self {
             LotrMod(lang) => lang.main(),
-            TolkienGateway => "Tolkien Gateway".into(),
-            Minecraft => "Official Minecraft Wiki".into(),
+            TolkienGateway => "Tolkien Gateway",
+            Minecraft => "Official Minecraft Wiki",
         }
     }
 
@@ -291,7 +297,7 @@ impl Wikis {
         match self {
             LotrMod(_) => Page.main_page(self, username),
             TolkienGateway => GenericPage {
-                title: self.name(),
+                title: self.name().into(),
                 link: self.site(),
                 desc: Some(format!(
                     "Welcome, {}, to Tolkien Gateway,
@@ -300,7 +306,7 @@ the J.R.R. Tolkien encyclopedia that anyone can edit.",
                 )),
             },
             Minecraft => GenericPage {
-                title: self.name(),
+                title: self.name().into(),
                 link: self.site(),
                 desc: Some(format!(
                     "Welcome, {}, to the Official Minecraft Wiki,
@@ -322,8 +328,8 @@ pub enum Namespace {
     Blog,
 }
 
-impl From<&Namespace> for String {
-    fn from(namespace: &Namespace) -> String {
+impl From<&Namespace> for &'static str {
+    fn from(namespace: &Namespace) -> &'static str {
         match namespace {
             Page => "0|4",
             User => "2",
@@ -332,7 +338,6 @@ impl From<&Namespace> for String {
             Category => "14",
             Blog => "500",
         }
-        .into()
     }
 }
 
@@ -355,7 +360,7 @@ impl Namespace {
             LotrMod(lang) => {
                 match self {
                     Page => GenericPage {
-                        title: lang.main(),
+                        title: lang.main().into(),
                         link: wiki.site(),
                         desc: Some(lang.maindesc(username)),
                     },

@@ -10,24 +10,24 @@ use crate::get_reqwest_client;
 
 pub async fn search(
     ctx: &Context,
-    ns: &Namespace,
-    srsearch: &str,
+    namespace: &Namespace,
+    query: &str,
     wiki: &Wikis,
 ) -> Option<GenericPage> {
     let rclient = get_reqwest_client!(ctx);
-    if ns == &Page {
-        let [hit, link, desc] = google_search(ctx, srsearch, &wiki).await?;
+    if namespace == &Page {
+        let [hit, link, desc] = google_search(ctx, query, &wiki).await?;
         println!("hit '{}'", hit);
         let query = hit
             .split(" | ")
             .flat_map(|sub| sub.split(" - "))
             .flat_map(|sub| sub.split(" – "))
-            .find(|part| !part.contains("Fandom"))?
+            .find(|&part| !part.contains("Fandom"))?
             .trim();
 
         println!("query '{}'", query);
 
-        let ns_code: String = ns.into();
+        let ns_code: &str = namespace.into();
 
         let req = [
             ("format", "json"),
@@ -35,11 +35,11 @@ pub async fn search(
             ("limit", "3"),
             ("redirects", "resolve"),
             ("search", query),
-            ("namespace", &ns_code),
+            ("namespace", ns_code),
         ];
 
         let res = rclient
-            .get(&wiki.get_api())
+            .get(wiki.get_api())
             .query(&req)
             .send()
             .await
@@ -63,19 +63,19 @@ pub async fn search(
             None
         }
     } else {
-        let ns_code: String = ns.into();
+        let ns_code: &str = namespace.into();
 
         let req = [
             ("format", "json"),
             ("action", "opensearch"),
             ("limit", "3"),
             ("redirects", "resolve"),
-            ("search", srsearch),
-            ("namespace", &ns_code),
+            ("search", query),
+            ("namespace", ns_code),
         ];
 
         let res = rclient
-            .get(&wiki.get_api())
+            .get(wiki.get_api())
             .query(&req)
             .send()
             .await
@@ -107,7 +107,7 @@ pub async fn random(ctx: &Context, wiki: &Wikis) -> Option<GenericPage> {
     ];
 
     let res = rclient
-        .get(&wiki.get_api())
+        .get(wiki.get_api())
         .query(&req)
         .send()
         .await
@@ -145,7 +145,7 @@ pub async fn display(
             ];
 
             let res = rclient
-                .get(&wiki.get_api())
+                .get(wiki.get_api())
                 .query(&req)
                 .send()
                 .await?
@@ -172,7 +172,7 @@ pub async fn display(
             ];
 
             let res = rclient
-                .get(&wiki.get_api())
+                .get(wiki.get_api())
                 .query(&req)
                 .send()
                 .await?
