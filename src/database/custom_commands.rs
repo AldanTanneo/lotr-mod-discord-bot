@@ -118,7 +118,7 @@ pub async fn get_command_data(
             TABLE_CUSTOM_COMMANDS, server_id, name
         ))
         .await
-        .ok()??
+        .ok()?
     } else {
         None
     };
