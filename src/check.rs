@@ -118,7 +118,7 @@ pub async fn dispatch_error_hook(ctx: &Context, msg: &Message, error: DispatchEr
                 Reason::Log(err_message) => {
                     println!("Check failed: {}", err_message);
                 }
-                _ => (),
+                _ => println!("Check failed for unknow reason."),
             }
         }
         DispatchError::OnlyForGuilds => {
@@ -128,6 +128,16 @@ pub async fn dispatch_error_hook(ctx: &Context, msg: &Message, error: DispatchEr
                 .is_err()
             {
                 println!("Error sending guild-only warning");
+            }
+        }
+        DispatchError::Ratelimited(rate_limit_info) => {
+            if rate_limit_info.is_first_try {
+                if let Err(e) = msg
+                    .reply(ctx, "Wait a few seconds before using this command again!")
+                    .await
+                {
+                    println!("Error sending ratelimited warning: {:?}", e);
+                }
             }
         }
         _ => println!("Dispatch error: {:?}", error),
