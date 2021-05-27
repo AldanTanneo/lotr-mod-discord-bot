@@ -189,3 +189,50 @@ pub async fn has_permission(
     }
     false
 }
+
+pub fn parse_motd<T: ToString>(motd: T) -> String {
+    let motd = motd.to_string();
+    let mut res = String::with_capacity(motd.len());
+    let mut stack: Vec<&str> = Vec::new();
+    let mut is_token = false;
+    for c in motd.chars() {
+        if c == '§' {
+            is_token = true;
+        } else if is_token {
+            is_token = false;
+            match c {
+                '0'..='9' | 'a'..='f' | 'k' | 'r' => {
+                    if !stack.is_empty() {
+                        stack.drain(..).rev().for_each(|s| res.push_str(s));
+                        res.push('\u{200B}');
+                    }
+                }
+                'l' => {
+                    stack.push("**");
+                    res.push_str("**");
+                }
+
+                'n' => {
+                    stack.push("__");
+                    res.push_str("__");
+                }
+                'm' => {
+                    stack.push("~~");
+                    res.push_str("~~");
+                }
+                'o' => {
+                    stack.push("*");
+                    res.push('*');
+                }
+                _ => {
+                    res.push('§');
+                    res.push(c)
+                }
+            }
+        } else {
+            res.push(c);
+        }
+    }
+    stack.drain(..).rev().for_each(|t| res.push_str(t));
+    res
+}

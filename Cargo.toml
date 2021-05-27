@@ -17,9 +17,6 @@ rand = "*"
 mysql_async = "0.27"
 chrono = "0.4"
 
-[dependencies.async-minecraft-ping]
-git = "https://github.com/AldanTanneo/async-minecraft-ping"
-
 [dependencies.tokio]
 version = "1.6"
 features = [

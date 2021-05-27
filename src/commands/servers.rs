@@ -6,6 +6,7 @@ use serenity::utils::Colour;
 use crate::api::minecraft::get_server_status;
 use crate::check::*;
 use crate::database::config::{delete_minecraft_ip, get_minecraft_ip, set_minecraft_ip};
+use crate::utils::parse_motd;
 use crate::{failure, success};
 
 #[command]
@@ -89,7 +90,7 @@ pub async fn online(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
         return Ok(());
     };
     println!("Getting status for ip: \"{}\"", ip);
-    let server = get_server_status(&ip).await;
+    let server = get_server_status(ctx, &ip).await;
     if let Some(server) = server {
         msg.channel_id
             .send_message(ctx, |m| {
@@ -97,21 +98,24 @@ pub async fn online(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
                     e.colour(Colour::DARK_GREEN);
                     e.thumbnail(format!("https://eu.mc-api.net/v3/server/favicon/{}", &ip));
                     e.title("Server online!");
-                    e.description(format!("{}\n\n**IP:**  `{}`", &server.motd, &ip,));
+                    e.description(format!(
+                        "{}\n\n**IP:**  `{}`",
+                        parse_motd(&server.motd.raw.join("\n")),
+                        &ip,
+                    ));
                     e.field(
                         format!(
                             "Players: {}/{}",
-                            &server.online_players, &server.max_players
+                            &server.players.online, &server.players.max
                         ),
                         &server
-                            .player_sample
+                            .players
+                            .list
                             .as_ref()
                             .map(|s| {
                                 let res = s.join(", ").replace("_", "\\_");
                                 if res.len() > 1024 {
                                     "Too many usernames to display!".into()
-                                } else if res.is_empty() {
-                                    "[]()".into()
                                 } else {
                                     res
                                 }
