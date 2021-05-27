@@ -16,8 +16,6 @@ serde = "1.0"
 rand = "*"
 mysql_async = "0.27"
 chrono = "0.4"
-lazy_static = "1.4"
-regex = "1.5"
 
 [dependencies.async-minecraft-ping]
 git = "https://github.com/AldanTanneo/async-minecraft-ping"

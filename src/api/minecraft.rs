@@ -1,43 +1,45 @@
 use async_minecraft_ping::{ConnectionConfig, ServerDescription::*};
-use lazy_static::lazy_static;
-use regex::Regex;
 
 use super::MinecraftServer;
 
-lazy_static! {
-    static ref RE: Regex =
-        Regex::new(r"(§[[:xdigit:]klmnor])?(§[[:xdigit:]klmnor])|([^§[:xdigit:]klmnor][^§]*)+")
-            .unwrap();
-}
-
-fn parse_motd<T: Into<String>>(motd: T) -> String {
-    let motd = motd.into();
+fn parse_motd<T: ToString>(motd: T) -> String {
+    let motd = motd.to_string();
     let mut res = String::with_capacity(motd.len());
-    let matches = RE.find_iter(&motd);
     let mut stack: Vec<&str> = Vec::new();
-    for m in matches.map(|m| m.as_str()) {
-        match m {
-            "§0" | "§1" | "§2" | "§3" | "§4" | "§5" | "§6" | "§7" | "§8" | "§9" | "§a" | "§b"
-            | "§c" | "§d" | "§e" | "§f" | "§r" | "§k" => {
-                stack.drain(..).rev().for_each(|t| res.push_str(t));
+    let mut is_token = false;
+    for c in motd.chars() {
+        if c == '§' {
+            is_token = true;
+        } else if is_token {
+            is_token = false;
+            match c {
+                '0'..='9' | 'a'..='f' | 'k' | 'r' => {
+                    stack.drain(..).rev().for_each(|s| res.push_str(s));
+                }
+                'l' => {
+                    stack.push("**");
+                    res.push_str("**");
+                }
+
+                'n' => {
+                    stack.push("__");
+                    res.push_str("__");
+                }
+                'm' => {
+                    stack.push("~~");
+                    res.push_str("~~");
+                }
+                'o' => {
+                    stack.push("*");
+                    res.push('*');
+                }
+                _ => {
+                    res.push('§');
+                    res.push(c)
+                }
             }
-            "§l" => {
-                stack.push("**");
-                res.push_str("**");
-            }
-            "§m" => {
-                stack.push("~~");
-                res.push_str("~~");
-            }
-            "§n" => {
-                stack.push("__");
-                res.push_str("__");
-            }
-            "§o" => {
-                stack.push("*");
-                res.push('*');
-            }
-            _ => res.push_str(m),
+        } else {
+            res.push(c);
         }
     }
     stack.drain(..).rev().for_each(|t| res.push_str(t));
@@ -49,8 +51,10 @@ mod test {
     #[test]
     pub fn test_motd_parser() {
         assert_eq!(
-            super::parse_motd("§6The §nLord of §othe Rings§r"),
-            "The __Lord of *the Rings*__"
+            super::parse_motd(
+                "§aHypixel Network  §c[1.8-1.16]\n§e§lSKYBLOCK§c, §b§lBEDWARS §c§l+ §a§lMORE"
+            ),
+            "Hypixel Network  [1.8-1.16]\n**SKYBLOCK**, **BEDWARS ****+ ****MORE**"
         );
     }
 }
