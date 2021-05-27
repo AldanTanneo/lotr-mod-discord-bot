@@ -89,7 +89,7 @@ pub async fn online(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
         return Ok(());
     };
     println!("Getting status for ip: \"{}\"", ip);
-    let server = get_server_status(ctx, &ip).await;
+    let server = get_server_status(&ip).await;
     if let Some(server) = server {
         msg.channel_id
             .send_message(ctx, |m| {
@@ -97,24 +97,21 @@ pub async fn online(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
                     e.colour(Colour::DARK_GREEN);
                     e.thumbnail(format!("https://eu.mc-api.net/v3/server/favicon/{}", &ip));
                     e.title("Server online!");
-                    e.description(format!(
-                        "**{}**\n\n**IP:**  `{}`",
-                        &server.motd.clean.join("\n"),
-                        &ip,
-                    ));
+                    e.description(format!("**{}**\n\n**IP:**  `{}`", &server.motd, &ip,));
                     e.field(
                         format!(
                             "Players: {}/{}",
-                            &server.players.online, &server.players.max
+                            &server.online_players, &server.max_players
                         ),
                         &server
-                            .players
-                            .list
+                            .player_sample
                             .as_ref()
                             .map(|s| {
                                 let res = s.join(", ").replace("_", "\\_");
                                 if res.len() > 1024 {
                                     "Too many usernames to display!".into()
+                                } else if res.is_empty() {
+                                    "[]()".into()
                                 } else {
                                     res
                                 }
