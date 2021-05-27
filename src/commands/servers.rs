@@ -97,7 +97,7 @@ pub async fn online(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
                     e.colour(Colour::DARK_GREEN);
                     e.thumbnail(format!("https://eu.mc-api.net/v3/server/favicon/{}", &ip));
                     e.title("Server online!");
-                    e.description(format!("**{}**\n\n**IP:**  `{}`", &server.motd, &ip,));
+                    e.description(format!("{}\n\n**IP:**  `{}`", &server.motd, &ip,));
                     e.field(
                         format!(
                             "Players: {}/{}",

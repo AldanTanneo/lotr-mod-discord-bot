@@ -14,7 +14,10 @@ fn parse_motd<T: ToString>(motd: T) -> String {
             is_token = false;
             match c {
                 '0'..='9' | 'a'..='f' | 'k' | 'r' => {
-                    stack.drain(..).rev().for_each(|s| res.push_str(s));
+                    if !stack.is_empty() {
+                        stack.drain(..).rev().for_each(|s| res.push_str(s));
+                        res.push('\u{200B}');
+                    }
                 }
                 'l' => {
                     stack.push("**");
@@ -54,7 +57,7 @@ mod test {
             super::parse_motd(
                 "§aHypixel Network  §c[1.8-1.16]\n§e§lSKYBLOCK§c, §b§lBEDWARS §c§l+ §a§lMORE"
             ),
-            "Hypixel Network  [1.8-1.16]\n**SKYBLOCK**, **BEDWARS ****+ ****MORE**"
+            "Hypixel Network  [1.8-1.16]\n**SKYBLOCK**\u{200B}, **BEDWARS **\u{200B}**+ **\u{200B}**MORE**"
         );
     }
 }
