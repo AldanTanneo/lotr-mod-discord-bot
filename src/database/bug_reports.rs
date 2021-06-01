@@ -272,3 +272,32 @@ pub async fn get_bug_statistics(ctx: &Context) -> Option<[u32; 9]> {
 
     Some(counts)
 }
+
+pub async fn switch_edition(ctx: &Context, bug_id: u64) -> Option<bool> {
+    let mut conn;
+    get_database_conn!(ctx, conn);
+
+    conn.exec_drop(
+        format!(
+            "UPDATE {} SET legacy = NOT legacy WHERE bug_id = :bug_id",
+            TABLE_BUG_REPORTS
+        ),
+        params! {
+            "bug_id" => bug_id
+        },
+    )
+    .await
+    .ok()?;
+
+    conn.exec_first(
+        format!(
+            "SELECT legacy FROM {} WHERE bug_id = :bug_id",
+            TABLE_BUG_REPORTS
+        ),
+        params! {
+            "bug_id" => bug_id,
+        },
+    )
+    .await
+    .ok()?
+}

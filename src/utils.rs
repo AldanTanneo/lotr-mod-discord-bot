@@ -91,7 +91,7 @@ macro_rules! get_database_conn {
         get_database_conn!($ctx, $conn)
     };
     ($ctx:ident, $conn:ident, Result) => {
-        get_database_conn!($ctx, $conn, Result, ());
+        get_database_conn!($ctx, $conn, Result, Ok(()));
     };
     ($ctx:ident, $conn:ident, Result, $default:expr) => {
         let pool = {
@@ -100,7 +100,7 @@ macro_rules! get_database_conn {
                 p.clone()
             } else {
                 println!("Could not get database pool");
-                return Ok($default);
+                return $default;
             }
         };
         $conn = pool.get_conn().await?;

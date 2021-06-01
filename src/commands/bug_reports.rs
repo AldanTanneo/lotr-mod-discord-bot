@@ -6,7 +6,7 @@ use crate::check::*;
 use crate::constants::LOTR_DISCORD;
 use crate::database::bug_reports::{
     add_bug_report, add_link, change_bug_status, change_title, get_bug_from_id, get_bug_list,
-    get_bug_statistics, remove_link,
+    get_bug_statistics, remove_link, switch_edition,
 };
 use crate::database::BugStatus;
 use crate::failure;
@@ -240,7 +240,16 @@ pub async fn buglist(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
 
 #[command]
 #[checks(is_lotr_discord)]
-#[sub_commands(track, bug_status, resolve, bug_close, bug_link, bug_rename, stats)]
+#[sub_commands(
+    track,
+    bug_status,
+    resolve,
+    bug_close,
+    bug_link,
+    bug_rename,
+    stats,
+    bug_toggle_edition
+)]
 pub async fn bug(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     if let Ok(bug_id) = args.single::<String>() {
         if let Ok(bug_id) = bug_id
@@ -478,6 +487,40 @@ pub async fn bug_link_remove(ctx: &Context, msg: &Message, mut args: Args) -> Co
                 }
             } else {
                 failure!(ctx, msg, "The second argument must be a valid link id.");
+            }
+        } else {
+            failure!(ctx, msg, "`{}` is not a valid bug id!", bug_id);
+        }
+    } else {
+        failure!(ctx, msg, "The first argument must be a bug id.");
+    }
+    Ok(())
+}
+
+#[command]
+#[checks(is_lotr_discord, is_admin)]
+#[aliases(toggle)]
+pub async fn bug_toggle_edition(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+    if let Ok(bug_id) = args.single::<String>() {
+        if let Ok(bug_id) = bug_id
+            .to_uppercase()
+            .trim_start_matches("LOTR-")
+            .parse::<u64>()
+        {
+            if let Some(legacy) = switch_edition(ctx, bug_id).await {
+                termite_success!(
+                    ctx,
+                    msg,
+                    "LOTR-{} has been changed from {}",
+                    bug_id,
+                    if legacy {
+                        "renewed to legacy"
+                    } else {
+                        "legacy to renewed"
+                    }
+                );
+            } else {
+                failure!(ctx, msg, "The bug LOTR-{} does not exist!", bug_id);
             }
         } else {
             failure!(ctx, msg, "`{}` is not a valid bug id!", bug_id);
