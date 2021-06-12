@@ -7,77 +7,77 @@ use Namespace::*;
 use Wikis::*;
 
 #[derive(Serialize, Deserialize, Debug)]
-pub(crate) struct SearchResult {
-    pub(crate) title: String,
-    pub(crate) link: String,
-    pub(crate) snippet: String,
+pub struct SearchResult {
+    pub title: String,
+    pub link: String,
+    pub snippet: String,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct GoogleSearch {
-    pub(crate) items: Vec<SearchResult>,
+    pub items: Vec<SearchResult>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-pub(crate) struct ProjectUrl {
-    pub(crate) curseforge: String,
+pub struct ProjectUrl {
+    pub curseforge: String,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-pub(crate) struct DownloadCount {
-    pub(crate) total: u32,
+pub struct DownloadCount {
+    pub total: u32,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-pub(crate) struct DownloadLink {
-    pub(crate) url: String,
-    pub(crate) name: String,
-    pub(crate) filesize: u64,
-    pub(crate) uploaded_at: String,
+pub struct DownloadLink {
+    pub url: String,
+    pub name: String,
+    pub filesize: u64,
+    pub uploaded_at: String,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct CurseProject {
-    pub(crate) title: String,
-    pub(crate) summary: String,
-    pub(crate) thumbnail: String,
-    pub(crate) urls: ProjectUrl,
-    pub(crate) downloads: DownloadCount,
-    pub(crate) download: DownloadLink,
+    pub title: String,
+    pub summary: String,
+    pub thumbnail: String,
+    pub urls: ProjectUrl,
+    pub downloads: DownloadCount,
+    pub download: DownloadLink,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-pub(crate) struct Description {
-    pub(crate) raw: Vec<String>,
+pub struct Description {
+    pub raw: Vec<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-pub(crate) struct PlayerList {
-    pub(crate) online: u32,
-    pub(crate) max: u32,
-    pub(crate) list: Option<Vec<String>>,
+pub struct PlayerList {
+    pub online: u32,
+    pub max: u32,
+    pub list: Option<Vec<String>>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct MinecraftServer {
-    pub(crate) online: bool,
-    pub(crate) motd: Description,
-    pub(crate) players: PlayerList,
+    pub online: bool,
+    pub motd: Description,
+    pub players: PlayerList,
 }
 
 #[derive(Serialize, Deserialize)]
-pub(crate) struct RandomPage {
-    pub(crate) title: String,
+pub struct RandomPage {
+    pub title: String,
 }
 
 #[derive(Serialize, Deserialize)]
-pub(crate) struct RandomQuery {
-    pub(crate) random: Vec<RandomPage>,
+pub struct RandomQuery {
+    pub random: Vec<RandomPage>,
 }
 
 #[derive(Serialize, Deserialize)]
-pub(crate) struct RandomRes {
-    pub(crate) query: RandomQuery,
+pub struct RandomRes {
+    pub query: RandomQuery,
 }
 
 pub struct GenericPage {
@@ -119,7 +119,7 @@ pub enum Lang {
 }
 
 impl Lang {
-    pub(crate) const fn main(&self) -> &str {
+    pub const fn main(&self) -> &str {
         match self {
             En => "The Lord of the Rings Minecraft Mod Wiki",
             Fr => "Wiki du Mod Minecraft Seigneur des Anneaux",
@@ -239,7 +239,7 @@ pub enum Wikis {
 }
 
 impl Wikis {
-    pub(crate) const fn get_api(&self) -> &str {
+    pub const fn get_api(&self) -> &str {
         match self {
             LotrMod(lang) => match lang {
                 En => "https://lotrminecraftmod.fandom.com/api.php?",
