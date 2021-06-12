@@ -331,6 +331,7 @@ pub async fn bugtracker(ctx: &Context, msg: &Message) -> CommandResult {
 `{prefix}bug <bug id>`  Displays a single bug.
 `{prefix}bug rename <bug id> <new title>`  Change a bug's title.
 `{prefix}bug status <bug id> <new status>`  Change a bug's status.
+`{prefix}bug toggle <bug id>`  Switch a bug's edition between renewed and legacy.
 
 `{prefix}bug statistics` Show bugtracker statistics.
 ",
