@@ -36,22 +36,9 @@ use constants::{BOT_ID, OWNER_ID, TABLE_LIST_GUILDS};
 use database::{config::get_prefix, maintenance::update_list_guilds, DatabasePool};
 
 #[group]
-#[default_command(custom_command)]
 #[commands(
-    custom_command,
-    help,
-    renewed,
-    curseforge,
-    prefix,
-    forge,
-    coremod,
-    invite,
-    server_ip,
-    online,
-    donate,
-    facebook,
-    discord,
-    user_info
+    help, renewed, curseforge, prefix, forge, coremod, invite, server_ip, online, donate, facebook,
+    discord, user_info
 )]
 struct General;
 
@@ -70,6 +57,12 @@ struct BugReports;
 #[group]
 #[commands(admin, floppadd, blacklist, announce, floppadmin, listguilds, define)]
 struct Moderation;
+
+#[group]
+#[commands(custom_command)]
+#[default_command(custom_command)]
+#[commands(custom_command)]
+struct CustomCommand;
 
 struct Handler;
 
@@ -170,6 +163,11 @@ impl EventHandler for Handler {
 async fn main() {
     // get environment variables for bot login
     let token = env::var("DISCORD_TOKEN").expect("Expected a token in the environment");
+    let application_id: u64 = env::var("APPLICATION_ID")
+        .expect("Expected an application id in the environment")
+        .parse()
+        .expect("APPLICATION_ID must be a valid u64");
+
     let db_name: String = env::var("DB_NAME").expect("Expected an environment variable DB_NAME");
     let db_user: String = env::var("DB_USER").expect("Expected an environment variable DB_USER");
     let db_password: String =
@@ -179,7 +177,7 @@ async fn main() {
     let db_port: u16 = env::var("DB_PORT")
         .expect("Expected an environment variable DB_PORT")
         .parse()
-        .unwrap();
+        .expect("DB_PORT must be a valid u16");
 
     // create database pool for bot guild data
     let pool: Pool = Pool::new(
@@ -232,19 +230,22 @@ async fn main() {
         .group(&MODERATION_GROUP)
         .group(&BUGREPORTS_GROUP)
         .group(&GENERAL_GROUP)
+        // Must go last
+        .group(&CUSTOMCOMMAND_GROUP)
         // rate limiting some commands
         .bucket("basic", |b| b.delay(2).time_span(10).limit(3))
         .await;
 
+    let mut http = Http::new(reqwest_client, &format!("Bot {}", &token));
+    http.application_id = application_id;
     // building client
-    let mut client =
-        ClientBuilder::new_with_http(Http::new(reqwest_client, &format!("Bot {}", token)))
-            .event_handler(Handler)
-            .framework(framework)
-            .type_map_insert::<DatabasePool>(Arc::new(pool))
-            .type_map_insert::<ReqwestClient>(cloned_client)
-            .await
-            .expect("Error creating client");
+    let mut client = ClientBuilder::new_with_http(http)
+        .event_handler(Handler)
+        .framework(framework)
+        .type_map_insert::<DatabasePool>(Arc::new(pool))
+        .type_map_insert::<ReqwestClient>(cloned_client)
+        .await
+        .expect("Error creating client");
 
     // start listening for events by starting a single shard
     if let Err(why) = client.start().await {
