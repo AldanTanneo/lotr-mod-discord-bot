@@ -11,24 +11,23 @@ use std::convert::TryFrom;
 
 /// Macro that builds an embed. Used in [`announce`] and [`edit_message`].
 macro_rules! embed_parser {
-    ($m:ident, $message:ident) => {
-        let embed = &$message["embed"];
-        $m.embed(|e| {
-            if let Some(colour) = embed["colour"].as_str() {
+    ($embed:expr) => {
+        |e| {
+            if let Some(colour) = $embed["colour"].as_str() {
                 // embed side bar colour
                 // (hexadecimal color encoding)
                 if let Ok(c) = u32::from_str_radix(&colour.to_uppercase(), 16) {
                     e.colour(Color::new(c));
                 }
-            } else if let Some(color) = embed["color"].as_str() {
+            } else if let Some(color) = $embed["color"].as_str() {
                 // supports english and american spelling
                 if let Ok(c) = u32::from_str_radix(&color.to_uppercase(), 16) {
                     e.colour(Color::new(c));
                 }
             }
-            if embed["author"].is_object() {
+            if $embed["author"].is_object() {
                 // embed author
-                let author = &embed["author"];
+                let author = &$embed["author"];
                 e.author(|a| {
                     if let Some(name) = author["name"].as_str() {
                         // author name
@@ -45,24 +44,24 @@ macro_rules! embed_parser {
                     a
                 });
             }
-            if let Some(title) = embed["title"].as_str() {
+            if let Some(title) = $embed["title"].as_str() {
                 // embed title
                 e.title(title);
             }
-            if let Some(url) = embed["url"].as_str() {
+            if let Some(url) = $embed["url"].as_str() {
                 // title clickable link
                 e.url(url);
             }
-            if let Some(description) = embed["description"].as_str() {
+            if let Some(description) = $embed["description"].as_str() {
                 // embed description, displays smaller than fields,
                 // but allows for longer text
                 e.description(description);
             }
-            if let Some(image) = embed["image"].as_str() {
+            if let Some(image) = $embed["image"].as_str() {
                 // embed image url
                 e.image(image);
             }
-            if let Some(fields) = embed["fields"].as_array() {
+            if let Some(fields) = $embed["fields"].as_array() {
                 // fields array, filters out invalid fields
                 for field in fields {
                     let title = field[0].as_str();
@@ -74,8 +73,8 @@ macro_rules! embed_parser {
                     }
                 }
             }
-            if embed["field"].is_array() {
-                let field = &embed["field"];
+            if $embed["field"].is_array() {
+                let field = &$embed["field"];
                 // single field, when multiple are not needed
                 let title = field[0].as_str();
                 let content = field[1].as_str();
@@ -85,13 +84,13 @@ macro_rules! embed_parser {
                     e.field(title, content, inlined);
                 }
             }
-            if let Some(thumb) = embed["thumbnail"].as_str() {
+            if let Some(thumb) = $embed["thumbnail"].as_str() {
                 // embed thumbnail url
                 e.thumbnail(thumb);
             }
-            if embed["footer"].is_object() {
+            if $embed["footer"].is_object() {
                 // embed footer
-                let footer = &embed["footer"];
+                let footer = &$embed["footer"];
                 e.footer(|f| {
                     if let Some(icon) = footer["icon"].as_str() {
                         // footer icon url
@@ -104,7 +103,7 @@ macro_rules! embed_parser {
                     f
                 });
             }
-            if let Some(timestamp) = embed["timestamp"].as_str() {
+            if let Some(timestamp) = $embed["timestamp"].as_str() {
                 // embed timestamp, displays the date right after the
                 // footer
                 if timestamp.trim().to_lowercase() == "now" {
@@ -114,7 +113,7 @@ macro_rules! embed_parser {
                 }
             }
             e
-        });
+        }
     };
 }
 
@@ -204,9 +203,14 @@ pub async fn announce(ctx: &Context, channel: ChannelId, message: &Value) -> Com
                         .filter_map(|s| ReactionType::try_from(s.trim()).ok()),
                 );
             }
+            if let Some(embeds) = message["embeds"].as_array() {
+                for embed in embeds {
+                    m.add_embed(embed_parser!(embed));
+                }
+            }
             if message["embed"].is_object() {
                 // message embed content
-                embed_parser!(m, message);
+                m.embed(embed_parser!(message["embed"]));
             }
             m
         })
@@ -231,9 +235,17 @@ pub async fn edit_message(
                 // main message content
                 m.content(content);
             }
+            if let Some(supress) = message["delete_embeds"].as_bool() {
+                m.suppress_embeds(supress);
+            }
+            if let Some(embeds) = message["embeds"].as_array() {
+                for embed in embeds {
+                    m.add_embed(embed_parser!(embed));
+                }
+            }
             if message["embed"].is_object() {
                 // message embed content
-                embed_parser!(m, message);
+                m.embed(embed_parser!(message["embed"]));
             }
             m
         })
