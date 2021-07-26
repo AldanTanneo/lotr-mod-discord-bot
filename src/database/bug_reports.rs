@@ -9,8 +9,7 @@ use crate::constants::{TABLE_BUG_REPORTS, TABLE_BUG_REPORTS_LINKS};
 use crate::get_database_conn;
 
 pub async fn get_bug_from_id(ctx: &Context, bug_id: u64) -> Option<BugReport> {
-    let mut conn;
-    get_database_conn!(ctx, conn);
+    let mut conn = get_database_conn!(ctx);
 
     let (channel_id, message_id, title, status, timestamp, legacy): (
         u64,
@@ -60,8 +59,7 @@ pub async fn add_bug_report(
     status: BugStatus,
     legacy: bool,
 ) -> Option<u64> {
-    let mut conn;
-    get_database_conn!(ctx, conn);
+    let mut conn = get_database_conn!(ctx);
 
     conn.exec_drop(
         format!(
@@ -90,8 +88,7 @@ pub async fn get_bug_list(
     legacy: Option<bool>,
     page: u32,
 ) -> Option<(Vec<PartialBugReport>, u32)> {
-    let mut conn;
-    get_database_conn!(ctx, conn);
+    let mut conn = get_database_conn!(ctx);
 
     let total: u32 = conn
         .query_first(format!(
@@ -143,8 +140,7 @@ pub async fn change_bug_status(
     bug_id: u64,
     new_status: BugStatus,
 ) -> Option<BugStatus> {
-    let mut conn;
-    get_database_conn!(ctx, conn);
+    let mut conn = get_database_conn!(ctx);
 
     let old_status: String = conn
         .query_first(format!(
@@ -171,8 +167,7 @@ pub async fn change_bug_status(
 }
 
 pub async fn add_link(ctx: &Context, bug_id: u64, link_url: &str, link_title: &str) -> Option<u64> {
-    let mut conn;
-    get_database_conn!(ctx, conn);
+    let mut conn = get_database_conn!(ctx);
 
     conn.exec_drop(
         format!(
@@ -196,8 +191,7 @@ pub async fn add_link(ctx: &Context, bug_id: u64, link_url: &str, link_title: &s
 }
 
 pub async fn remove_link(ctx: &Context, bug_id: u64, link_num: u64) -> CommandResult {
-    let mut conn;
-    get_database_conn!(ctx, conn, Result);
+    let mut conn = get_database_conn!(ctx, Result);
 
     conn.exec_drop(
         format!(
@@ -215,8 +209,7 @@ pub async fn remove_link(ctx: &Context, bug_id: u64, link_num: u64) -> CommandRe
 }
 
 pub async fn change_title(ctx: &Context, bug_id: u64, new_title: &str) -> CommandResult {
-    let mut conn;
-    get_database_conn!(ctx, conn, Result);
+    let mut conn = get_database_conn!(ctx, Result);
 
     conn.exec_drop(
         format!(
@@ -234,8 +227,7 @@ pub async fn change_title(ctx: &Context, bug_id: u64, new_title: &str) -> Comman
 }
 
 pub async fn get_bug_statistics(ctx: &Context) -> Option<[u32; 9]> {
-    let mut conn;
-    get_database_conn!(ctx, conn);
+    let mut conn = get_database_conn!(ctx);
 
     let statuses = [
         "resolved",
@@ -274,8 +266,7 @@ pub async fn get_bug_statistics(ctx: &Context) -> Option<[u32; 9]> {
 }
 
 pub async fn switch_edition(ctx: &Context, bug_id: u64) -> Option<bool> {
-    let mut conn;
-    get_database_conn!(ctx, conn);
+    let mut conn = get_database_conn!(ctx);
 
     conn.exec_drop(
         format!(

@@ -14,8 +14,7 @@ pub async fn is_admin_function(
 ) -> Option<bool> {
     let server_id: u64 = guild_id?.0;
 
-    let mut conn;
-    get_database_conn!(ctx, conn);
+    let mut conn = get_database_conn!(ctx);
 
     let res = conn
         .query_first(format!(
@@ -33,8 +32,7 @@ pub async fn is_admin_function(
 pub async fn get_admins(ctx: &Context, guild_id: Option<GuildId>) -> Option<Vec<UserId>> {
     let server_id: u64 = guild_id?.0;
 
-    let mut conn;
-    get_database_conn!(ctx, conn);
+    let mut conn = get_database_conn!(ctx);
 
     let res = conn
         .exec_map(
@@ -65,8 +63,7 @@ pub async fn add_admin(
 ) -> CommandResult {
     let server_id: u64 = guild_id.ok_or(WrongGuild)?.0;
 
-    let mut conn;
-    get_database_conn!(ctx, conn, Result);
+    let mut conn = get_database_conn!(ctx, Result);
 
     let req = if update {
         format!(
@@ -100,8 +97,7 @@ pub async fn remove_admin(
 ) -> CommandResult {
     let server_id: u64 = guild_id.ok_or(WrongGuild)?.0;
 
-    let mut conn;
-    get_database_conn!(ctx, conn, Result);
+    let mut conn = get_database_conn!(ctx, Result);
 
     conn.exec_drop(
         format!(

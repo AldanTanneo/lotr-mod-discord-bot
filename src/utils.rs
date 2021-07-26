@@ -80,20 +80,20 @@ macro_rules! get_reqwest_client {
 
 #[macro_export]
 macro_rules! get_database_conn {
-    ($ctx:ident, $conn:ident) => {
+    ($ctx:ident) => {{
         let pool = {
             let data_read = $ctx.data.read().await;
             data_read.get::<$crate::database::DatabasePool>()?.clone()
         };
-        $conn = pool.get_conn().await.ok()?;
+        pool.get_conn().await.ok()?
+    }};
+    ($ctx:ident, Option) => {
+        get_database_conn!($ctx)
     };
-    ($ctx:ident, $conn:ident, Option) => {
-        get_database_conn!($ctx, $conn)
+    ($ctx:ident, Result) => {
+        get_database_conn!($ctx, Result, Ok(()));
     };
-    ($ctx:ident, $conn:ident, Result) => {
-        get_database_conn!($ctx, $conn, Result, Ok(()));
-    };
-    ($ctx:ident, $conn:ident, Result, $default:expr) => {
+    ($ctx:ident, Result, $default:expr) => {{
         let pool = {
             let data_read = $ctx.data.read().await;
             if let Some(p) = data_read.get::<$crate::database::DatabasePool>() {
@@ -103,8 +103,8 @@ macro_rules! get_database_conn {
                 return $default;
             }
         };
-        $conn = pool.get_conn().await?;
-    };
+        pool.get_conn().await?
+    }};
 }
 
 #[macro_export]

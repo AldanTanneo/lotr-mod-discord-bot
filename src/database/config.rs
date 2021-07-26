@@ -9,8 +9,7 @@ use crate::get_database_conn;
 pub async fn get_prefix(ctx: &Context, guild_id: Option<GuildId>) -> Option<String> {
     let server_id: u64 = guild_id?.0;
 
-    let mut conn;
-    get_database_conn!(ctx, conn);
+    let mut conn = get_database_conn!(ctx);
 
     let res = conn
         .query_first(format!(
@@ -40,8 +39,7 @@ pub async fn set_prefix(
 ) -> CommandResult {
     let server_id: u64 = guild_id.ok_or(WrongGuild)?.0;
 
-    let mut conn;
-    get_database_conn!(ctx, conn, Result);
+    let mut conn = get_database_conn!(ctx, Result);
 
     let req = if update {
         println!("Updating prefix to \"{}\"", prefix);
@@ -72,8 +70,7 @@ pub async fn set_prefix(
 pub async fn get_minecraft_ip(ctx: &Context, guild_id: Option<GuildId>) -> Option<String> {
     let server_id: u64 = guild_id?.0;
 
-    let mut conn;
-    get_database_conn!(ctx, conn);
+    let mut conn = get_database_conn!(ctx);
 
     conn.query_first(format!(
         "SELECT mc_ip FROM {} WHERE server_id={}",
@@ -91,8 +88,7 @@ pub async fn set_minecraft_ip(
 ) -> CommandResult {
     let server_id: u64 = guild_id.ok_or(WrongGuild)?.0;
 
-    let mut conn;
-    get_database_conn!(ctx, conn, Result);
+    let mut conn = get_database_conn!(ctx, Result);
 
     let req = if update {
         println!("Updating IP to {}", ip);
@@ -126,8 +122,7 @@ pub async fn set_minecraft_ip(
 pub async fn delete_minecraft_ip(ctx: &Context, guild_id: Option<GuildId>) -> CommandResult {
     let server_id: u64 = guild_id.ok_or(WrongGuild)?.0;
 
-    let mut conn;
-    get_database_conn!(ctx, conn, Result);
+    let mut conn = get_database_conn!(ctx, Result);
 
     let req = format!(
         "DELETE FROM {} WHERE server_id = :server_id LIMIT 1",

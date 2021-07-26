@@ -7,8 +7,7 @@ use crate::constants::{OWNER_ID, TABLE_ADMINS, TABLE_FLOPPA};
 use crate::get_database_conn;
 
 pub async fn get_floppa(ctx: &Context, n: Option<i64>) -> Option<String> {
-    let mut conn;
-    get_database_conn!(ctx, conn);
+    let mut conn = get_database_conn!(ctx);
 
     if let Some(n) = n {
         let max_len: i64 = conn
@@ -32,8 +31,7 @@ pub async fn get_floppa(ctx: &Context, n: Option<i64>) -> Option<String> {
 }
 
 pub async fn add_floppa(ctx: &Context, floppa_url: String) -> CommandResult {
-    let mut conn;
-    get_database_conn!(ctx, conn, Result);
+    let mut conn = get_database_conn!(ctx, Result);
 
     let images: Vec<String> = conn
         .exec_map(
@@ -80,8 +78,7 @@ pub async fn is_floppadmin(
 ) -> Option<bool> {
     let server_id: u64 = guild_id?.0;
 
-    let mut conn;
-    get_database_conn!(ctx, conn);
+    let mut conn = get_database_conn!(ctx);
 
     let res = conn
         .query_first(

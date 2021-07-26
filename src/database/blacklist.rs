@@ -11,8 +11,7 @@ use crate::{get_database_conn, is_admin};
 pub async fn check_blacklist(ctx: &Context, msg: &Message, get_list: bool) -> Option<Blacklist> {
     let server_id: u64 = msg.guild_id?.0;
 
-    let mut conn;
-    get_database_conn!(ctx, conn);
+    let mut conn = get_database_conn!(ctx);
 
     if get_list {
         let user_blacklist: Vec<UserId> = conn
@@ -68,8 +67,7 @@ pub async fn check_blacklist(ctx: &Context, msg: &Message, get_list: bool) -> Op
 }
 
 pub async fn update_blacklist(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    let mut conn;
-    get_database_conn!(ctx, conn, Result);
+    let mut conn = get_database_conn!(ctx, Result);
 
     let server_id: u64 = msg.guild_id.ok_or(WrongGuild)?.0;
     let pguild = GuildId(server_id).to_partial_guild(ctx).await?;

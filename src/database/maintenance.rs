@@ -8,10 +8,8 @@ use crate::get_database_conn;
 
 pub async fn update_list_guilds(ctx: &Context) -> Result<i64, CommandError> {
     println!("trying to update the list of guilds");
-    let mut conn;
-    get_database_conn!(
+    let mut conn = get_database_conn!(
         ctx,
-        conn,
         Result,
         Err(CommandError::from("Could not connect to database"))
     );

@@ -14,8 +14,7 @@ pub async fn check_command_exists(
 ) -> Option<bool> {
     let server_id: u64 = guild_id?.0;
 
-    let mut conn;
-    get_database_conn!(ctx, conn);
+    let mut conn = get_database_conn!(ctx);
 
     conn.query_first(format!(
         "SELECT EXISTS(SELECT command_id FROM {} WHERE server_id={} AND name=\"{}\" LIMIT 1)",
@@ -35,8 +34,7 @@ pub async fn add_custom_command(
 ) -> CommandResult {
     let server_id: u64 = guild_id.ok_or(WrongGuild)?.0;
 
-    let mut conn;
-    get_database_conn!(ctx, conn, Result);
+    let mut conn = get_database_conn!(ctx, Result);
 
     let req = if update {
         println!("updating...");
@@ -73,8 +71,7 @@ pub async fn remove_custom_command(
 ) -> CommandResult {
     let server_id: u64 = guild_id.ok_or(WrongGuild)?.0;
 
-    let mut conn;
-    get_database_conn!(ctx, conn, Result);
+    let mut conn = get_database_conn!(ctx, Result);
 
     let req = format!(
         "DELETE FROM {} WHERE server_id = :server_id AND name = :name LIMIT 1",
@@ -101,8 +98,7 @@ pub async fn get_command_data(
 ) -> Option<CustomCommand> {
     let server_id: u64 = guild_id?.0;
 
-    let mut conn;
-    get_database_conn!(ctx, conn);
+    let mut conn = get_database_conn!(ctx);
 
     let body = conn
         .query_first(format!(
@@ -136,8 +132,7 @@ pub async fn get_custom_commands_list(
 ) -> Option<Vec<(String, String)>> {
     let server_id: u64 = guild_id?.0;
 
-    let mut conn;
-    get_database_conn!(ctx, conn);
+    let mut conn = get_database_conn!(ctx);
 
     conn.exec(
         format!(
