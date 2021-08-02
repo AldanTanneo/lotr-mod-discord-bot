@@ -33,22 +33,24 @@ async fn can_have_role<'a>(
     member: &Member,
     server_id: GuildId,
 ) -> Result<(), Reason<'a>> {
-    if let Some(Ok(time_requirement)) = &role
+    if let Some(duration) = &role
         .properties
         .time_requirement
         .map(|t| Duration::from_std(t))
     {
-        if let Some(time) = member.joined_at {
-            let time_since_join = Utc::now().signed_duration_since(time);
-            if &time_since_join < time_requirement {
-                return Err(NotEnoughTime(
-                    Utc::now() + *time_requirement - time_since_join,
-                ));
+        if let Ok(time_requirement) = duration {
+            if let Some(time) = member.joined_at {
+                let time_since_join = Utc::now().signed_duration_since(time);
+                if &time_since_join < time_requirement {
+                    return Err(NotEnoughTime(
+                        Utc::now() + *time_requirement - time_since_join,
+                    ));
+                }
             }
+        } else {
+            println!("Duration too big to convert! Denying permission.");
+            return Err(TimeConversionError);
         }
-    } else {
-        println!("Duration too big to convert! Denying permission.");
-        return Err(TimeConversionError);
     }
 
     if let Some(incompatible_roles) = &role.properties.incompatible_roles {
