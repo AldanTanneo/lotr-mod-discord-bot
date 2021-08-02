@@ -102,7 +102,7 @@ async fn display_roles(ctx: &Context, msg: &Message, in_dms: bool) -> CommandRes
                 String::from("**Use `!role <role name>` to claim a role**"),
                 |x, (name, aliases)| {
                     if aliases.is_empty() {
-                        format!("{}{}\n", x, name)
+                        format!("{}\n{}", x, name)
                     } else {
                         format!("{}{} (*aliases:* {})\n", x, name, aliases)
                     }
