@@ -20,6 +20,7 @@ fn filter_optional_array<T>(arr: &Option<Vec<T>>) -> bool {
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize, PartialEq)]
 pub struct RoleProperties {
+    #[serde(default)]
     #[serde(with = "humantime_serde", skip_serializing_if = "Option::is_none")]
     pub time_requirement: Option<Duration>,
     #[serde(skip_serializing_if = "filter_optional_array")]
@@ -198,6 +199,7 @@ pub async fn get_aliases(
 
 #[cfg(test)]
 mod tests {
+
     use super::RoleProperties;
     use std::time::Duration;
 
@@ -222,5 +224,21 @@ mod tests {
         let reverse = serde_json::to_string(&test).unwrap();
 
         assert_eq!(reverse, r#"{"time_requirement":"7days"}"#);
+
+        let test_string = r#"
+        { "aliases": ["test1", "test2"] }
+        "#;
+
+        let test: RoleProperties = serde_json::from_str(test_string).unwrap();
+
+        assert_eq!(
+            RoleProperties {
+                time_requirement: None,
+                incompatible_roles: None,
+                required_roles: None,
+                aliases: Some(vec![String::from("test1"), String::from("test2")])
+            },
+            test
+        );
     }
 }
