@@ -98,13 +98,16 @@ async fn display_roles(ctx: &Context, msg: &Message, in_dms: bool) -> CommandRes
         let role_list = roles
             .iter()
             .filter_map(|aliases| aliases.get(0).map(|name| (name, aliases[1..].join(", "))))
-            .fold(String::new(), |x, (name, aliases)| {
-                if aliases.is_empty() {
-                    format!("{}{}\n", x, name)
-                } else {
-                    format!("{}{} (*aliases:* {})\n", x, name, aliases)
-                }
-            });
+            .fold(
+                String::from("**Use `!role <role name>` to claim a role**"),
+                |x, (name, aliases)| {
+                    if aliases.is_empty() {
+                        format!("{}{}\n", x, name)
+                    } else {
+                        format!("{}{} (*aliases:* {})\n", x, name, aliases)
+                    }
+                },
+            );
         if in_dms {
             msg.author
                 .direct_message(ctx, |m| {
