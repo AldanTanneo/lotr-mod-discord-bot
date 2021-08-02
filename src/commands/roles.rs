@@ -162,12 +162,22 @@ pub async fn role(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
             )
             .await
         {
-            if member.add_role(ctx, role.id).await.is_err() {
-                msg.author
+            if member.roles.contains(&role.id) {
+                if member.remove_role(ctx, role.id).await.is_err() {
+                    msg.author
                     .direct_message(ctx, |m| {
-                            m.content("The bot is missing the required permissions to give roles! Contact an admin.")
+                            m.content("The bot is missing the required permissions to remove roles! Contact an admin.")
                         })
                     .await?;
+                }
+            } else {
+                if member.add_role(ctx, role.id).await.is_err() {
+                    msg.author
+                        .direct_message(ctx, |m| {
+                                m.content("The bot is missing the required permissions to give roles! Contact an admin.")
+                            })
+                        .await?;
+                }
             }
         } else {
             match can_have_role.unwrap_err() {
