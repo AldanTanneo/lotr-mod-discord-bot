@@ -14,8 +14,10 @@ pub mod commands;
 pub mod constants;
 pub mod database;
 pub mod event_handler;
+pub mod role_cache;
 pub mod utils;
 
+use dashmap::DashMap;
 use mysql_async::{OptsBuilder, Pool};
 use serenity::client::ClientBuilder;
 use serenity::framework::standard::{macros::group, StandardFramework};
@@ -26,16 +28,20 @@ use api::ReqwestClient;
 use check::{after_hook, dispatch_error_hook};
 use commands::{
     admin::*, announcements::*, bug_reports::*, custom_commands::*, general::*, help::*, meme::*,
-    servers::*, wiki::*,
+    roles::*, servers::*, wiki::*,
 };
 use constants::{BOT_ID, OWNER_ID};
-use database::{config::get_prefix, DatabasePool};
+use database::{
+    config::{get_prefix, PrefixCache},
+    DatabasePool,
+};
 use event_handler::Handler;
+use role_cache::RoleCache;
 
 #[group]
 #[commands(
     help, renewed, curseforge, prefix, forge, coremod, invite, server_ip, online, donate, facebook,
-    discord, user_info
+    discord, user_info, role
 )]
 struct General;
 
@@ -100,6 +106,9 @@ async fn main() {
     );
     let cloned_client = Arc::clone(&reqwest_client);
 
+    let role_cache_map = DashMap::new();
+    let prefix_cache = DashMap::new();
+
     // initialize bot framework
     let framework = StandardFramework::new()
         .configure(|c| {
@@ -146,6 +155,8 @@ async fn main() {
         .framework(framework)
         .type_map_insert::<DatabasePool>(Arc::new(pool))
         .type_map_insert::<ReqwestClient>(cloned_client)
+        .type_map_insert::<RoleCache>(Arc::new(role_cache_map))
+        .type_map_insert::<PrefixCache>(Arc::new(prefix_cache))
         .await
         .expect("Error creating client");
 

@@ -14,7 +14,7 @@ use crate::database::{
     },
     Blacklist,
 };
-use crate::utils::{get_json_from_message, has_permission, JsonMessageError::*};
+use crate::utils::{get_json_from_message, has_permission};
 use crate::{failure, handle_json_error, is_admin, success};
 
 #[command]
@@ -149,7 +149,7 @@ pub async fn define(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
         .await
         .unwrap_or_default();
 
-    match get_json_from_message(msg).await {
+    match get_json_from_message::<Value>(msg).await {
         Ok(mut message) => {
             let mut documentation = message
                 .as_object_mut()

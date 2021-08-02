@@ -42,7 +42,7 @@ use crate::constants::{BOT_ID, LOTR_DISCORD, OWNER_ID};
 use crate::database::{
     admin_data::{add_admin, get_admins, remove_admin},
     blacklist::{check_blacklist, update_blacklist},
-    config::{get_prefix, set_prefix},
+    config::{get_prefix, set_prefix, PrefixCache},
     floppa::is_floppadmin,
     Blacklist::IsBlacklisted,
 };
@@ -51,7 +51,7 @@ use crate::{failure, is_admin, success};
 #[command]
 #[checks(is_admin)]
 #[only_in(guilds)]
-#[max_args(1)]
+#[sub_commands(cache)]
 pub async fn prefix(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     if args.is_empty() {
         let prefix = get_prefix(ctx, msg.guild_id).await;
@@ -75,6 +75,18 @@ pub async fn prefix(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
             failure!(ctx, msg, "Invalid new prefix!");
         }
     }
+    Ok(())
+}
+
+#[command]
+#[owners_only]
+#[checks(is_admin)]
+async fn cache(ctx: &Context) -> CommandResult {
+    let prefix_cache = {
+        let data_read = ctx.data.read().await;
+        data_read.get::<PrefixCache>().unwrap().clone()
+    };
+    println!("==== PREFIX CACHE ====\n{:?}", prefix_cache);
     Ok(())
 }
 
