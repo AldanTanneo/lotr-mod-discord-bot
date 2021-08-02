@@ -1,4 +1,5 @@
-use serde_json::{Error, Value};
+use serde::de::DeserializeOwned;
+use serde_json::Error;
 use serenity::client::Context;
 use serenity::model::prelude::*;
 
@@ -12,7 +13,9 @@ pub enum JsonMessageError {
     JsonError(Error),
 }
 
-pub async fn get_json_from_message(msg: &Message) -> Result<Value, JsonMessageError> {
+pub async fn get_json_from_message<T: DeserializeOwned>(
+    msg: &Message,
+) -> Result<T, JsonMessageError> {
     if msg.attachments.is_empty() {
         let content = &msg.content;
         let (a, b) = (
@@ -38,20 +41,20 @@ pub async fn get_json_from_message(msg: &Message) -> Result<Value, JsonMessageEr
 macro_rules! handle_json_error {
     ($ctx:ident, $msg:ident, $error:ident) => {
         match $error {
-            FileTooBig => {
-                failure!(
+            $crate::utils::JsonMessageError::FileTooBig => {
+                $crate::failure!(
                     $ctx,
                     $msg,
                     "Attachment is too big! Filesize must be under {}KB.",
                     $crate::constants::MAX_JSON_FILE_SIZE / 1024
                 );
             }
-            DownloadError => {
-                failure!($ctx, $msg, "Could not download attachment!");
+            $crate::utils::JsonMessageError::DownloadError => {
+                $crate::failure!($ctx, $msg, "Could not download attachment!");
             }
-            JsonError(e) => {
+            $crate::utils::JsonMessageError::JsonError(e) => {
                 println!("Error reading JSON content: {}", e);
-                failure!(
+                $crate::failure!(
                     $ctx,
                     $msg,
                     "Could not read your JSON content! Check for syntax errors."
@@ -114,11 +117,11 @@ macro_rules! success {
     };
     ($ctx:ident, $msg:ident, $single_message:expr) => {
         $msg.reply($ctx, $single_message).await?;
-        success!($ctx, $msg);
+        $crate::success!($ctx, $msg);
     };
     ($ctx:ident, $msg:ident, $($success:tt)*) => {
         $msg.reply($ctx, format!($($success)*)).await?;
-        success!($ctx, $msg);
+        $crate::success!($ctx, $msg);
     };
 }
 
@@ -129,11 +132,11 @@ macro_rules! failure {
     };
     ($ctx:ident, $msg:ident, $single_message:expr) => {
         $msg.reply($ctx, $single_message).await?;
-        failure!($ctx, $msg);
+        $crate::failure!($ctx, $msg);
     };
     ($ctx:ident, $msg:ident, $($error:tt)*) => {
         $msg.reply($ctx, format!($($error)*)).await?;
-        failure!($ctx, $msg);
+        $crate::failure!($ctx, $msg);
     };
 }
 
@@ -145,18 +148,18 @@ macro_rules! warn {
     };
     ($ctx:ident, $msg:ident, $single_message:expr) => {
         $msg.reply($ctx, $single_message).await?;
-        warn!($ctx, $msg);
+        $crate::warn!($ctx, $msg);
     };
     ($ctx:ident, $msg:ident, $($error:tt)*) => {
         $msg.reply($ctx, format!($($error)*)).await?;
-        warn!($ctx, $msg);
+        $crate::warn!($ctx, $msg);
     };
 }
 
 #[macro_export]
 macro_rules! is_admin {
     ($ctx:ident, $msg:ident) => {
-        is_admin!($ctx, $msg.guild_id, $msg.author.id)
+        $crate::is_admin!($ctx, $msg.guild_id, $msg.author.id)
     };
     ($ctx:ident, $guild_id:expr, $user:expr) => {
         $crate::database::admin_data::is_admin_function($ctx, $guild_id, $user)

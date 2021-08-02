@@ -4,7 +4,7 @@ use serenity::model::prelude::*;
 
 use crate::announcement;
 use crate::check::*;
-use crate::utils::{get_json_from_message, JsonMessageError::*};
+use crate::utils::get_json_from_message;
 use crate::{failure, handle_json_error, success};
 
 #[command]
@@ -52,9 +52,9 @@ pub async fn announce(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
 #[checks(is_admin)]
 #[only_in(guilds)]
 pub async fn edit(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    let channel = serenity::utils::parse_channel(args.single::<String>()?.trim()).map(ChannelId);
+    let channel = args.single::<ChannelId>();
     let msg_id = args.single::<u64>().ok();
-    if let Some(channel_id) = channel {
+    if let Ok(channel_id) = channel {
         if msg.guild_id
             != channel_id
                 .to_channel(ctx)

@@ -16,6 +16,8 @@ serde = "1.0"
 rand = "0.8"
 mysql_async = "0.28"
 chrono = "0.4"
+humantime-serde = "1.0.1"
+dashmap = "4.0"
 
 [dependencies.tokio]
 version = "1.7"

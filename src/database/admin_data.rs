@@ -24,8 +24,6 @@ pub async fn is_admin_function(
         .await
         .ok()?;
 
-    drop(conn);
-
     res
 }
 

@@ -57,9 +57,7 @@ pub async fn curseforge(ctx: &Context, msg: &Message, mut args: Args) -> Command
                 m.embed(|e| {
                     e.author(|a| {
                         a.name("Curseforge");
-                        a.icon_url(
-                            "https://pbs.twimg.com/profile_images/1334200314136817665/QOJeY7B0_400x400.png",
-                        )
+                        a.icon_url("https://tinyimg.io/i/SVsK1qC.png")
                     });
                     e.colour(Colour(0xf16436));
                     e.title(&project.title);
@@ -195,7 +193,7 @@ pub async fn donate(ctx: &Context, msg: &Message) -> CommandResult {
 #[command]
 #[only_in(guilds)]
 #[checks(allowed_blacklist)]
-#[aliases(user)]
+#[aliases("user")]
 pub async fn user_info(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let user_id = if let Some(user) = msg.mentions.first() {
         user.id
