@@ -104,7 +104,7 @@ async fn display_roles(ctx: &Context, msg: &Message, in_dms: bool) -> CommandRes
                     if aliases.is_empty() {
                         format!("{}\n{}", x, name)
                     } else {
-                        format!("{}{} (*aliases:* {})\n", x, name, aliases)
+                        format!("{}\n{} (*aliases:* {})", x, name, aliases)
                     }
                 },
             );
