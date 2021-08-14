@@ -8,4 +8,4 @@
 - [Facebook Page](https://www.facebook.com/LOTRMC)
 - [Official Wiki](https://lotrminecraftmod.fandom.com)
 
-[<img src="https://i.ibb.co/5LJj893/discord-icon-flat-style-available-svg-png-eps-10.png" width="150"/>](https://discord.com/api/oauth2/authorize?client_id=780858391383638057&permissions=258705189952&scope=bot)
+[<img src="https://i.ibb.co/5LJj893/discord-icon-flat-style-available-svg-png-eps-10.png" width="150"/>](https://discord.com/api/oauth2/authorize?client_id=780858391383638057&permissions=189784255552&scope=bot%20applications.commands)
