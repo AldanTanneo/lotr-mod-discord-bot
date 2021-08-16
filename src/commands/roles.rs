@@ -13,6 +13,44 @@ use crate::{failure, handle_json_error, is_admin, role_cache, success, warn};
 
 use Reason::*;
 
+macro_rules! role_message {
+    ($ctx:ident, $msg:ident, $role:ident, $single_message:expr) => {
+        $msg.author
+            .direct_message($ctx, |m| {
+                m.embed(|e| {
+                    e.description($single_message)
+                    .colour($role.colour)
+                })
+            })
+            .await?;
+    };
+    ($ctx:ident, $msg:ident, $role:ident, $($message:tt)*) => {
+        role_message!($ctx, $msg, $role, format!($($message)*))
+    };
+}
+
+macro_rules! role_log {
+    ($msg:ident, $role:ident, $log:literal) => {
+        println!(
+            $log,
+            role_name = $role.name,
+            role_id = $role.id,
+            user_name = $msg.author.name,
+            user_id = $msg.author.id
+        );
+    };
+    ($msg:ident, $role:ident, $log:literal, $($extra:tt)*) => {
+        println!(
+            $log,
+            $($extra)*,
+            role_name = $role.name,
+            role_id = $role.id,
+            user_name = $msg.author.name,
+            user_id = $msg.author.id,
+        );
+    };
+}
+
 #[inline]
 pub fn format_role_name(name: &str) -> String {
     name.to_lowercase().replace(&['-', '_'][..], " ")
@@ -33,11 +71,7 @@ async fn can_have_role<'a>(
     member: &Member,
     server_id: GuildId,
 ) -> Result<(), Reason<'a>> {
-    if let Some(duration) = &role
-        .properties
-        .time_requirement
-        .map(|t| Duration::from_std(t))
-    {
+    if let Some(duration) = &role.properties.time_requirement.map(Duration::from_std) {
         if let Ok(time_requirement) = duration {
             if let Some(time) = member.joined_at {
                 let time_since_join = Utc::now().signed_duration_since(time);
@@ -144,7 +178,7 @@ async fn display_roles(ctx: &Context, msg: &Message, in_dms: bool) -> CommandRes
 #[checks(allowed_blacklist)]
 #[sub_commands(add, delete, list, display, cache)]
 pub async fn role(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-    if let Err(_) = msg.delete(ctx).await {
+    if msg.delete(ctx).await.is_err() {
         warn!(ctx, msg);
     }
     if args.is_empty() {
@@ -169,31 +203,59 @@ pub async fn role(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
         {
             if member.roles.contains(&role.id) {
                 if member.remove_role(ctx, role.id).await.is_err() {
-                    msg.author
-                    .direct_message(ctx, |m| {
-                            m.content("The bot is missing the required permissions to remove roles! Contact an admin.")
-                        })
-                    .await?;
+                    role_message!(ctx, msg, role, "The bot is missing the required permissions to remove roles! Contact an admin.");
+                } else {
+                    role_log!(
+                        msg,
+                        role,
+                        "Role {role_name} ({role_id}) removed from {user_name} ({user_id})"
+                    );
+                    role_message!(
+                        ctx,
+                        msg,
+                        role,
+                        "The **{}** role has been removed from your profile",
+                        role.name
+                    );
                 }
+            } else if member.add_role(ctx, role.id).await.is_err() {
+                role_message!(
+                    ctx,
+                    msg,
+                    role,
+                    "The bot is missing the required permissions to give roles! Contact an admin."
+                );
             } else {
-                if member.add_role(ctx, role.id).await.is_err() {
-                    msg.author
-                        .direct_message(ctx, |m| {
-                                m.content("The bot is missing the required permissions to give roles! Contact an admin.")
-                            })
-                        .await?;
-                }
+                role_log!(
+                    msg,
+                    role,
+                    "Role {role_name} ({role_id}) given to {user_name} ({user_id})"
+                );
+                role_message!(
+                    ctx,
+                    msg,
+                    role,
+                    "You have been given the **{}** role.",
+                    role.name
+                );
             }
         } else {
             match can_have_role.unwrap_err() {
                 NotEnoughTime(date) => {
-                    msg.author.dm(ctx, |m| m.content(format!("You have not been on the server for enough time to be able to claim this role! It will unlock on <t:{}:f>", date))).await?;
+                    role_log!(msg, role,
+                        "Time requirement not met for role {role_name} ({role_id}) to {user_name} ({user_id})."
+                    );
+                    role_message!(ctx, msg, role, "You have not been on the server for enough time to be able to claim this role! It will unlock on <t:{}:f>", date);
                 }
-                IncompatibleRole(role_name) => {
-                    msg.author.dm(ctx, |m| m.content(format!("You have the \"{}\" role, which is incompatible with the role you are trying to claim.", role_name))).await?;
+                IncompatibleRole(incompatible_role_name) => {
+                    role_log!(msg, role,
+                        "Incompatible role \"{}\" for role {role_name} ({role_id}) to {user_name} ({user_id})", incompatible_role_name
+                    );
+                    role_message!(ctx, msg, role, "You have the \"{}\" role, which is incompatible with the role you are trying to claim.", incompatible_role_name);
                 }
-                MissingRequiredRole(role_name) => {
-                    msg.author.dm(ctx, |m| m.content(format!("You are missing the \"{}\" role, which is required for the role you are trying to claim.", role_name))).await?;
+                MissingRequiredRole(missing_role_name) => {
+                    role_log!(msg, role, "Missing required role \"{}\" for giving {role_name} ({role_id}) to {user_name} ({user_id})", missing_role_name);
+                    role_message!(ctx, msg, role, "You are missing the \"{}\" role, which is required for the role you are trying to claim.", missing_role_name);
                 }
                 other_error => println!(
                     "Error trying to claim role \"{}\" in {:?}: {:?}",
@@ -204,7 +266,10 @@ pub async fn role(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     } else {
         msg.author
             .dm(ctx, |m| {
-                m.content("The role you are trying to claim does not exist on the server.")
+                m.embed(|e| {
+                    e.description("The role you are trying to claim does not exist on the server.")
+                        .colour(serenity::utils::Colour::RED)
+                })
             })
             .await?;
     }
@@ -280,7 +345,7 @@ pub async fn display(ctx: &Context, msg: &Message, args: Args) -> CommandResult 
     let server_id = msg.guild_id.unwrap();
     let role_name = format_role_name(args.rest());
     if let Some(role) = role_cache::get_role(ctx, server_id, role_name).await {
-        let aliases = roles::get_aliases(ctx, server_id, role.id.into()).await;
+        let aliases = roles::get_aliases(ctx, server_id, role.id).await;
         msg.channel_id
             .send_message(ctx, |m| {
                 m.embed(|e| {
