@@ -16,7 +16,7 @@ pub async fn search(
 ) -> Option<GenericPage> {
     let rclient = get_reqwest_client!(ctx);
     if namespace == &Page {
-        let [hit, link, desc] = google_search(ctx, query, &wiki).await?;
+        let [hit, link, desc] = google_search(ctx, query, wiki).await?;
         println!("hit '{}'", hit);
         let query = hit
             .split(" | ")

@@ -42,7 +42,7 @@ pub async fn get_role(
     if let Some(role) = roles::get_role(ctx, server_id, &role_name).await {
         let r = Arc::new(role);
         role_cache.insert((role_name, server_id), r.clone());
-        if let Some(aliases) = roles::get_aliases(ctx, server_id, r.id.into()).await {
+        if let Some(aliases) = roles::get_aliases(ctx, server_id, r.id).await {
             for alias in aliases {
                 role_cache.insert((alias, server_id), r.clone());
             }
