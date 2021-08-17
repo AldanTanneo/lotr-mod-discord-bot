@@ -46,6 +46,7 @@ use crate::database::{
     floppa::is_floppadmin,
     Blacklist::IsBlacklisted,
 };
+use crate::utils::NotInGuild;
 use crate::{failure, is_admin, success};
 
 #[command]
@@ -53,8 +54,9 @@ use crate::{failure, is_admin, success};
 #[only_in(guilds)]
 #[sub_commands(cache)]
 pub async fn prefix(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+    let server_id = msg.guild_id.ok_or(NotInGuild)?;
     if args.is_empty() {
-        let prefix = get_prefix(ctx, msg.guild_id).await;
+        let prefix = get_prefix(ctx, server_id).await;
         msg.reply(
             ctx,
             format!(
@@ -66,7 +68,7 @@ pub async fn prefix(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
     } else {
         let new_prefix = args.single::<String>();
         if let Ok(p) = new_prefix {
-            if !p.contains("<@") && set_prefix(ctx, msg.guild_id, &p, true).await.is_ok() {
+            if !p.contains("<@") && set_prefix(ctx, server_id, &p).await.is_ok() {
                 success!(ctx, msg, "Set the new prefix to \"{}\"", p);
             } else {
                 failure!(ctx, msg, "Failed to set the new prefix!");
@@ -96,17 +98,14 @@ async fn cache(ctx: &Context) -> CommandResult {
 #[sub_commands("add", "remove")]
 #[aliases("admins")]
 pub async fn admin(ctx: &Context, msg: &Message) -> CommandResult {
-    let admins = get_admins(ctx, msg.guild_id).await.unwrap_or_else(Vec::new);
+    let server_id = msg.guild_id.ok_or(NotInGuild)?;
+
+    let admins = get_admins(ctx, server_id).await.unwrap_or_else(Vec::new);
 
     let mut user_names: Vec<String> = admins.iter().map(|&id| id.mention().to_string()).collect();
     user_names.push(OWNER_ID.mention().to_string());
 
-    let guild_name = msg
-        .guild_id
-        .unwrap_or(LOTR_DISCORD)
-        .to_partial_guild(ctx)
-        .await?
-        .name;
+    let guild_name = server_id.to_partial_guild(ctx).await?.name;
     msg.channel_id
         .send_message(ctx, |m| {
             m.embed(|e| {
@@ -125,9 +124,11 @@ pub async fn admin(ctx: &Context, msg: &Message) -> CommandResult {
 #[max_args(1)]
 #[min_args(1)]
 pub async fn add(ctx: &Context, msg: &Message) -> CommandResult {
+    let server_id = msg.guild_id.ok_or(NotInGuild)?;
+
     if let Some(user) = msg.mentions.iter().find(|&user| user.id != BOT_ID) {
-        if !(is_admin!(ctx, msg.guild_id, user.id) || user.id == OWNER_ID) {
-            add_admin(ctx, msg.guild_id, user.id, false, false).await?;
+        if !(is_admin!(ctx, server_id, user.id) || user.id == OWNER_ID) {
+            add_admin(ctx, server_id, user.id, false).await?;
             success!(ctx, msg);
         } else {
             failure!(ctx, msg, "This user is already a bot admin on this server!");
@@ -148,17 +149,19 @@ pub async fn add(ctx: &Context, msg: &Message) -> CommandResult {
 #[max_args(1)]
 #[min_args(1)]
 pub async fn remove(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+    let server_id = msg.guild_id.ok_or(NotInGuild)?;
+
     if let Some(user) = msg.mentions.iter().find(|&user| user.id != BOT_ID) {
         if user.id == OWNER_ID {
             failure!(ctx, msg, "You cannot remove this bot admin!");
-        } else if is_admin!(ctx, msg.guild_id, user.id) {
-            remove_admin(ctx, msg.guild_id, user.id).await?;
+        } else if is_admin!(ctx, server_id, user.id) {
+            remove_admin(ctx, server_id, user.id).await?;
             success!(ctx, msg);
         } else {
             failure!(ctx, msg, "This user is not a bot admin on this server!");
         }
-    } else if is_admin!(ctx, msg.guild_id, UserId(args.parse().unwrap_or_default())) {
-        remove_admin(ctx, msg.guild_id, UserId(args.single()?)).await?;
+    } else if is_admin!(ctx, server_id, UserId(args.parse().unwrap_or_default())) {
+        remove_admin(ctx, server_id, UserId(args.single()?)).await?;
         success!(ctx, msg);
     } else {
         failure!(
@@ -218,22 +221,20 @@ pub async fn blacklist(ctx: &Context, msg: &Message, args: Args) -> CommandResul
 #[command]
 #[owners_only]
 pub async fn floppadmin(ctx: &Context, msg: &Message) -> CommandResult {
+    let server_id = msg.guild_id.ok_or(NotInGuild)?;
+
     if let Some(user) = msg
         .mentions
         .iter()
         .find(|&user| user.id != BOT_ID && user.id != OWNER_ID)
     {
-        if !is_floppadmin(ctx, msg.guild_id, user.id)
+        if is_floppadmin(ctx, server_id, user.id)
             .await
             .unwrap_or_default()
         {
-            if !is_admin!(ctx, msg.guild_id, user.id) {
-                add_admin(ctx, msg.guild_id, user.id, false, true)
-            } else {
-                add_admin(ctx, msg.guild_id, user.id, true, true)
-            }
+            add_admin(ctx, server_id, user.id, false)
         } else {
-            add_admin(ctx, msg.guild_id, user.id, true, false)
+            add_admin(ctx, server_id, user.id, true)
         }
         .await?;
         success!(ctx, msg);

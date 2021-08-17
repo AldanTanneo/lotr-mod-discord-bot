@@ -11,11 +11,11 @@ use crate::{failure, handle_json_error, success};
 #[only_in(guilds)]
 #[checks(is_admin)]
 #[sub_commands("edit")]
-pub async fn announce(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    let channel = serenity::utils::parse_channel(args.single::<String>()?.trim());
-    if let Some(id) = channel {
+pub async fn announce(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
+    let channel = args.parse::<ChannelId>();
+    if let Ok(channel_id) = channel {
         if msg.guild_id
-            != ChannelId(id)
+            != channel_id
                 .to_channel(ctx)
                 .await?
                 .guild()
@@ -31,7 +31,7 @@ pub async fn announce(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
         let message = get_json_from_message(msg).await;
         match message {
             Ok(value) => {
-                if announcement::announce(ctx, ChannelId(id), &value)
+                if announcement::announce(ctx, channel_id, &value)
                     .await
                     .is_ok()
                 {

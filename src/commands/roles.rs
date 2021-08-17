@@ -8,7 +8,7 @@ use serenity::model::prelude::*;
 use crate::check::*;
 use crate::constants::OWNER_ID;
 use crate::database::roles;
-use crate::utils::{get_json_from_message, has_permission};
+use crate::utils::{get_json_from_message, has_permission, NotInGuild};
 use crate::{failure, handle_json_error, is_admin, role_cache, success, warn};
 
 use Reason::*;
@@ -127,7 +127,8 @@ async fn can_have_role<'a>(
 }
 
 async fn display_roles(ctx: &Context, msg: &Message, in_dms: bool) -> CommandResult {
-    let server_id = msg.guild_id.unwrap();
+    let server_id = msg.guild_id.ok_or(NotInGuild)?;
+
     if let Some(roles) = roles::get_role_list(ctx, server_id).await {
         let role_list = roles
             .iter()
@@ -185,7 +186,7 @@ pub async fn role(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
         return display_roles(ctx, msg, true).await;
     }
     let role_name = format_role_name(args.rest());
-    let server_id = msg.guild_id.unwrap();
+    let server_id = msg.guild_id.ok_or(NotInGuild)?;
 
     if let Some(role) = role_cache::get_role(ctx, server_id, role_name).await {
         let mut member = server_id.member(ctx, msg.author.id).await?;
@@ -195,7 +196,7 @@ pub async fn role(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
             || is_admin!(ctx, msg)
             || has_permission(
                 ctx,
-                msg.guild_id,
+                server_id,
                 msg.author.id,
                 crate::constants::MANAGE_BOT_PERMS,
             )
@@ -280,7 +281,7 @@ pub async fn role(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 #[only_in(guilds)]
 #[checks(is_admin)]
 pub async fn add(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-    let server_id = msg.guild_id.unwrap();
+    let server_id = msg.guild_id.ok_or(NotInGuild)?;
     if let Ok(role_id) = args.parse::<RoleId>() {
         if let Some(role) = server_id.roles(ctx).await?.get(&role_id) {
             match get_json_from_message::<roles::RoleProperties>(msg).await {
@@ -317,8 +318,9 @@ pub async fn add(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 #[command]
 #[only_in(guilds)]
 #[checks(is_admin)]
+#[aliases("remove")]
 pub async fn delete(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
-    let server_id = msg.guild_id.unwrap();
+    let server_id = msg.guild_id.ok_or(NotInGuild)?;
     if let Ok(role_id) = args.parse::<RoleId>() {
         role_cache::delete_role(ctx, server_id, role_id).await?;
         success!(ctx, msg);
@@ -342,7 +344,7 @@ pub async fn display(ctx: &Context, msg: &Message, args: Args) -> CommandResult 
     if args.is_empty() {
         return display_roles(ctx, msg, false).await;
     }
-    let server_id = msg.guild_id.unwrap();
+    let server_id = msg.guild_id.ok_or(NotInGuild)?;
     let role_name = format_role_name(args.rest());
     if let Some(role) = role_cache::get_role(ctx, server_id, role_name).await {
         let aliases = roles::get_aliases(ctx, server_id, role.id).await;

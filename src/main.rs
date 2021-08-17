@@ -115,13 +115,7 @@ async fn main() {
             c.prefix("") // remove default prefix and
                 // add dynamic prefix defaulting to "!"
                 .dynamic_prefix(|ctx, msg| {
-                    Box::pin(async move {
-                        Some(
-                            get_prefix(ctx, msg.guild_id)
-                                .await
-                                .unwrap_or_else(|| "!".into()),
-                        )
-                    })
+                    Box::pin(async move { get_prefix(ctx, msg.guild_id.unwrap_or_default()).await })
                 })
                 // bot reacts on mention
                 .on_mention(Some(BOT_ID))

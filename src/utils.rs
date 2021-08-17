@@ -4,7 +4,18 @@ use serenity::client::Context;
 use serenity::model::prelude::*;
 
 use crate::constants::MAX_JSON_FILE_SIZE;
-use JsonMessageError::*;
+
+/// Custom error for unwrapping `msg.guild_id`
+#[derive(Debug)]
+pub struct NotInGuild;
+
+impl std::fmt::Display for NotInGuild {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "Not in a guild")
+    }
+}
+
+impl std::error::Error for NotInGuild {}
 
 #[derive(Debug)]
 pub enum JsonMessageError {
@@ -12,6 +23,8 @@ pub enum JsonMessageError {
     DownloadError,
     JsonError(Error),
 }
+
+use JsonMessageError::*;
 
 pub async fn get_json_from_message<T: DeserializeOwned>(
     msg: &Message,
@@ -159,7 +172,7 @@ macro_rules! warn {
 #[macro_export]
 macro_rules! is_admin {
     ($ctx:ident, $msg:ident) => {
-        $crate::is_admin!($ctx, $msg.guild_id, $msg.author.id)
+        $crate::is_admin!($ctx, $msg.guild_id.unwrap_or_default(), $msg.author.id)
     };
     ($ctx:ident, $guild_id:expr, $user:expr) => {
         $crate::database::admin_data::is_admin_function($ctx, $guild_id, $user)
@@ -171,25 +184,24 @@ macro_rules! is_admin {
 /// Checks a [`User`]'s permissions.
 ///
 /// Returns `true` if `user` has the [permissions][Permissions] `perm` in the
-/// `guild`. If `guild` is [`None`], or if the user lacks the permissions,
+/// `guild`. If the user lacks the permissions,
 /// returns `false`.
 pub async fn has_permission(
     ctx: &Context,
-    guild: Option<GuildId>,
+    guild: GuildId,
     user_id: UserId,
     perm: Permissions,
 ) -> bool {
-    if let Some(guild) = guild {
-        if let Ok(g) = guild.to_partial_guild(&ctx).await {
-            if let Ok(m) = g.member(ctx, user_id).await {
-                return m
-                    .permissions(ctx)
-                    .await
-                    .unwrap_or_default()
-                    .intersects(perm);
-            }
+    if let Ok(g) = guild.to_partial_guild(&ctx).await {
+        if let Ok(m) = g.member(ctx, user_id).await {
+            return m
+                .permissions(ctx)
+                .await
+                .unwrap_or_default()
+                .intersects(perm);
         }
     }
+
     false
 }
 

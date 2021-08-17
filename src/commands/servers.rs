@@ -6,7 +6,7 @@ use serenity::utils::Colour;
 use crate::api::minecraft::get_server_status;
 use crate::check::*;
 use crate::database::config::{delete_minecraft_ip, get_minecraft_ip, set_minecraft_ip};
-use crate::utils::parse_motd;
+use crate::utils::{parse_motd, NotInGuild};
 use crate::{failure, success};
 
 #[command]
@@ -16,7 +16,9 @@ use crate::{failure, success};
 #[sub_commands(set_ip, remove_ip)]
 #[checks(is_minecraft_server)]
 async fn server_ip(ctx: &Context, msg: &Message) -> CommandResult {
-    let ip = get_minecraft_ip(ctx, msg.guild_id).await;
+    let server_id = msg.guild_id.ok_or(NotInGuild)?;
+
+    let ip = get_minecraft_ip(ctx, server_id).await;
     if let Some(ip) = ip {
         msg.channel_id
             .send_message(ctx, |m| {
@@ -43,12 +45,14 @@ async fn server_ip(ctx: &Context, msg: &Message) -> CommandResult {
 #[checks(is_admin)]
 #[aliases("set")]
 pub async fn set_ip(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+    let server_id = msg.guild_id.ok_or(NotInGuild)?;
+
     if let Ok(ip) = args.single_quoted::<String>() {
         println!("Setting up IP");
-        let update = get_minecraft_ip(ctx, msg.guild_id).await.is_some();
-        set_minecraft_ip(ctx, msg.guild_id, &ip, update).await?;
+        set_minecraft_ip(ctx, server_id, &ip).await?;
         success!(ctx, msg, "Set Minecraft server IP to  `{}`", ip);
     }
+
     Ok(())
 }
 
@@ -57,9 +61,11 @@ pub async fn set_ip(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
 #[checks(is_admin)]
 #[aliases("remove", "unset")]
 pub async fn remove_ip(ctx: &Context, msg: &Message) -> CommandResult {
-    let ip = get_minecraft_ip(ctx, msg.guild_id).await;
+    let server_id = msg.guild_id.ok_or(NotInGuild)?;
+
+    let ip = get_minecraft_ip(ctx, server_id).await;
     if let Some(ip) = ip {
-        delete_minecraft_ip(ctx, msg.guild_id).await?;
+        delete_minecraft_ip(ctx, server_id).await?;
         success!(
             ctx,
             msg,
@@ -77,9 +83,11 @@ pub async fn remove_ip(ctx: &Context, msg: &Message) -> CommandResult {
 #[checks(is_minecraft_server)]
 #[bucket = "basic"]
 pub async fn online(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+    let server_id = msg.guild_id.ok_or(NotInGuild)?;
+
     let ip = if !args.is_empty() {
         args.single::<String>()?
-    } else if let Some(ip) = get_minecraft_ip(ctx, msg.guild_id).await {
+    } else if let Some(ip) = get_minecraft_ip(ctx, server_id).await {
         ip
     } else {
         failure!(

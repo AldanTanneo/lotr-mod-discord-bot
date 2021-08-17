@@ -2,7 +2,7 @@ use dashmap::DashMap;
 use mysql_async::prelude::*;
 use serenity::client::Context;
 use serenity::framework::standard::CommandResult;
-use serenity::model::{error::Error::WrongGuild, id::GuildId};
+use serenity::model::id::GuildId;
 use serenity::prelude::TypeMapKey;
 use std::sync::Arc;
 
@@ -15,8 +15,10 @@ impl TypeMapKey for PrefixCache {
     type Value = Arc<DashMap<GuildId, String>>;
 }
 
-pub async fn get_prefix(ctx: &Context, guild_id: Option<GuildId>) -> Option<String> {
-    let server_id = guild_id?;
+pub async fn get_prefix(ctx: &Context, server_id: GuildId) -> Option<String> {
+    if server_id == GuildId(0) {
+        return Some(String::from("!"));
+    }
 
     let prefix_cache = ctx.data.read().await.get::<PrefixCache>()?.clone();
 
@@ -37,8 +39,8 @@ pub async fn get_prefix(ctx: &Context, guild_id: Option<GuildId>) -> Option<Stri
     let prefix = if let Some(prefix) = res {
         prefix
     } else {
-        println!("Initializing prefix for {:?}", guild_id);
-        set_prefix(ctx, guild_id, "!", false).await.ok()?;
+        println!("Initializing prefix for {:?}", server_id);
+        set_prefix(ctx, server_id, "!").await.ok()?;
         println!("Prefix initialized successfully");
         "!".to_string()
     };
@@ -49,31 +51,15 @@ pub async fn get_prefix(ctx: &Context, guild_id: Option<GuildId>) -> Option<Stri
         .map(|entry| entry.value().clone())
 }
 
-pub async fn set_prefix(
-    ctx: &Context,
-    guild_id: Option<GuildId>,
-    prefix: &str,
-    update: bool,
-) -> CommandResult {
-    let server_id = guild_id.ok_or(WrongGuild)?;
-
+pub async fn set_prefix(ctx: &Context, server_id: GuildId, prefix: &str) -> CommandResult {
     let mut conn = get_database_conn!(ctx, Result);
 
-    let req = if update {
-        println!("Updating prefix to \"{}\"", prefix);
-        format!(
-            "UPDATE {} SET prefix = :prefix WHERE server_id = :server_id",
-            TABLE_PREFIX
-        )
-    } else {
-        println!("Initializing prefix to \"{}\"", prefix);
-        format!(
-            "INSERT INTO {} (server_id, prefix) VALUES (:server_id, :prefix)",
-            TABLE_PREFIX
-        )
-    };
+    println!("Setting prefix to {} in {}", prefix, server_id);
     conn.exec_drop(
-        req.as_str(),
+        format!(
+            "REPLACE INTO {} (server_id, prefix) VALUES (:server_id, :prefix)",
+            TABLE_PREFIX
+        ),
         params! {
             "server_id" => server_id.0,
             "prefix" => prefix,
@@ -91,47 +77,29 @@ pub async fn set_prefix(
     Ok(())
 }
 
-pub async fn get_minecraft_ip(ctx: &Context, guild_id: Option<GuildId>) -> Option<String> {
-    let server_id: u64 = guild_id?.0;
-
+pub async fn get_minecraft_ip(ctx: &Context, server_id: GuildId) -> Option<String> {
     let mut conn = get_database_conn!(ctx);
 
     conn.query_first(format!(
         "SELECT mc_ip FROM {} WHERE server_id={}",
-        TABLE_MC_SERVER_IP, server_id
+        TABLE_MC_SERVER_IP, server_id.0
     ))
     .await
     .ok()?
 }
 
-pub async fn set_minecraft_ip(
-    ctx: &Context,
-    guild_id: Option<GuildId>,
-    ip: &str,
-    update: bool,
-) -> CommandResult {
-    let server_id: u64 = guild_id.ok_or(WrongGuild)?.0;
-
+pub async fn set_minecraft_ip(ctx: &Context, server_id: GuildId, ip: &str) -> CommandResult {
     let mut conn = get_database_conn!(ctx, Result);
 
-    let req = if update {
-        println!("Updating IP to {}", ip);
-        format!(
-            "UPDATE {} SET mc_ip = :mc_ip WHERE server_id = :server_id",
-            TABLE_MC_SERVER_IP
-        )
-    } else {
-        println!("Setting up ip to {}", ip);
-        format!(
-            "INSERT INTO {} (server_id, mc_ip) VALUES (:server_id, :mc_ip)",
-            TABLE_MC_SERVER_IP
-        )
-    };
+    println!("Setting up ip to {}", ip);
 
     conn.exec_drop(
-        req.as_str(),
+        format!(
+            "REPLACE INTO {} (server_id, mc_ip) VALUES (:server_id, :mc_ip)",
+            TABLE_MC_SERVER_IP
+        ),
         params! {
-            "server_id" => server_id,
+            "server_id" => server_id.0,
             "mc_ip" => ip,
         },
     )
@@ -143,9 +111,7 @@ pub async fn set_minecraft_ip(
     Ok(())
 }
 
-pub async fn delete_minecraft_ip(ctx: &Context, guild_id: Option<GuildId>) -> CommandResult {
-    let server_id: u64 = guild_id.ok_or(WrongGuild)?.0;
-
+pub async fn delete_minecraft_ip(ctx: &Context, server_id: GuildId) -> CommandResult {
     let mut conn = get_database_conn!(ctx, Result);
 
     let req = format!(
@@ -156,7 +122,7 @@ pub async fn delete_minecraft_ip(ctx: &Context, guild_id: Option<GuildId>) -> Co
     conn.exec_drop(
         req.as_str(),
         params! {
-            "server_id" => server_id
+            "server_id" => server_id.0
         },
     )
     .await?;

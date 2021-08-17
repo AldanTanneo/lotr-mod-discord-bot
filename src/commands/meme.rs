@@ -1,12 +1,12 @@
 use serenity::client::Context;
 use serenity::framework::standard::{macros::command, Args, CommandResult};
-use serenity::model::error::Error::WrongGuild;
 use serenity::model::prelude::*;
 
 use crate::check::*;
 use crate::constants::OWNER_ID;
 use crate::database::floppa::{add_floppa, get_floppa, is_floppadmin};
 use crate::success;
+use crate::utils::NotInGuild;
 
 #[command]
 #[only_in(guilds)]
@@ -55,28 +55,34 @@ async fn dagohon(ctx: &Context, msg: &Message) -> CommandResult {
 
 #[command]
 async fn floppadd(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+    let server_id = msg.guild_id.ok_or(NotInGuild)?;
+
     if msg.author.id == OWNER_ID
-        || is_floppadmin(ctx, msg.guild_id, msg.author.id)
+        || is_floppadmin(ctx, server_id, msg.author.id)
             .await
             .unwrap_or_default()
     {
-        let owner = OWNER_ID.to_user(ctx);
-        let guild = msg.guild_id.ok_or(WrongGuild)?.to_partial_guild(ctx);
         let url = args.single::<String>();
         if let Ok(floppa_url) = url {
-            let owner = owner.await?;
-            let guild = guild
+            let owner = OWNER_ID.to_user(ctx).await?;
+            let guild = server_id
+                .to_partial_guild(ctx)
                 .await
                 .map(|g| g.name)
                 .unwrap_or_else(|_| "DMs".to_string());
-            let dm = owner.dm(ctx, |m| {
-                m.content(format!(
-                    "Floppa added by {} in {}\n{}",
-                    msg.author.name, guild, &floppa_url
-                ))
-            });
+
+            let dm = owner
+                .dm(ctx, |m| {
+                    m.content(format!(
+                        "Floppa added by {} in {}\n{}",
+                        msg.author.name, guild, &floppa_url
+                    ))
+                })
+                .await?;
+
             add_floppa(ctx, floppa_url.clone()).await?;
-            dm.await?.react(ctx, ReactionType::from('✅')).await?;
+
+            success!(ctx, dm);
             success!(ctx, msg);
         }
     }

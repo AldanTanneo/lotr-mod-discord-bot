@@ -71,20 +71,14 @@ pub async fn add_floppa(ctx: &Context, floppa_url: String) -> CommandResult {
     Ok(())
 }
 
-pub async fn is_floppadmin(
-    ctx: &Context,
-    guild_id: Option<GuildId>,
-    user_id: UserId,
-) -> Option<bool> {
-    let server_id: u64 = guild_id?.0;
-
+pub async fn is_floppadmin(ctx: &Context, server_id: GuildId, user_id: UserId) -> Option<bool> {
     let mut conn = get_database_conn!(ctx);
 
     let res = conn
         .query_first(
             format!(
                 "SELECT EXISTS(SELECT user_id FROM {} WHERE server_id={} AND user_id={} AND floppadmin = true LIMIT 1)",
-                TABLE_ADMINS, server_id, user_id.0
+                TABLE_ADMINS, server_id.0, user_id.0
             )
         )
         .await

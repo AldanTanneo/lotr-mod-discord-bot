@@ -14,7 +14,7 @@ use crate::database::{
     },
     Blacklist,
 };
-use crate::utils::{get_json_from_message, has_permission};
+use crate::utils::{get_json_from_message, has_permission, NotInGuild};
 use crate::{failure, handle_json_error, is_admin, success};
 
 #[command]
@@ -22,11 +22,13 @@ use crate::{failure, handle_json_error, is_admin, success};
 #[aliases("command")]
 #[sub_commands(define, custom_command_remove, custom_command_display)]
 pub async fn custom_command(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+    let server_id = msg.guild_id.ok_or(NotInGuild)?;
+
     println!("Custom command execution...");
     let name = args.single::<String>()?.to_lowercase(); // getting command name
     let subcommand = args.current(); // getting possible subcommand but not advancing
 
-    if let Some(command_data) = get_command_data(ctx, msg.guild_id, &name, false).await {
+    if let Some(command_data) = get_command_data(ctx, server_id, &name, false).await {
         let mut message: Value = serde_json::from_str(&command_data.body.replace("\\$", "$"))?;
         let mut delete = message["self_delete"].as_bool().unwrap_or_default();
         // early interrupt in case of blacklist / admin command
@@ -41,7 +43,7 @@ pub async fn custom_command(ctx: &Context, msg: &Message, mut args: Args) -> Com
         if let Some(s) = command_type {
             let is_admin = msg.author.id == OWNER_ID
                 || is_admin!(ctx, msg)
-                || has_permission(ctx, msg.guild_id, msg.author.id, MANAGE_BOT_PERMS).await;
+                || has_permission(ctx, server_id, msg.author.id, MANAGE_BOT_PERMS).await;
             if !is_admin {
                 if s == "meme"
                     && check_blacklist(ctx, msg, false)
@@ -135,7 +137,10 @@ pub async fn custom_command(ctx: &Context, msg: &Message, mut args: Args) -> Com
 #[command]
 #[checks(is_admin)]
 pub async fn define(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+    let server_id = msg.guild_id.ok_or(NotInGuild)?;
+
     let name: String = args.single::<String>()?.to_lowercase();
+
     if RESERVED_NAMES.contains(&name.as_str()) {
         failure!(
             ctx,
@@ -145,9 +150,6 @@ pub async fn define(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
         );
         return Ok(());
     }
-    let update = check_command_exists(ctx, msg.guild_id, &name)
-        .await
-        .unwrap_or_default();
 
     match get_json_from_message::<Value>(msg).await {
         Ok(mut message) => {
@@ -172,17 +174,10 @@ pub async fn define(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
                 "adding custom command \"{}\": {}\n({:?})",
                 name, body, documentation
             );
-            let db_res = add_custom_command(
-                ctx,
-                msg.guild_id,
-                &name,
-                &body,
-                documentation.as_str(),
-                update,
-            )
-            .await;
+            let db_res =
+                add_custom_command(ctx, server_id, &name, &body, documentation.as_str()).await;
             if db_res.is_ok()
-                && check_command_exists(ctx, msg.guild_id, &name)
+                && check_command_exists(ctx, server_id, &name)
                     .await
                     .unwrap_or_default()
             {
@@ -201,14 +196,15 @@ pub async fn define(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
 #[checks(is_admin)]
 #[aliases("remove", "delete")]
 async fn custom_command_remove(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+    let server_id = msg.guild_id.ok_or(NotInGuild)?;
+
     let name: String = args.single()?;
-    if check_command_exists(ctx, msg.guild_id, &name)
+
+    if check_command_exists(ctx, server_id, &name)
         .await
         .unwrap_or_default()
-        && remove_custom_command(ctx, msg.guild_id, &name)
-            .await
-            .is_ok()
-        && !check_command_exists(ctx, msg.guild_id, &name)
+        && remove_custom_command(ctx, server_id, &name).await.is_ok()
+        && !check_command_exists(ctx, server_id, &name)
             .await
             .unwrap_or_default()
     {
@@ -223,8 +219,10 @@ async fn custom_command_remove(ctx: &Context, msg: &Message, mut args: Args) -> 
 #[aliases("display", "show")]
 #[checks(is_admin)]
 async fn custom_command_display(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+    let server_id = msg.guild_id.ok_or(NotInGuild)?;
+
     if let Ok(name) = args.single::<String>() {
-        if let Some(command) = get_command_data(ctx, msg.guild_id, &name, true).await {
+        if let Some(command) = get_command_data(ctx, server_id, &name, true).await {
             println!("Displaying command docs...");
             let mut file_too_big = false;
             let bytes = command.body.as_str().as_bytes();
@@ -260,7 +258,7 @@ async fn custom_command_display(ctx: &Context, msg: &Message, mut args: Args) ->
         } else {
             failure!(ctx, msg, "The custom command does not exist!");
         }
-    } else if let Some(list) = get_custom_commands_list(ctx, msg.guild_id).await {
+    } else if let Some(list) = get_custom_commands_list(ctx, server_id).await {
         println!("displaying a list of custom commands");
         let mut newline: u32 = 0;
         msg.channel_id

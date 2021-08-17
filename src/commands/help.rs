@@ -10,22 +10,23 @@ use crate::database::{
     custom_commands::get_custom_commands_list,
 };
 use crate::is_admin;
-use crate::utils::has_permission;
+use crate::utils::{has_permission, NotInGuild};
 
 #[command]
 #[aliases("commands")]
 #[sub_commands(json, custom_commands, bugtracker)]
 pub async fn help(ctx: &Context, msg: &Message) -> CommandResult {
+    let server_id = msg.guild_id.ok_or(NotInGuild)?;
     let is_admin = msg.author.id == OWNER_ID
         || is_admin!(ctx, msg)
-        || has_permission(ctx, msg.guild_id, msg.author.id, MANAGE_BOT_PERMS).await;
+        || has_permission(ctx, server_id, msg.author.id, MANAGE_BOT_PERMS).await;
 
-    let prefix = get_prefix(ctx, msg.guild_id)
+    let prefix = get_prefix(ctx, server_id)
         .await
         .unwrap_or_else(|| "!".into());
-    let is_minecraft_server = get_minecraft_ip(ctx, msg.guild_id).await.is_some();
+    let is_minecraft_server = get_minecraft_ip(ctx, server_id).await.is_some();
 
-    let cclist = get_custom_commands_list(ctx, msg.guild_id)
+    let cclist = get_custom_commands_list(ctx, server_id)
         .await
         .unwrap_or_default();
     let mut newline: u32 = 0;
@@ -296,7 +297,7 @@ async fn custom_commands(ctx: &Context, msg: &Message) -> CommandResult {
 #[command]
 #[checks(is_admin)]
 pub async fn bugtracker(ctx: &Context, msg: &Message) -> CommandResult {
-    let prefix = get_prefix(ctx, msg.guild_id)
+    let prefix = get_prefix(ctx, msg.guild_id.unwrap_or_default())
         .await
         .unwrap_or_else(|| "!".into());
     msg.author

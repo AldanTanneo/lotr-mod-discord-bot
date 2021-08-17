@@ -35,13 +35,17 @@ use crate::utils::has_permission;
 
 #[check]
 pub async fn allowed_blacklist(ctx: &Context, msg: &Message) -> Result<(), Reason> {
+    let server_id = msg
+        .guild_id
+        .ok_or_else(|| Reason::Log("Not in a guild".into()))?;
+
     if check_blacklist(ctx, msg, false)
         .await
         .unwrap_or(Blacklist::IsBlacklisted(true))
         .is_blacklisted()
         && !is_admin!(ctx, msg)
         && msg.author.id != OWNER_ID
-        && !has_permission(ctx, msg.guild_id, msg.author.id, MANAGE_BOT_PERMS).await
+        && !has_permission(ctx, server_id, msg.author.id, MANAGE_BOT_PERMS).await
     {
         msg.delete(ctx)
             .await
@@ -57,9 +61,12 @@ pub async fn allowed_blacklist(ctx: &Context, msg: &Message) -> Result<(), Reaso
 
 #[check]
 pub async fn is_admin(ctx: &Context, msg: &Message) -> Result<(), Reason> {
+    let server_id = msg
+        .guild_id
+        .ok_or_else(|| Reason::Log("Not in a guild".into()))?;
     if msg.author.id == OWNER_ID
         || is_admin!(ctx, msg)
-        || has_permission(ctx, msg.guild_id, msg.author.id, MANAGE_BOT_PERMS).await
+        || has_permission(ctx, server_id, msg.author.id, MANAGE_BOT_PERMS).await
     {
         Ok(())
     } else {
@@ -69,11 +76,14 @@ pub async fn is_admin(ctx: &Context, msg: &Message) -> Result<(), Reason> {
 
 #[check]
 pub async fn is_minecraft_server(ctx: &Context, msg: &Message) -> Result<(), Reason> {
-    if get_minecraft_ip(ctx, msg.guild_id).await.is_some() {
+    let server_id = msg
+        .guild_id
+        .ok_or_else(|| Reason::Log("Not in a guild".into()))?;
+    if get_minecraft_ip(ctx, server_id).await.is_some() {
         Ok(())
     } else if is_admin!(ctx, msg)
         || msg.author.id == OWNER_ID
-        || has_permission(ctx, msg.guild_id, msg.author.id, MANAGE_BOT_PERMS).await
+        || has_permission(ctx, server_id, msg.author.id, MANAGE_BOT_PERMS).await
     {
         println!("Bypassed minecraft server check");
         Ok(())
@@ -153,7 +163,7 @@ pub async fn after_hook(
 ) {
     if let Err(why) = error {
         println!(
-            "Guild {}: Error in `{}`: {:?}",
+            "{}: Error in `{}`: {:?}",
             msg.guild_id.unwrap_or_default(),
             cmd_name,
             why
