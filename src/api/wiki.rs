@@ -15,17 +15,17 @@ pub async fn search(
     wiki: &Wikis,
 ) -> Option<GenericPage> {
     let rclient = get_reqwest_client!(ctx);
+
+    println!("wiki search: \"{}\" on {:?} ({})", query, wiki, namespace);
+
     if namespace == &Page {
         let [hit, link, desc] = google_search(ctx, query, wiki).await?;
-        println!("hit '{}'", hit);
         let query = hit
             .split(" | ")
             .flat_map(|sub| sub.split(" - "))
             .flat_map(|sub| sub.split(" – "))
             .find(|&part| !part.contains("Fandom"))?
             .trim();
-
-        println!("query '{}'", query);
 
         let ns_code: &str = namespace.into();
 
@@ -51,9 +51,8 @@ pub async fn search(
         let res: Value = serde_json::from_str(&res).ok()?;
         let title = res[1][0].as_str()?;
 
-        println!("title '{}'", title);
-
         if title == query {
+            println!("result: \"{}\"", title);
             Some(GenericPage {
                 title: title.into(),
                 link,
@@ -86,6 +85,8 @@ pub async fn search(
 
         let res: Value = serde_json::from_str(&res).ok()?;
         let title = res[1][0].as_str()?;
+
+        println!("result: \"{}\"", title);
 
         Some(GenericPage {
             title: title.into(),
@@ -132,12 +133,10 @@ pub async fn display(
     page: &GenericPage,
     wiki: &Wikis,
 ) -> CommandResult {
-    println!("display");
     let rclient = get_reqwest_client!(ctx, Result);
 
     let img = match wiki {
         LotrMod(_) | Minecraft => {
-            println!("imageserving");
             let req = [
                 ("format", "json"),
                 ("action", "imageserving"),
@@ -159,7 +158,6 @@ pub async fn display(
                 .unwrap_or_else(|| wiki.default_img())
         }
         TolkienGateway => {
-            println!("image from tolkiengateway");
             let req = [
                 ("format", "json"),
                 ("action", "query"),
@@ -182,26 +180,14 @@ pub async fn display(
             let body = serde_json::from_str::<Value>(&res).unwrap_or_default();
 
             let id = body["query"]["pageids"][0].as_str().unwrap_or("0");
-            println!("id {:?}", id);
             let pages = &body["query"]["pages"];
-            println!("body {:?}", pages);
+
             pages[id]["imageinfo"][0]["url"]
                 .as_str()
                 .map(String::from)
                 .unwrap_or_else(|| wiki.default_img())
         }
     };
-    println!("img '{}'", img);
-    println!(
-        "page '{}'\n   '{}'\n   '{:?}'",
-        page.title, page.link, page.desc
-    );
-    println!(
-        "wiki '{}'\n   '{}'\n   '{}'",
-        wiki.name(),
-        wiki.site(),
-        wiki.icon()
-    );
 
     msg.channel_id
         .send_message(ctx, |m| {

@@ -106,7 +106,7 @@ impl From<RandomPage> for GenericPage {
     }
 }
 
-#[derive(std::cmp::PartialEq)]
+#[derive(Debug, PartialEq)]
 pub enum Lang {
     En,
     Fr,
@@ -116,6 +116,13 @@ pub enum Lang {
     Ru,
     Es,
     Ja,
+}
+
+impl Default for Lang {
+    #[inline]
+    fn default() -> Self {
+        En
+    }
 }
 
 impl Lang {
@@ -231,7 +238,7 @@ impl std::fmt::Display for Lang {
     }
 }
 
-#[derive(std::cmp::PartialEq)]
+#[derive(Debug, PartialEq)]
 pub enum Wikis {
     LotrMod(Lang),
     TolkienGateway,
