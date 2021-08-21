@@ -29,7 +29,7 @@ use serenity::model::prelude::*;
 use serenity::prelude::*;
 
 use crate::constants::{LOTR_DISCORD, MANAGE_BOT_PERMS, OWNER_ID};
-use crate::database::{blacklist::check_blacklist, config::get_minecraft_ip, Blacklist};
+use crate::database::{blacklist::check_blacklist, config::get_minecraft_ip};
 use crate::is_admin;
 use crate::utils::has_permission;
 
@@ -39,10 +39,39 @@ pub async fn allowed_blacklist(ctx: &Context, msg: &Message) -> Result<(), Reaso
         .guild_id
         .ok_or_else(|| Reason::Log("Not in a guild".into()))?;
 
-    if check_blacklist(ctx, msg, false)
+    let channel = msg
+        .channel_id
+        .to_channel(ctx)
         .await
-        .unwrap_or(Blacklist::IsBlacklisted(true))
-        .is_blacklisted()
+        .map_err(|e| Reason::Log(format!("Could not retrieve channel: {}", e)))?
+        .guild()
+        .ok_or_else(|| Reason::Log("Not in a guild".into()))?;
+
+    let mut channel_id = channel.id;
+
+    if channel.thread_metadata.is_some() {
+        let thread_channel_id = channel
+            .messages(ctx, |b| b.after(MessageId(0)).limit(1))
+            .await
+            .map_err(|e| Reason::Log(format!("Could not retrieve first message: {}", e)))?
+            .get(0)
+            .ok_or_else(|| {
+                Reason::Log(format!(
+                    "Could not retrieve first message of thread channel"
+                ))
+            })?
+            .channel_id;
+
+        if msg.channel_id != thread_channel_id {
+            channel_id = thread_channel_id;
+        } else {
+            println!("The thread's first message has the same channel id as the rest... no restriction possible :waah:");
+        }
+    }
+
+    if check_blacklist(ctx, server_id, msg.author.id, channel_id)
+        .await
+        .unwrap_or(true)
         && !is_admin!(ctx, msg)
         && msg.author.id != OWNER_ID
         && !has_permission(ctx, server_id, msg.author.id, MANAGE_BOT_PERMS).await

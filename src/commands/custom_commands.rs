@@ -12,7 +12,6 @@ use crate::database::{
         add_custom_command, check_command_exists, get_command_data, get_custom_commands_list,
         remove_custom_command,
     },
-    Blacklist,
 };
 use crate::utils::{get_json_from_message, has_permission, NotInGuild};
 use crate::{failure, handle_json_error, is_admin, success};
@@ -46,10 +45,9 @@ pub async fn custom_command(ctx: &Context, msg: &Message, mut args: Args) -> Com
                 || has_permission(ctx, server_id, msg.author.id, MANAGE_BOT_PERMS).await;
             if !is_admin {
                 if s == "meme"
-                    && check_blacklist(ctx, msg, false)
+                    && check_blacklist(ctx, server_id, msg.author.id, msg.channel_id)
                         .await
-                        .unwrap_or(Blacklist::IsBlacklisted(true))
-                        .is_blacklisted()
+                        .unwrap_or(true)
                 {
                     msg.delete(ctx).await?;
                     msg.author

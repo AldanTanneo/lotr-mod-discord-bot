@@ -38,13 +38,12 @@ use serenity::framework::standard::{macros::command, Args, CommandResult};
 use serenity::model::prelude::*;
 
 use crate::check::*;
-use crate::constants::{BOT_ID, LOTR_DISCORD, OWNER_ID};
+use crate::constants::{BOT_ID, OWNER_ID};
 use crate::database::{
     admin_data::{add_admin, get_admins, remove_admin},
-    blacklist::{check_blacklist, update_blacklist},
+    blacklist::{get_blacklist, update_blacklist},
     config::{get_prefix, set_prefix, PrefixCache},
     floppa::is_floppadmin,
-    Blacklist::IsBlacklisted,
 };
 use crate::utils::NotInGuild;
 use crate::{failure, is_admin, success};
@@ -177,11 +176,9 @@ pub async fn remove(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
 #[only_in(guilds)]
 #[checks(is_admin)]
 pub async fn blacklist(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
+    let server_id = msg.guild_id.ok_or(NotInGuild)?;
     if args.is_empty() && msg.mentions.is_empty() {
-        let (users, channels) = check_blacklist(ctx, msg, true)
-            .await
-            .unwrap_or(IsBlacklisted(true))
-            .get_list();
+        let (users, channels) = get_blacklist(ctx, server_id).await.unwrap_or_default();
 
         let mut user_names: Vec<String> = users.iter().map(|&u| u.mention().to_string()).collect();
 
@@ -195,12 +192,7 @@ pub async fn blacklist(ctx: &Context, msg: &Message, args: Args) -> CommandResul
             channel_names.push("None".into());
         }
 
-        let guild_name = msg
-            .guild_id
-            .unwrap_or(LOTR_DISCORD)
-            .to_partial_guild(ctx)
-            .await?
-            .name;
+        let guild_name = server_id.to_partial_guild(ctx).await?.name;
         msg.channel_id
             .send_message(ctx, |m| {
                 m.embed(|e| {
