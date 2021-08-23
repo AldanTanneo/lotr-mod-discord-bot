@@ -26,12 +26,28 @@ pub async fn add_custom_command(
     description: Option<&str>,
 ) -> CommandResult {
     let mut conn = get_database_conn!(ctx, Result);
+    let query = if check_command_exists(ctx, server_id, name)
+        .await
+        .unwrap_or_default()
+    {
+        format!(
+            "UPDATE {} SET command_json = :body{} WHERE server_id = :server_id AND name = :name",
+            TABLE_CUSTOM_COMMANDS,
+            if description.is_some() {
+                ", documentation = :description"
+            } else {
+                ""
+            }
+        )
+    } else {
+        format!(
+            "INSERT INTO {} (server_id, name, command_json, documentation) VALUES (:server_id, :name, :body, :description)",
+            TABLE_CUSTOM_COMMANDS
+        )
+    };
 
     conn.exec_drop(
-        format!(
-            "REPLACE INTO {} (server_id, name, command_json, documentation) VALUES (:server_id, :name, :body, :description)",
-            TABLE_CUSTOM_COMMANDS
-        ),
+        query,
         params! {
             "server_id" => server_id.0,
             "name" => name,
