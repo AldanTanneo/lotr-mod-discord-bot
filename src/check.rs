@@ -39,34 +39,19 @@ pub async fn allowed_blacklist(ctx: &Context, msg: &Message) -> Result<(), Reaso
         .guild_id
         .ok_or_else(|| Reason::Log("Not in a guild".into()))?;
 
-    let channel = msg
+    let thread_parent_channel = msg
         .channel_id
         .to_channel(ctx)
         .await
         .map_err(|e| Reason::Log(format!("Could not retrieve channel: {}", e)))?
         .guild()
+        .map(|g| g.thread_metadata.map(|_| g.category_id).flatten())
         .ok_or_else(|| Reason::Log("Not in a guild".into()))?;
 
-    let mut channel_id = channel.id;
+    let mut channel_id = msg.channel_id;
 
-    if channel.thread_metadata.is_some() {
-        let thread_channel_id = channel
-            .messages(ctx, |b| b.after(MessageId(0)).limit(1))
-            .await
-            .map_err(|e| Reason::Log(format!("Could not retrieve first message: {}", e)))?
-            .get(0)
-            .ok_or_else(|| {
-                Reason::Log(format!(
-                    "Could not retrieve first message of thread channel"
-                ))
-            })?
-            .channel_id;
-
-        if msg.channel_id != thread_channel_id {
-            channel_id = thread_channel_id;
-        } else {
-            println!("The thread's first message has the same channel id as the rest... no restriction possible :waah:");
-        }
+    if let Some(parent_channel) = thread_parent_channel {
+        channel_id = parent_channel;
     }
 
     if check_blacklist(ctx, server_id, msg.author.id, channel_id)
@@ -136,7 +121,7 @@ pub async fn is_lotr_discord(_: &Context, msg: &Message) -> Result<(), Reason> {
 pub async fn dispatch_error_hook(ctx: &Context, msg: &Message, error: DispatchError) {
     match error {
         DispatchError::CheckFailed(s, reason) => {
-            println!("{}", s);
+            println!("Check failed: {}", s);
             match reason {
                 Reason::User(err_message) => {
                     match join(
@@ -147,11 +132,11 @@ pub async fn dispatch_error_hook(ctx: &Context, msg: &Message, error: DispatchEr
                     {
                         (Err(_), _) | (_, Err(_)) => println!("Error sending failure message"),
                         _ => (),
-                    };
+                    }
                 }
                 Reason::UserAndLog { user, log: _ } => {
                     if msg.author.dm(ctx, |m| m.content(user)).await.is_err() {
-                        println!("Error sending blacklist warning");
+                        println!("Error sending blacklist warning")
                     }
                 }
                 Reason::Log(err_message) => {
@@ -175,7 +160,7 @@ pub async fn dispatch_error_hook(ctx: &Context, msg: &Message, error: DispatchEr
                     .reply(ctx, "Wait a few seconds before using this command again!")
                     .await
                 {
-                    println!("Error sending ratelimited warning: {:?}", e);
+                    println!("Error sending ratelimited warning: {:?}", e)
                 }
             }
         }
@@ -192,10 +177,11 @@ pub async fn after_hook(
 ) {
     if let Err(why) = error {
         println!(
-            "{}: Error in `{}`: {:?}",
-            msg.guild_id.unwrap_or_default(),
-            cmd_name,
-            why
+            "=== ERROR REPORT ===\nError in command `{}`: {:?}\n=== MESSAGE ===\nAuthor: {}\nGuild: {}\nChannel: {}\nContent: {}",
+            cmd_name, why, msg.author, 
+            msg.guild_id.map(|id| id.to_string()).unwrap_or_else(|| "None".into()), 
+            msg.channel_id, 
+            msg.content,
         );
     }
 }
