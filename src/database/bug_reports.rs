@@ -8,7 +8,7 @@ pub use super::{BugReport, BugStatus, PartialBugReport};
 use crate::constants::{TABLE_BUG_REPORTS, TABLE_BUG_REPORTS_LINKS};
 use crate::get_database_conn;
 
-pub async fn get_bug_from_id(ctx: &Context, bug_id: u64) -> Option<BugReport> {
+pub async fn get_bug_from_id(ctx: &Context, bug_id: u64) -> Result<BugReport, CommandError> {
     let mut conn = get_database_conn!(ctx);
 
     let (channel_id, message_id, title, status, timestamp, legacy): (
@@ -23,11 +23,10 @@ pub async fn get_bug_from_id(ctx: &Context, bug_id: u64) -> Option<BugReport> {
             "SELECT channel_id, message_id, title, status, timestamp, legacy FROM {} WHERE bug_id={}",
             TABLE_BUG_REPORTS, bug_id
         ))
-        .await
-        .ok()??;
+        .await?.ok_or(CommandError::from("Bug report does not exist!"))?;
 
-    let links: Vec<(u64, String, String)> = dbg!(
-        conn.exec(
+    let links: Vec<(u64, String, String)> = conn
+        .exec(
             format!(
                 "SELECT link_id, link_url, link_title FROM {} WHERE bug_id = :bug_id",
                 TABLE_BUG_REPORTS_LINKS
@@ -36,16 +35,17 @@ pub async fn get_bug_from_id(ctx: &Context, bug_id: u64) -> Option<BugReport> {
                 "bug_id" => bug_id
             },
         )
-        .await
-    )
-    .ok()?;
+        .await?;
 
-    Some(BugReport {
+    Ok(BugReport {
         bug_id,
         channel_id: ChannelId(channel_id),
         message_id: MessageId(message_id),
         title,
-        status: status.as_str().parse().unwrap_or_default(),
+        status: status
+            .as_str()
+            .parse()
+            .expect("Expected a valid bug status from the database"),
         timestamp: DateTime::from_utc(timestamp, Utc),
         legacy,
         links,

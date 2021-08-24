@@ -185,10 +185,9 @@ pub async fn buglist(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
                 .iter()
                 .map(|b| {
                     format!(
-                        "{} {}  `{}`{}",
+                        "{} {}{}",
                         b.status.marker(),
                         b,
-                        b.status,
                         if legacy.is_none() && b.legacy {
                             " [legacy]"
                         } else {
@@ -260,9 +259,10 @@ pub async fn bug(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult 
             .trim_start_matches("LOTR-")
             .parse::<u64>()
         {
-            if let Some(bug) = get_bug_from_id(ctx, bug_id).await {
-                let linked_message = bug.channel_id.message(ctx, bug.message_id).await;
-                msg.channel_id
+            match get_bug_from_id(ctx, bug_id).await {
+                Ok(bug) => {
+                    let linked_message = bug.channel_id.message(ctx, bug.message_id).await;
+                    msg.channel_id
                     .send_message(ctx, |m| {
                         m.embed(|e| {
                             e.author(|a| {
@@ -310,9 +310,12 @@ pub async fn bug(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult 
                         })
                     })
                     .await?;
-                termite!(ctx, msg);
-            } else {
-                failure!(ctx, msg, "Bug LOTR-{} does not exist!", bug_id)
+                    termite!(ctx, msg);
+                }
+                Err(e) => {
+                    failure!(ctx, msg, "Bug LOTR-{} does not exist!", bug_id);
+                    return Err(e);
+                }
             }
         } else {
             failure!(ctx, msg, "`{}` is not a valid bug id!", bug_id)
