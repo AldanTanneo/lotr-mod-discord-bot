@@ -10,13 +10,13 @@ use crate::database::{
     custom_commands::get_custom_commands_list,
 };
 use crate::is_admin;
-use crate::utils::{has_permission, NotInGuild};
+use crate::utils::has_permission;
 
 #[command]
 #[aliases("commands")]
 #[sub_commands(json, custom_commands, bugtracker, admin_help)]
 pub async fn help(ctx: &Context, msg: &Message) -> CommandResult {
-    let server_id = msg.guild_id.ok_or(NotInGuild)?;
+    let server_id = msg.guild_id.unwrap_or_default();
     let is_admin = msg.author.id == OWNER_ID
         || is_admin!(ctx, msg)
         || has_permission(ctx, server_id, msg.author.id, MANAGE_BOT_PERMS).await;
@@ -417,5 +417,10 @@ or leave empty to get a list of commands
             })
         })
         .await?;
+
+    if msg.guild_id.is_some() {
+        msg.reply(ctx, "Admin help message sent to DMs!").await?;
+    }
+
     Ok(())
 }
