@@ -1,3 +1,5 @@
+//! Module for database interactions
+
 pub mod admin_data;
 pub mod blacklist;
 pub mod bug_reports;

@@ -34,6 +34,7 @@ use crate::is_admin;
 use crate::utils::has_permission;
 
 #[check]
+#[name = "allowed_blacklist"]
 pub async fn allowed_blacklist(ctx: &Context, msg: &Message) -> Result<(), Reason> {
     let server_id = msg
         .guild_id
@@ -74,6 +75,7 @@ pub async fn allowed_blacklist(ctx: &Context, msg: &Message) -> Result<(), Reaso
 }
 
 #[check]
+#[name = "is_admin"]
 pub async fn is_admin(ctx: &Context, msg: &Message) -> Result<(), Reason> {
     let server_id = msg.guild_id.unwrap_or_default();
     if msg.author.id == OWNER_ID
@@ -87,6 +89,7 @@ pub async fn is_admin(ctx: &Context, msg: &Message) -> Result<(), Reason> {
 }
 
 #[check]
+#[name = "is_minecraft_server"]
 pub async fn is_minecraft_server(ctx: &Context, msg: &Message) -> Result<(), Reason> {
     let server_id = msg
         .guild_id
@@ -105,6 +108,7 @@ pub async fn is_minecraft_server(ctx: &Context, msg: &Message) -> Result<(), Rea
 }
 
 #[check]
+#[name = "is_lotr_discord"]
 pub async fn is_lotr_discord(_: &Context, msg: &Message) -> Result<(), Reason> {
     if msg.guild_id == Some(LOTR_DISCORD) || msg.author.id == OWNER_ID {
         Ok(())
@@ -138,18 +142,17 @@ pub async fn dispatch_error_hook(ctx: &Context, msg: &Message, error: DispatchEr
                     }
                 }
                 Reason::Log(err_message) => {
-                    println!("Check failed: {}", err_message);
+                    println!("{}", err_message);
                 }
-                _ => println!("Check failed for unknow reason."),
+                _ => println!("(Unknown reason)"),
             }
         }
         DispatchError::OnlyForGuilds => {
-            if msg
+            if let Err(e) = msg
                 .reply(ctx, "This command cannot be executed in DMs!")
                 .await
-                .is_err()
             {
-                println!("Error sending guild-only warning");
+                println!("Error sending guild-only warning: {:?}", e);
             }
         }
         DispatchError::Ratelimited(rate_limit_info) => {
@@ -178,13 +181,14 @@ pub async fn after_hook(
             "=== ERROR REPORT ===
 Error in command `{}`: {:?}
 === MESSAGE ===
-Author: {}
+Author: {} ({})
 Guild: {}
 Channel: {}
 Content: {}",
             cmd_name,
             why,
-            msg.author,
+            msg.author.tag(),
+            msg.author.id,
             msg.guild_id
                 .map(|id| id.to_string())
                 .unwrap_or_else(|| "None".into()),

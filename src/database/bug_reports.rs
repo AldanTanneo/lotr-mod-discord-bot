@@ -143,7 +143,15 @@ pub async fn get_bug_list(
             "limit" => limit,
             "offset" => limit * page
         },
-        PartialBugReport::new_from_tuple,
+        |(bug_id, title, status, timestamp, legacy): (u64, String, String, NaiveDateTime, bool)| {
+            PartialBugReport::new(
+                bug_id,
+                title,
+                status.parse().expect("Expected a valid bug status from the database"),
+                timestamp,
+                legacy
+            )
+        },
     )
     .await
     .ok()

@@ -1,3 +1,6 @@
+//! Huge file with text definition for the wiki interface,
+//! and some structures for the other the API functions.
+
 use serde::{Deserialize, Serialize};
 use serenity::prelude::TypeMapKey;
 use std::sync::Arc;

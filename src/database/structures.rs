@@ -33,7 +33,7 @@ impl std::fmt::Display for BugStatus {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ParseStatusError {}
+pub struct ParseStatusError;
 
 impl FromStr for BugStatus {
     type Err = ParseStatusError;
@@ -153,7 +153,7 @@ impl std::fmt::Display for PartialBugReport {
 }
 
 impl PartialBugReport {
-    fn new(
+    pub fn new(
         bug_id: u64,
         title: String,
         status: String,
@@ -167,9 +167,5 @@ impl PartialBugReport {
             timestamp: DateTime::from_utc(timestamp, Utc),
             legacy,
         })
-    }
-
-    pub fn new_from_tuple(data: (u64, String, String, NaiveDateTime, bool)) -> Option<Self> {
-        Self::new(data.0, data.1, data.2, data.3, data.4)
     }
 }

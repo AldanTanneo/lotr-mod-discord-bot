@@ -204,7 +204,12 @@ pub async fn role(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
         {
             if member.roles.contains(&role.id) {
                 if member.remove_role(ctx, role.id).await.is_err() {
-                    role_message!(ctx, msg, role, "The bot is missing the required permissions to remove roles! Contact an admin.");
+                    role_message!(
+                        ctx,
+                        msg,
+                        role,
+                        "The bot is missing the permissions to remove roles! Contact an admin."
+                    );
                 } else {
                     role_log!(
                         msg,
@@ -224,7 +229,7 @@ pub async fn role(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
                     ctx,
                     msg,
                     role,
-                    "The bot is missing the required permissions to give roles! Contact an admin."
+                    "The bot is missing the permissions to give roles! Contact an admin."
                 );
             } else {
                 role_log!(
@@ -246,17 +251,49 @@ pub async fn role(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
                     role_log!(msg, role,
                         "Time requirement not met for role {role_name} ({role_id}) to {user_name} ({user_id})."
                     );
-                    role_message!(ctx, msg, role, "You have not been on the server for enough time to be able to claim this role! It will unlock on <t:{}:f>", date);
+                    role_message!(
+                        ctx,
+                        msg,
+                        role,
+                        "You have not been on the server for enough time to be able to claim the \
+**{}** role! It will unlock on {}",
+                        role.name,
+                        date.format("%B %-d %Y at %R (UTC)")
+                    );
                 }
                 IncompatibleRole(incompatible_role_name) => {
-                    role_log!(msg, role,
-                        "Incompatible role \"{}\" for role {role_name} ({role_id}) to {user_name} ({user_id})", incompatible_role_name
+                    role_log!(
+                        msg,
+                        role,
+                        "Incompatible role \"{}\" for role {role_name} ({role_id}) \
+to {user_name} ({user_id})",
+                        incompatible_role_name
                     );
-                    role_message!(ctx, msg, role, "You have the \"{}\" role, which is incompatible with the role you are trying to claim.", incompatible_role_name);
+                    role_message!(
+                        ctx,
+                        msg,
+                        role,
+                        "You have the **{}** role, which is incompatible with the role you \
+are trying to claim.",
+                        incompatible_role_name
+                    );
                 }
                 MissingRequiredRole(missing_role_name) => {
-                    role_log!(msg, role, "Missing required role \"{}\" for giving {role_name} ({role_id}) to {user_name} ({user_id})", missing_role_name);
-                    role_message!(ctx, msg, role, "You are missing the \"{}\" role, which is required for the role you are trying to claim.", missing_role_name);
+                    role_log!(
+                        msg,
+                        role,
+                        "Missing required role \"{}\" for giving {role_name} ({role_id}) to \
+{user_name} ({user_id})",
+                        missing_role_name
+                    );
+                    role_message!(
+                        ctx,
+                        msg,
+                        role,
+                        "You are missing the **{}** role, which is required for the role you \
+are trying to claim.",
+                        missing_role_name
+                    );
                 }
                 other_error => println!(
                     "Error trying to claim role \"{}\" in {:?}: {:?}",

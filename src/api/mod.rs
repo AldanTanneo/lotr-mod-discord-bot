@@ -1,3 +1,5 @@
+//! Module for API functions: queries to google, curseforge, the LOTR Mod wiki...
+
 pub mod curseforge;
 pub mod google;
 pub mod minecraft;

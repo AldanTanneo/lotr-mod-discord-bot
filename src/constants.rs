@@ -22,12 +22,35 @@ pub const MANAGE_BOT_PERMS: Permissions = Permissions {
         | Permissions::MANAGE_CHANNELS.bits,
 };
 
+/// Termite icon for bug reports
 pub const TERMITE_IMAGE: &str =
     "https://media.discordapp.net/attachments/781837314975989772/839479742457839646/termite.png";
-pub const CURSEFORGE_ICON: &str = "";
+/// Forge logo for the !forge command
+pub const FORGE_ICON: &str =
+    "https://pbs.twimg.com/profile_images/778706890914095109/fhMDH9o6_400x400.jpg";
+/// Curseforge logo for the !curseforge command
+pub const CURSEFORGE_ICON: &str = "https://tinyimg.io/i/SVsK1qC.png";
+/// Facebook logo for the !facebook command
+pub const FACEBOOK_ICON: &str =
+    "https://facebookbrand.com/wp-content/uploads/2019/04/f_logo_RGB-Hex-Blue_512.png";
+/// Visual for the !donate command
+pub const DONATE_THUMBNAIL: &str =
+    "https://media.discordapp.net/attachments/781837314975989772/809773869971013653/Donate.png";
 
+/// Link to forge downloads for the !forge command. Replace {mc} with the correct version.
+pub const FORGE_LINK: &str =
+    "http://files.minecraftforge.net/maven/net/minecraftforge/forge/index_{mc}.html";
 /// [LOTR Mod Wiki](https://lotrminecraftmod.fandom.com) adress
 pub const WIKI_DOMAIN: &str = "lotrminecraftmod.fandom.com";
+/// Paypal donation link in dollars
+pub const PAYPAL_LINK_DOLLARS: &str =
+    "[Paypal](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=YZ97X6UBJJD7Y)";
+/// Paypal donation link in pounds
+pub const PAYPAL_LINK_POUNDS: &str =
+    "[Paypal](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=8BXR2F4FYYEK2)";
+/// Paypal donation link in euros
+pub const PAYPAL_LINK_EUROS: &str =
+    "[Paypal](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=5Q4NK7C5N2FB4)";
 
 /// A Curseforge [public API](https://www.cfwidget.com/) for the
 /// [`!curseforge`][crate::commands::general::curseforge] command
