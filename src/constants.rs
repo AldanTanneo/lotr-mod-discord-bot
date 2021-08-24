@@ -22,6 +22,10 @@ pub const MANAGE_BOT_PERMS: Permissions = Permissions {
         | Permissions::MANAGE_CHANNELS.bits,
 };
 
+pub const TERMITE_IMAGE: &str =
+    "https://media.discordapp.net/attachments/781837314975989772/839479742457839646/termite.png";
+pub const CURSEFORGE_ICON: &str = "";
+
 /// [LOTR Mod Wiki](https://lotrminecraftmod.fandom.com) adress
 pub const WIKI_DOMAIN: &str = "lotrminecraftmod.fandom.com";
 
@@ -64,7 +68,7 @@ pub const TABLE_ROLES_ALIASES: &str = "roles__aliases";
 pub const TABLE_LIST_GUILDS: &str = "list_guilds";
 
 /// Reserved command names that cannot be used as [custom commands][crate::commands::custom_commands]
-pub const RESERVED_NAMES: [&str; 45] = [
+pub const RESERVED_NAMES: [&str; 46] = [
     "legacy",
     "renewed",
     "download",
@@ -110,4 +114,5 @@ pub const RESERVED_NAMES: [&str; 45] = [
     "clean_database",
     "user",
     "user_info",
+    "role",
 ];

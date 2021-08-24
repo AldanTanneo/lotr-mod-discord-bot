@@ -14,7 +14,7 @@ use crate::utils::{has_permission, NotInGuild};
 
 #[command]
 #[aliases("commands")]
-#[sub_commands(json, custom_commands, bugtracker)]
+#[sub_commands(json, custom_commands, bugtracker, admin_help)]
 pub async fn help(ctx: &Context, msg: &Message) -> CommandResult {
     let server_id = msg.guild_id.ok_or(NotInGuild)?;
     let is_admin = msg.author.id == OWNER_ID
@@ -68,7 +68,7 @@ pub async fn help(ctx: &Context, msg: &Message) -> CommandResult {
                 e.colour(Colour::DARK_GREEN);
                 e.title("Available commands");
                 e.field(
-                    "General commands",
+                    "**General commands**",
                     format!(
 "`{prefix}curseforge [legacy|renewed]`  Display the mod download link (default: `legacy`)
 `{prefix}invite`  Send the bot invite link in DMs
@@ -82,38 +82,18 @@ pub async fn help(ctx: &Context, msg: &Message) -> CommandResult {
 `{prefix}forge`  Technical support command
 `{prefix}coremod`  Technical support command
 `{prefix}user`  Display information about a user
-",
+`{prefix}role <role name>`  Claim the given role. The role has to be explicitly \
+defined by admins of the server.",
                         prefix=prefix,
                         json=if is_admin {" [json]"} else {""}
                     ),
                     false,
                 );
-                if is_minecraft_server || is_admin {
-                    e.field(
-                        "Minecraft server commands",
-                        format!(
-"`{prefix}ip{}`  Display the server ip{}
-`{prefix}online [ip]`  Display the server status and a list of online players (default: the server's set ip)
-",
-                            if is_admin {
-                                " [set <server ip>]"
-                            } else {
-                                ""
-                            },
-                            if is_admin {
-                                ", if it exists; use `set` to add one."
-                            } else {
-                                ""
-                            },
-                            prefix=prefix
-                        ),
-                        false
-                    );
-                }
                 e.field(
-                    "Wiki commands",
+                    "**Wiki commands**",
                     format!(
-"`{prefix}wiki [language] <query>`  Display search result from the [LOTR Mod Wiki](https://lotrminecraftmod.fandom.com/)
+                        "`{prefix}wiki [language] <query>`  Display search result from the \
+[LOTR Mod Wiki](https://lotrminecraftmod.fandom.com/)
 (default language: `en`)
 Available languages: `en`, `de`, `fr`, `es`, `nl`, `ja`, `zh`, `ru`
 
@@ -125,12 +105,14 @@ Available languages: `en`, `de`, `fr`, `es`, `nl`, `ja`, `zh`, `ru`
 
 `{prefix}wiki random`  Display a random wiki page (from the English wiki only)
 
-`{prefix}wiki tolkien <query>`  Display search result from [TolkienGateway](http://www.tolkiengateway.net/)
-`{prefix}wiki minecraft <query>`  Display search result from the [Official Minecraft Wiki](https://minecraft.gamepedia.com/)
+`{prefix}wiki tolkien <query>`  Display search result from \
+[TolkienGateway](http://www.tolkiengateway.net/)
+`{prefix}wiki minecraft <query>`  Display search result from the \
+[Official Minecraft Wiki](https://minecraft.gamepedia.com/)
 ",
                         prefix = prefix
                     ),
-                    false
+                    false,
                 );
                 if !cctext.is_empty() || is_admin {
                     e.footer(|f| f.text("1/2"));
@@ -143,44 +125,45 @@ Available languages: `en`, `de`, `fr`, `es`, `nl`, `ja`, `zh`, `ru`
 
     if !cctext.is_empty() || is_admin {
         msg.author
-        .direct_message(ctx, |m| {
-            m.embed(|e| {
-                e.colour(Colour::DARK_GREEN);
-                e.title("Available commands");
-                if !cctext.is_empty() {
-                    e.field(
-                        "Custom commands",
-                        dbg!(cctext),
-                        false,
-                    );
-                }
-                if is_admin {
-                    e.field(
-                        "Admin commands",
-                        format!(
-"`{prefix}prefix [new prefix]`  Display or change the bot prefix for your server
-`{prefix}admin add <user mention>`  Give a user admin rights for the bot
-`{prefix}admin remove <user mention>`  Removes admin rights for a user
-`{prefix}admin list`  Display a list of bot admins
-`{prefix}blacklist [user or channel mention]`  Prevent some commands to be used by the user or in the channel (except for bot admins). When used without arguments, displays the blacklist.
-`{prefix}announce <channel mention> <json message content>`  Make the bot send a message to the mentioned channel. For the JSON argument documentation, type `{prefix}help json`
-
-`{prefix}define <command name> <json command content>`  Define or update a custom command.  For the JSON argument documentation, type  `{prefix}help custom`
-`{prefix}command display [command name]`  Provide an argument to get info on a specific command, or leave empty to get a list of commands
-`{prefix}command remove <command name>`  Remove a custom command
-
-*Only bot admins can use these commands*
-*For bugtracker help, use  `{prefix}help bugtracker`*
-", prefix=prefix),
-                        false,
-                    );
-                }
-                e.footer(|f| f.text("2/2"));
-                e
-            });
-            m
-        })
-        .await?;
+            .direct_message(ctx, |m| {
+                m.embed(|e| {
+                    e.colour(Colour::DARK_GREEN);
+                    e.title("Available commands");
+                    if is_minecraft_server || is_admin {
+                        e.field(
+                            "**Minecraft server commands**",
+                            format!(
+                                "`{prefix}ip{}`  Display the server ip{}
+`{prefix}online [ip]`  Display the server status and a list of online players \
+(default: the server's set ip)
+",
+                                if is_admin { " [set <server ip>]" } else { "" },
+                                if is_admin {
+                                    ", if it exists; use `set` to add one."
+                                } else {
+                                    ""
+                                },
+                                prefix = prefix
+                            ),
+                            false,
+                        );
+                    }
+                    if !cctext.is_empty() {
+                        e.field("**Custom commands**", cctext, false);
+                    }
+                    if is_admin {
+                        e.field(
+                            "Admin commands",
+                            format!("Do  `{}help admin`  to see admin commands", prefix),
+                            false,
+                        );
+                    }
+                    e.footer(|f| f.text("2/2"));
+                    e
+                });
+                m
+            })
+            .await?;
     }
 
     if msg.guild_id.is_some() {
@@ -250,7 +233,7 @@ async fn json(ctx: &Context, msg: &Message) -> CommandResult {
 
 #[command]
 #[checks(is_admin)]
-#[aliases(custom)]
+#[aliases("custom")]
 async fn custom_commands(ctx: &Context, msg: &Message) -> CommandResult {
     msg.author
         .direct_message(ctx, |m| {
@@ -303,32 +286,45 @@ pub async fn bugtracker(ctx: &Context, msg: &Message) -> CommandResult {
     msg.author
         .dm(ctx, |m| {
             m.embed(|e| {
+                e.colour(Colour::DARK_GREEN);
                 e.author(|a| {
-                    a.icon_url("https://media.discordapp.net/attachments/781837314975989772/839479742457839646/termite.png");
+                    a.icon_url(crate::constants::TERMITE_IMAGE);
                     a.name("The bugtracker is only available in the LOTR Mod Community Discord");
                     a
                 });
                 e.title("Available bugtracker commands");
                 e.field(
-                    "Creating a bug report",
+                    "**Creating a bug report**",
                     format!(
-"`{prefix}track [status] <bug title>`  Creates a new bug report with the optional specified `status`: one of `low`, `medium`, `high`, `critical`, and `forge` or `vanilla`. The command returns a unique bug id.
- \t**Must be used with an inline reply to a message that will constitute the initial bug report content.**
-\tYou can optionnally use  `{prefix}track legacy [status] <bug title>`  to create a legacy bug report.
-`{prefix}bug link <bug id> [link url] [link title]`  Adds additional information to the bug report referenced by its `bug id`. Can also be used with an inline reply to a message, in which case you don't need to specify a url.
- \tThe command returns a unique link id which you can remove with the command  `{prefix}bug link remove <bug id> <link id>`.
+"`{prefix}track [status] <bug title>`  Creates a new bug report with the optional specified \
+`status`: one of `low`, `medium`, `high`, `critical`, and `forge` or `vanilla`. \
+The command returns a unique bug id.
+ \t**Must be used with an inline reply to a message that will constitute the \
+ initial bug report content.**
+\tYou can optionnally use  `{prefix}track legacy [status] <bug title>`  \
+to create a legacy bug report.
+`{prefix}bug link <bug id> [link url] [link title]`  Adds additional information to the bug \
+report referenced by its `bug id`. Can also be used with an inline reply to a message, \
+in which case you don't need to specify a url.
+ \tThe command returns a unique link id which you can remove with the command  \
+ `{prefix}bug link remove <bug id> <link id>`.
 ",
                         prefix = prefix,
                     ),
-                    false
+                    false,
                 );
                 e.field(
-                    "Displaying and editing bug reports",
+                    "**Displaying and editing bug reports**",
                     format!(
-"`{prefix}bugs [latest|oldest] [status] [page] [limit n]`  Displays a list of bugs. By default, it will display all bugs that are not `resolved`, `forge` or `closed`, in chronological order starting from the latest one, and with a default limit of 10 bugs.
- \tThe `limit` keyword is necessary to specify a custom limit.
- \tAvailable statuses are `low`, `medium`, `high`, `critical`, `resolved`, `forge` (or `vanilla`) and `closed`.
- \tYou can optionnally use  `{prefix}bugs [legacy|renewed] [latest|oldest] [status] [limit]`  to display legacy only or renewed only bugs.
+"`{prefix}bugs [latest|oldest|highest|lowest] [status] [page] [limit n]`  Displays a list of \
+bugs. By default, it will display all bugs that are not `resolved`, `forge` or `closed`, in \
+chronological order starting from the latest one, and with a default limit of 10 bugs.
+ \tThe `limit` keyword is necessary to specify a custom limit. `highest` and `lowest` will \
+ sort the bugs by priority.
+ \tAvailable statuses are `low`, `medium`, `high`, `critical`, `resolved`, `forge` \
+ (or `vanilla`) and `closed`.
+ \tYou can optionnally use  `{prefix}bugs [legacy|renewed] [latest|oldest] [status] [limit]`  \
+ to display legacy only or renewed only bugs.
 `{prefix}bug <bug id>`  Displays a single bug.
 `{prefix}bug rename <bug id> <new title>`  Change a bug's title.
 `{prefix}bug status <bug id> <new status>`  Change a bug's status.
@@ -338,17 +334,19 @@ pub async fn bugtracker(ctx: &Context, msg: &Message) -> CommandResult {
 ",
                         prefix = prefix
                     ),
-                    false
+                    false,
                 );
                 e.field(
-                    "Closing a bug report",
+                    "**Closing a bug report**",
                     format!(
-"`{prefix}resolve <bug id>`  Marks a bug as resolved. Equivalent to  `{prefix}bug status <bug id> resolved`.
-`{prefix}bug close <bug id>`  Marks a bug as closed. Equivalent to  `{prefix}bug status <bug id> closed`.
+                        "`{prefix}resolve <bug id>`  Marks a bug as resolved. \
+Equivalent to  `{prefix}bug status <bug id> resolved`.
+`{prefix}bug close <bug id>`  Marks a bug as closed. \
+Equivalent to  `{prefix}bug status <bug id> closed`.
 ",
                         prefix = prefix,
                     ),
-                    false
+                    false,
                 );
                 e
             })
@@ -359,5 +357,65 @@ pub async fn bugtracker(ctx: &Context, msg: &Message) -> CommandResult {
         msg.reply(ctx, "Bugtracker help message sent to DMs!")
             .await?;
     }
+    Ok(())
+}
+
+#[command]
+#[checks(is_admin)]
+#[aliases("admin")]
+async fn admin_help(ctx: &Context, msg: &Message) -> CommandResult {
+    let prefix = get_prefix(ctx, msg.guild_id.unwrap_or_default())
+        .await
+        .unwrap_or_else(|| "!".into());
+
+    msg.author
+        .dm(ctx, |m| {
+            m.embed(|e| {
+                e.colour(Colour::DARK_GREEN);
+                e.title("Available commands");
+                e.field(
+                    "**General purpose commands**",
+                    format!(
+"`{prefix}prefix [new prefix]`  Display or change the bot prefix for your server
+`{prefix}admin add <user mention>`  Give a user admin rights for the bot
+`{prefix}admin remove <user mention>`  Removes admin rights for a user
+`{prefix}admin list`  Display a list of bot admins
+`{prefix}blacklist [user or channel mention]`  Prevent some commands to be used by the user or \
+in the channel (except for bot admins). When used without arguments, displays the blacklist.", 
+prefix=prefix),
+                    false,
+                );
+
+                e.field(
+    "**Role commands**", 
+    format!("`{prefix}role add <role mention> <role json>`  Define a new role for the  \
+`{prefix}role`  command. All fields in the role JSON are optional:
+```json
+{{
+    \"aliases\": [\"a list\", \"of aliases\"],
+    \"time_requirement\": \"7days\", // a duration, written in a human readable format
+    \"required_roles\": [\"a list\", \"of role names\"],
+    \"incompatible_roles\": [\"a list\", \"of role names\"]
+}}
+```", prefix=prefix), false);
+
+                e.field(
+    "**Annoucements & Custom commands**", 
+    format!("`{prefix}announce <channel mention> <json message content>`  Make the bot send a \
+message to the mentioned channel.  For the JSON argument documentation, type `{prefix}help json`
+
+`{prefix}define <command name> <json command content>`  Define or update a custom command. \
+For the JSON argument documentation, type  `{prefix}help custom`
+`{prefix}command display [command name]`  Provide an argument to get info on a specific command, \
+or leave empty to get a list of commands
+`{prefix}command remove <command name>`  Remove a custom command
+
+*Only bot admins can use these commands*
+*For bugtracker help, use  `{prefix}help bugtracker`*", prefix=prefix),
+                    false,
+                )
+            })
+        })
+        .await?;
     Ok(())
 }

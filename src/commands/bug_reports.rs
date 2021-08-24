@@ -210,29 +210,27 @@ pub async fn buglist(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
         }
 
         msg.channel_id
-                .send_message(ctx, |m| {
-                    m.embed(|e| {
-                        e.author(|a| {
-                            a.name("LOTR Mod Bugtracker");
-                            a.icon_url("https://media.discordapp.net/attachments/781837314975989772/839479742457839646/termite.png");
-                            a
-                        });
-                        e.colour(colour);
-                        e.title(title);
-                        e.description(
-                            if bugs.is_empty() && page == 1 {
-                                content_alt
-                            } else if bugs.is_empty() {
-                                "_Page number too high!_"
-                            } else {
-                                &content
-                            },
-                        );
-                        e.footer(|f| f.text(format!("Page {}/{}", page, (total_bugs - 1) / limit + 1)));
-                        e
-                    })
+            .send_message(ctx, |m| {
+                m.embed(|e| {
+                    e.author(|a| {
+                        a.name("LOTR Mod Bugtracker");
+                        a.icon_url(crate::constants::TERMITE_IMAGE);
+                        a
+                    });
+                    e.colour(colour);
+                    e.title(title);
+                    e.description(if bugs.is_empty() && page == 1 {
+                        content_alt
+                    } else if bugs.is_empty() {
+                        "_Page number too high!_"
+                    } else {
+                        &content
+                    });
+                    e.footer(|f| f.text(format!("Page {}/{}", page, (total_bugs - 1) / limit + 1)));
+                    e
                 })
-                .await?;
+            })
+            .await?;
         termite!(ctx, msg);
     } else {
         failure!(ctx, msg, "Could not get bug list!")
@@ -263,53 +261,50 @@ pub async fn bug(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult 
                 Ok(bug) => {
                     let linked_message = bug.channel_id.message(ctx, bug.message_id).await;
                     msg.channel_id
-                    .send_message(ctx, |m| {
-                        m.embed(|e| {
-                            e.author(|a| {
-                                a.name("LOTR Mod Bugtracker");
-                                a.icon_url("https://media.discordapp.net/attachments/781837314975989772/839479742457839646/termite.png");
-                                a
-                            });
-                            e.colour(bug.status.colour());
-                            e.title(format!(
-                                "{} LOTR-{}: {}{}",
-                                bug.status.marker(),
-                                bug_id,
-                                bug.title,
-                                if bug.legacy {
-                                    " [legacy]"
-                                } else {
-                                    ""
+                        .send_message(ctx, |m| {
+                            m.embed(|e| {
+                                e.author(|a| {
+                                    a.name("LOTR Mod Bugtracker");
+                                    a.icon_url(crate::constants::TERMITE_IMAGE);
+                                    a
+                                });
+                                e.colour(bug.status.colour());
+                                e.title(format!(
+                                    "{} LOTR-{}: {}{}",
+                                    bug.status.marker(),
+                                    bug_id,
+                                    bug.title,
+                                    if bug.legacy { " [legacy]" } else { "" }
+                                ));
+                                if let Ok(mut message) = linked_message {
+                                    message.guild_id = Some(LOTR_DISCORD);
+                                    e.description(format!(
+                                        "{}\n[[message link]]({})",
+                                        &message.content,
+                                        &message.link()
+                                    ));
+                                    if let Some(image) = message.attachments.get(0) {
+                                        e.image(&image.url);
+                                    }
                                 }
-                            ));
-                            if let Ok(mut message) = linked_message {
-                                message.guild_id = Some(LOTR_DISCORD);
-                                e.description(format!("{}\n[[message link]]({})", &message.content, &message.link()));
-                                if let Some(image) = message.attachments.get(0) {
-                                    e.image(&image.url);
+                                if !bug.links.is_empty() {
+                                    e.field(
+                                        "Additional information",
+                                        &bug.links.iter().fold(String::new(), |acc, link| {
+                                            format!(
+                                                "[{}]({}) (#{})\n{}",
+                                                link.2, link.1, link.0, acc
+                                            )
+                                        }),
+                                        false,
+                                    );
                                 }
-                            }
-                            if !bug.links.is_empty() {
-                                e.field(
-                                    "Additional information",
-                                    &bug
-                                        .links
-                                        .iter()
-                                        .fold(
-                                            String::new(),
-                                            |acc, link| format!("[{}]({}) (#{})\n{}", link.2, link.1, link.0, acc)
-                                        ),
-                                    false
-                                );
-                            }
-                            e.footer(|f| {
-                                f.text(format!("Status: {}", bug.status))
-                            });
-                            e.timestamp(&bug.timestamp);
-                            e
+                                e.footer(|f| f.text(format!("Status: {}", bug.status)));
+                                e.timestamp(&bug.timestamp);
+                                e
+                            })
                         })
-                    })
-                    .await?;
+                        .await?;
                     termite!(ctx, msg);
                 }
                 Err(e) => {
@@ -579,14 +574,15 @@ pub async fn stats(ctx: &Context, msg: &Message) -> CommandResult {
             .send_message(ctx, |m| {
                 m.embed(|e| {
                     e.author(|a| {
-                                a.name("LOTR Mod Bugtracker");
-                                a.icon_url("https://media.discordapp.net/attachments/781837314975989772/839479742457839646/termite.png");
-                                a
-                            });
+                        a.name("LOTR Mod Bugtracker");
+                        a.icon_url(crate::constants::TERMITE_IMAGE);
+                        a
+                    });
                     e.colour(serenity::utils::Colour::TEAL);
                     e.field(
                         "Bugtracker statistics",
-                        format!("{} resolved
+                        format!(
+                            "{} resolved
 {} closed
 {} forge or vanilla
 
@@ -599,9 +595,18 @@ _Open bugs: {}_
 **Total: {} tracked bugs**
 \t_including {} legacy bugs_
 ",
-                            resolved, closed, forgevanilla, total - resolved - closed - forgevanilla, low, medium, high, critical, total, legacy,
+                            resolved,
+                            closed,
+                            forgevanilla,
+                            total - resolved - closed - forgevanilla,
+                            low,
+                            medium,
+                            high,
+                            critical,
+                            total,
+                            legacy,
                         ),
-                        false
+                        false,
                     );
                     e
                 })

@@ -75,9 +75,7 @@ pub async fn allowed_blacklist(ctx: &Context, msg: &Message) -> Result<(), Reaso
 
 #[check]
 pub async fn is_admin(ctx: &Context, msg: &Message) -> Result<(), Reason> {
-    let server_id = msg
-        .guild_id
-        .ok_or_else(|| Reason::Log("Not in a guild".into()))?;
+    let server_id = msg.guild_id.unwrap_or_default();
     if msg.author.id == OWNER_ID
         || is_admin!(ctx, msg)
         || has_permission(ctx, server_id, msg.author.id, MANAGE_BOT_PERMS).await
