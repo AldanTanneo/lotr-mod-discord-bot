@@ -66,7 +66,7 @@ pub async fn get_role(ctx: &Context, server_id: GuildId, role_name: &str) -> Opt
 }
 
 pub async fn add_role(ctx: &Context, server_id: GuildId, role: &Role) -> CommandResult {
-    let mut conn = get_database_conn!(ctx, Result);
+    let mut conn = get_database_conn!(ctx);
     let empty = Vec::new();
 
     let aliases = if let Some(aliases) = &role.properties.aliases {
@@ -115,7 +115,7 @@ pub async fn add_role(ctx: &Context, server_id: GuildId, role: &Role) -> Command
 }
 
 pub async fn delete_role(ctx: &Context, server_id: GuildId, role_id: RoleId) -> CommandResult {
-    let mut conn = get_database_conn!(ctx, Result);
+    let mut conn = get_database_conn!(ctx);
     conn.exec_drop(
         format!(
             "DELETE FROM {} WHERE server_id = :server_id AND role_id = :role_id",

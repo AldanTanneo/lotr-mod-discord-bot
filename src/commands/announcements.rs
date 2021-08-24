@@ -4,6 +4,7 @@ use serenity::model::prelude::*;
 
 use crate::announcement;
 use crate::check::*;
+use crate::constants::OWNER_ID;
 use crate::utils::get_json_from_message;
 use crate::{failure, handle_json_error, success};
 
@@ -14,12 +15,13 @@ use crate::{failure, handle_json_error, success};
 pub async fn announce(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let channel = args.parse::<ChannelId>();
     if let Ok(channel_id) = channel {
-        if msg.guild_id
-            != channel_id
-                .to_channel(ctx)
-                .await?
-                .guild()
-                .map(|c| c.guild_id)
+        if msg.author.id != OWNER_ID
+            && msg.guild_id
+                != channel_id
+                    .to_channel(ctx)
+                    .await?
+                    .guild()
+                    .map(|c| c.guild_id)
         {
             failure!(
                 ctx,

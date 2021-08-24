@@ -1,7 +1,7 @@
 use chrono::{DateTime, NaiveDateTime, Utc};
 use mysql_async::prelude::*;
 use serenity::client::Context;
-use serenity::framework::standard::CommandResult;
+use serenity::framework::standard::{CommandError, CommandResult};
 use serenity::model::prelude::*;
 
 pub use super::{BugReport, BugStatus, PartialBugReport};
@@ -58,7 +58,7 @@ pub async fn add_bug_report(
     title: String,
     status: BugStatus,
     legacy: bool,
-) -> Option<u64> {
+) -> Result<u64, CommandError> {
     let mut conn = get_database_conn!(ctx);
 
     conn.exec_drop(
@@ -73,11 +73,15 @@ pub async fn add_bug_report(
             "status" => status.as_str(),
             "legacy" => legacy,
         }
-    ).await.ok()?;
+    ).await?;
+
+    if let Err(e) = msg.react(ctx, status.reaction()).await {
+        println!("Could not add reaction to bug report: {}", e);
+    }
 
     conn.query_first(format!("SELECT MAX(bug_id) FROM {}", TABLE_BUG_REPORTS))
-        .await
-        .ok()?
+        .await?
+        .ok_or(CommandError::from("Could not get newest bug id!"))
 }
 
 pub async fn get_bug_list(
@@ -139,16 +143,20 @@ pub async fn change_bug_status(
     ctx: &Context,
     bug_id: u64,
     new_status: BugStatus,
-) -> Option<BugStatus> {
+) -> Result<BugStatus, CommandError> {
     let mut conn = get_database_conn!(ctx);
 
-    let old_status: String = conn
+    let (old_status_string, channel_id, msg_id): (String, u64, u64) = conn
         .query_first(format!(
-            "SELECT status FROM {} WHERE bug_id = {} LIMIT 1",
+            "SELECT status, channel_id, message_id FROM {} WHERE bug_id = {} LIMIT 1",
             TABLE_BUG_REPORTS, bug_id
         ))
-        .await
-        .ok()??;
+        .await?
+        .ok_or(CommandError::from("Could not find bug in database"))?;
+
+    let old_status: BugStatus = old_status_string
+        .parse()
+        .expect("Expected a valid bug status from database!");
 
     conn.exec_drop(
         format!(
@@ -160,10 +168,20 @@ pub async fn change_bug_status(
             "bug_id" => bug_id
         },
     )
-    .await
-    .ok()?;
+    .await?;
 
-    Some(old_status.parse().unwrap_or_default())
+    match ChannelId(channel_id).message(ctx, MessageId(msg_id)).await {
+        Ok(msg) => {
+            if let Err(e) = msg.delete_reaction_emoji(ctx, old_status.reaction()).await {
+                println!("Could not remove reaction from bug report: {}", e);
+            } else if let Err(e) = msg.react(ctx, new_status.reaction()).await {
+                println!("Could not add reaction to bug report: {}", e);
+            }
+        }
+        Err(e) => println!("Could not get message for bug report: {}", e),
+    }
+
+    Ok(old_status)
 }
 
 pub async fn add_link(ctx: &Context, bug_id: u64, link_url: &str, link_title: &str) -> Option<u64> {
@@ -191,7 +209,7 @@ pub async fn add_link(ctx: &Context, bug_id: u64, link_url: &str, link_title: &s
 }
 
 pub async fn remove_link(ctx: &Context, bug_id: u64, link_num: u64) -> CommandResult {
-    let mut conn = get_database_conn!(ctx, Result);
+    let mut conn = get_database_conn!(ctx);
 
     conn.exec_drop(
         format!(
@@ -209,7 +227,7 @@ pub async fn remove_link(ctx: &Context, bug_id: u64, link_num: u64) -> CommandRe
 }
 
 pub async fn change_title(ctx: &Context, bug_id: u64, new_title: &str) -> CommandResult {
-    let mut conn = get_database_conn!(ctx, Result);
+    let mut conn = get_database_conn!(ctx);
 
     conn.exec_drop(
         format!(

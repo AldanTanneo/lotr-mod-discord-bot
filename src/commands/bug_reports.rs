@@ -12,7 +12,7 @@ use crate::database::BugStatus;
 use crate::failure;
 
 macro_rules! termite {
-    ($ctx:ident, $msg:ident) => {
+    ($ctx:ident, $msg:ident) => {{
         $msg.react(
             $ctx,
             ReactionType::from(EmojiIdentifier {
@@ -22,21 +22,21 @@ macro_rules! termite {
             }),
         )
         .await?;
-    };
+    }};
 }
 
 macro_rules! termite_success {
     ($ctx:ident, $msg:ident) => {
         termite!($ctx, $msg);
     };
-    ($ctx:ident, $msg:ident, $single_message:expr) => {
+    ($ctx:ident, $msg:ident, $single_message:expr) => {{
         $msg.reply($ctx, $single_message).await?;
         termite!($ctx, $msg);
-    };
-    ($ctx:ident, $msg:ident, $($success:tt)*) => {
+    }};
+    ($ctx:ident, $msg:ident, $($success:tt)*) => {{
         $msg.reply($ctx, format!($($success)*)).await?;
         termite!($ctx, $msg);
-    };
+    }};
 }
 
 #[command]
@@ -62,19 +62,20 @@ pub async fn track(ctx: &Context, msg: &Message, mut args: Args) -> CommandResul
         return Ok(());
     };
 
-    if let Some(bug_id) =
-        add_bug_report(ctx, referenced_message, title.to_string(), status, legacy).await
-    {
-        termite_success!(
+    match add_bug_report(ctx, referenced_message, title.to_string(), status, legacy).await {
+        Ok(bug_id) => termite_success!(
             ctx,
             msg,
             "Tracking bug LOTR-{} (priority: `{}`)",
             bug_id,
             status
-        );
-    } else {
-        failure!(ctx, msg, "Could not submit the bug report!");
+        ),
+        Err(e) => {
+            failure!(ctx, msg, "Could not submit the bug report!");
+            return Err(e);
+        }
     }
+
     Ok(())
 }
 
@@ -134,7 +135,8 @@ pub async fn buglist(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
         let colour;
         if let Some(status) = status {
             title = format!(
-                "Bug reports (Status: {}){} (Total: {})",
+                "{} Bug reports (Status: {}){} (Total: {})",
+                status.marker(),
                 status,
                 if let Some(b) = legacy {
                     if b {
@@ -183,7 +185,8 @@ pub async fn buglist(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
                 .iter()
                 .map(|b| {
                     format!(
-                        "{}  `{}`{}",
+                        "{} {}  `{}`{}",
+                        b.status.marker(),
                         b,
                         b.status,
                         if legacy.is_none() && b.legacy {
@@ -233,7 +236,7 @@ pub async fn buglist(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
                 .await?;
         termite!(ctx, msg);
     } else {
-        failure!(ctx, msg, "Could not get bug list!");
+        failure!(ctx, msg, "Could not get bug list!")
     }
     Ok(())
 }
@@ -269,7 +272,8 @@ pub async fn bug(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult 
                             });
                             e.colour(bug.status.colour());
                             e.title(format!(
-                                "LOTR-{}: {}{}",
+                                "{} LOTR-{}: {}{}",
+                                bug.status.marker(),
                                 bug_id,
                                 bug.title,
                                 if bug.legacy {
@@ -308,13 +312,13 @@ pub async fn bug(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult 
                     .await?;
                 termite!(ctx, msg);
             } else {
-                failure!(ctx, msg, "Bug LOTR-{} does not exist!", bug_id);
+                failure!(ctx, msg, "Bug LOTR-{} does not exist!", bug_id)
             }
         } else {
-            failure!(ctx, msg, "`{}` is not a valid bug id!", bug_id);
+            failure!(ctx, msg, "`{}` is not a valid bug id!", bug_id)
         }
     } else {
-        failure!(ctx, msg, "The first argument must be a bug id.");
+        failure!(ctx, msg, "The first argument must be a bug id.")
     }
     Ok(())
 }
@@ -330,26 +334,28 @@ pub async fn bug_status(ctx: &Context, msg: &Message, mut args: Args) -> Command
             .parse::<u64>()
         {
             if let Ok(new_status) = args.single::<BugStatus>() {
-                if let Some(old_status) = change_bug_status(ctx, bug_id, new_status).await {
-                    termite_success!(
+                match change_bug_status(ctx, bug_id, new_status).await {
+                    Ok(old_status) => termite_success!(
                         ctx,
                         msg,
                         "Status changed for LOTR-{} from `{}` to `{}`!",
                         bug_id,
                         old_status,
                         new_status
-                    );
-                } else {
-                    failure!(ctx, msg, "The bug LOTR-{} does not exist!", bug_id);
+                    ),
+                    Err(e) => {
+                        failure!(ctx, msg, "The bug LOTR-{} does not exist!", bug_id);
+                        return Err(e);
+                    }
                 }
             } else {
-                failure!(ctx, msg, "The second argument must be a bug status.");
+                failure!(ctx, msg, "The second argument must be a bug status.")
             }
         } else {
-            failure!(ctx, msg, "`{}` is not a valid bug id!", bug_id);
+            failure!(ctx, msg, "`{}` is not a valid bug id!", bug_id)
         }
     } else {
-        failure!(ctx, msg, "The first argument must be a bug id.");
+        failure!(ctx, msg, "The first argument must be a bug id.")
     }
     Ok(())
 }
@@ -363,19 +369,17 @@ pub async fn resolve(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
             .trim_start_matches("LOTR-")
             .parse::<u64>()
         {
-            if change_bug_status(ctx, bug_id, BugStatus::Resolved)
-                .await
-                .is_some()
-            {
-                termite_success!(ctx, msg, "LOTR-{} has been marked as resolved.", bug_id);
-            } else {
+            if let Err(e) = change_bug_status(ctx, bug_id, BugStatus::Resolved).await {
                 failure!(ctx, msg, "The bug LOTR-{} does not exist!", bug_id);
+                return Err(e);
+            } else {
+                termite_success!(ctx, msg, "LOTR-{} has been marked as resolved.", bug_id)
             }
         } else {
-            failure!(ctx, msg, "`{}` is not a valid bug id!", bug_id);
+            failure!(ctx, msg, "`{}` is not a valid bug id!", bug_id)
         }
     } else {
-        failure!(ctx, msg, "The first argument must be a bug id.");
+        failure!(ctx, msg, "The first argument must be a bug id.")
     }
     Ok(())
 }
@@ -390,19 +394,17 @@ pub async fn bug_close(ctx: &Context, msg: &Message, mut args: Args) -> CommandR
             .trim_start_matches("LOTR-")
             .parse::<u64>()
         {
-            if change_bug_status(ctx, bug_id, BugStatus::Closed)
-                .await
-                .is_some()
-            {
-                termite_success!(ctx, msg, "LOTR-{} has been marked as closed.", bug_id);
-            } else {
+            if let Err(e) = change_bug_status(ctx, bug_id, BugStatus::Closed).await {
                 failure!(ctx, msg, "The bug LOTR-{} does not exist!", bug_id);
+                return Err(e);
+            } else {
+                termite_success!(ctx, msg, "LOTR-{} has been marked as closed.", bug_id)
             }
         } else {
-            failure!(ctx, msg, "`{}` is not a valid bug id!", bug_id);
+            failure!(ctx, msg, "`{}` is not a valid bug id!", bug_id)
         }
     } else {
-        failure!(ctx, msg, "The first argument must be a bug id.");
+        failure!(ctx, msg, "The first argument must be a bug id.")
     }
     Ok(())
 }

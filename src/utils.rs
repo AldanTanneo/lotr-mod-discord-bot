@@ -81,16 +81,10 @@ macro_rules! handle_json_error {
 macro_rules! get_reqwest_client {
     ($ctx:ident) => {{
         let data_read = $ctx.data.read().await;
-        data_read.get::<$crate::api::ReqwestClient>()?.clone()
-    }};
-    ($ctx:ident, Result) => {{
-        let data_read = $ctx.data.read().await;
-        if let Some(rclient) = data_read.get::<$crate::api::ReqwestClient>() {
-            rclient.clone()
-        } else {
-            println!("Could not get reqwest client");
-            return Ok(());
-        }
+        data_read
+            .get::<$crate::api::ReqwestClient>()
+            .expect("Expected a reqwest client in the type map")
+            .clone()
     }};
 }
 
@@ -99,27 +93,15 @@ macro_rules! get_database_conn {
     ($ctx:ident) => {{
         let pool = {
             let data_read = $ctx.data.read().await;
-            data_read.get::<$crate::database::DatabasePool>()?.clone()
+            data_read
+                .get::<$crate::database::DatabasePool>()
+                .expect("Expected a database pool in the type map")
+                .clone()
         };
-        pool.get_conn().await.ok()?
-    }};
-    ($ctx:ident, Option) => {
-        get_database_conn!($ctx)
-    };
-    ($ctx:ident, Result) => {
-        get_database_conn!($ctx, Result, Ok(()));
-    };
-    ($ctx:ident, Result, $default:expr) => {{
-        let pool = {
-            let data_read = $ctx.data.read().await;
-            if let Some(p) = data_read.get::<$crate::database::DatabasePool>() {
-                p.clone()
-            } else {
-                println!("Could not get database pool");
-                return $default;
-            }
-        };
-        pool.get_conn().await?
+        pool.get_conn()
+            .await
+            .ok()
+            .expect("Could not retrieve connection to database")
     }};
 }
 
@@ -128,14 +110,14 @@ macro_rules! success {
     ($ctx:ident, $msg:ident) => {
         $msg.react($ctx, serenity::model::prelude::ReactionType::from('✅')).await?;
     };
-    ($ctx:ident, $msg:ident, $single_message:expr) => {
+    ($ctx:ident, $msg:ident, $single_message:expr) => {{
         $msg.reply($ctx, $single_message).await?;
         $crate::success!($ctx, $msg);
-    };
-    ($ctx:ident, $msg:ident, $($success:tt)*) => {
+    }};
+    ($ctx:ident, $msg:ident, $($success:tt)*) => {{
         $msg.reply($ctx, format!($($success)*)).await?;
         $crate::success!($ctx, $msg);
-    };
+    }};
 }
 
 #[macro_export]
@@ -143,14 +125,14 @@ macro_rules! failure {
     ($ctx:ident, $msg:ident) => {
         $msg.react($ctx, serenity::model::prelude::ReactionType::from('❌')).await?;
     };
-    ($ctx:ident, $msg:ident, $single_message:expr) => {
+    ($ctx:ident, $msg:ident, $single_message:expr) => {{
         $msg.reply($ctx, $single_message).await?;
         $crate::failure!($ctx, $msg);
-    };
-    ($ctx:ident, $msg:ident, $($error:tt)*) => {
+    }};
+    ($ctx:ident, $msg:ident, $($error:tt)*) => {{
         $msg.reply($ctx, format!($($error)*)).await?;
         $crate::failure!($ctx, $msg);
-    };
+    }};
 }
 
 #[macro_export]

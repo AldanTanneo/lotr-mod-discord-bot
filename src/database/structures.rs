@@ -1,38 +1,7 @@
 use chrono::{DateTime, NaiveDateTime, Utc};
-use mysql_async::Pool;
 use serenity::model::prelude::*;
-use serenity::prelude::TypeMapKey;
 use serenity::utils::Colour;
-use std::{str::FromStr, sync::Arc};
-
-use Blacklist::*;
-
-pub struct DatabasePool;
-
-impl TypeMapKey for DatabasePool {
-    type Value = Arc<Pool>;
-}
-
-pub enum Blacklist {
-    IsBlacklisted(bool),
-    List(Vec<UserId>, Vec<ChannelId>),
-}
-
-impl Blacklist {
-    pub const fn is_blacklisted(&self) -> bool {
-        match self {
-            IsBlacklisted(b) => *b,
-            _ => false,
-        }
-    }
-
-    pub fn get_list(&self) -> (Vec<UserId>, Vec<ChannelId>) {
-        match self {
-            List(a, b) => (a.to_vec(), b.to_vec()),
-            _ => (vec![], vec![]),
-        }
-    }
-}
+use std::str::FromStr;
 
 #[derive(Debug, Clone)]
 pub struct CustomCommand {
@@ -64,9 +33,7 @@ impl std::fmt::Display for BugStatus {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ParseStatusError {
-    pub msg: &'static str,
-}
+pub struct ParseStatusError {}
 
 impl FromStr for BugStatus {
     type Err = ParseStatusError;
@@ -80,9 +47,7 @@ impl FromStr for BugStatus {
             "critical" => Ok(Critical),
             "closed" => Ok(Closed),
             "forgevanilla" | "forge" | "vanilla" => Ok(ForgeVanilla),
-            _ => Err(Self::Err {
-                msg: "Could not parse status",
-            }),
+            _ => Err(Self::Err {}),
         }
     }
 }
@@ -94,6 +59,7 @@ impl std::default::Default for BugStatus {
 }
 
 impl BugStatus {
+    #[inline]
     pub const fn as_str(&self) -> &str {
         match self {
             Resolved => "resolved",
@@ -106,15 +72,28 @@ impl BugStatus {
         }
     }
 
+    #[inline]
     pub const fn colour(&self) -> Colour {
         match self {
-            Resolved => Colour::FOOYOO,
-            Low => Colour::KERBAL,
-            Medium => Colour::GOLD,
-            High => Colour::ORANGE,
-            Critical => Colour::RED,
-            Closed => Colour::FABLED_PINK,
-            ForgeVanilla => Colour::PURPLE,
+            Resolved => Colour::new(0x2fd524),
+            Low => Colour::new(0xfef01),
+            Medium => Colour::new(0xfd9a01),
+            High => Colour::new(0xfd6104),
+            Critical => Colour::new(0xff0000),
+            Closed => Colour::new(0x7694cb),
+            ForgeVanilla => Colour::new(0x9f00c5),
+        }
+    }
+
+    pub const fn marker(&self) -> &str {
+        match self {
+            Resolved => ":green_circle:",
+            Low => ":yellow_circle:",
+            Medium => ":orange_circle:",
+            High => ":red_circle:",
+            Critical => ":bangbang:",
+            Closed => ":blue_circle:",
+            ForgeVanilla => ":regional_indicator_v:",
         }
     }
 
@@ -123,8 +102,12 @@ impl BugStatus {
             Resolved => "✅",
             Low | Medium | High | Critical => "⚠️",
             Closed => "❌",
-            ForgeVanilla => "❓",
+            ForgeVanilla => "🇻", // not a V: the [V] emoji
         }
+    }
+
+    pub fn reaction(&self) -> ReactionType {
+        ReactionType::Unicode(self.icon().to_string())
     }
 }
 

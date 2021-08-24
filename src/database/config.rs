@@ -52,7 +52,7 @@ pub async fn get_prefix(ctx: &Context, server_id: GuildId) -> Option<String> {
 }
 
 pub async fn set_prefix(ctx: &Context, server_id: GuildId, prefix: &str) -> CommandResult {
-    let mut conn = get_database_conn!(ctx, Result);
+    let mut conn = get_database_conn!(ctx);
 
     println!("Setting prefix to {} in {}", prefix, server_id);
     conn.exec_drop(
@@ -89,7 +89,7 @@ pub async fn get_minecraft_ip(ctx: &Context, server_id: GuildId) -> Option<Strin
 }
 
 pub async fn set_minecraft_ip(ctx: &Context, server_id: GuildId, ip: &str) -> CommandResult {
-    let mut conn = get_database_conn!(ctx, Result);
+    let mut conn = get_database_conn!(ctx);
 
     println!("Setting up ip to {}", ip);
 
@@ -112,7 +112,7 @@ pub async fn set_minecraft_ip(ctx: &Context, server_id: GuildId, ip: &str) -> Co
 }
 
 pub async fn delete_minecraft_ip(ctx: &Context, server_id: GuildId) -> CommandResult {
-    let mut conn = get_database_conn!(ctx, Result);
+    let mut conn = get_database_conn!(ctx);
 
     let req = format!(
         "DELETE FROM {} WHERE server_id = :server_id LIMIT 1",

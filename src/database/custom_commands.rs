@@ -25,7 +25,7 @@ pub async fn add_custom_command(
     body: &str,
     description: Option<&str>,
 ) -> CommandResult {
-    let mut conn = get_database_conn!(ctx, Result);
+    let mut conn = get_database_conn!(ctx);
     let query = if check_command_exists(ctx, server_id, name)
         .await
         .unwrap_or_default()
@@ -61,7 +61,7 @@ pub async fn add_custom_command(
 }
 
 pub async fn remove_custom_command(ctx: &Context, server_id: GuildId, name: &str) -> CommandResult {
-    let mut conn = get_database_conn!(ctx, Result);
+    let mut conn = get_database_conn!(ctx);
 
     let req = format!(
         "DELETE FROM {} WHERE server_id = :server_id AND name = :name LIMIT 1",

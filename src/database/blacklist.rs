@@ -74,7 +74,7 @@ pub async fn get_blacklist(
 }
 
 pub async fn update_blacklist(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    let mut conn = get_database_conn!(ctx, Result);
+    let mut conn = get_database_conn!(ctx);
 
     let server_id = msg.guild_id.ok_or(NotInGuild)?;
 

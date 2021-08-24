@@ -31,7 +31,7 @@ pub async fn get_floppa(ctx: &Context, n: Option<i64>) -> Option<String> {
 }
 
 pub async fn add_floppa(ctx: &Context, floppa_url: String) -> CommandResult {
-    let mut conn = get_database_conn!(ctx, Result);
+    let mut conn = get_database_conn!(ctx);
 
     let images: Vec<String> = conn
         .exec_map(

@@ -49,7 +49,7 @@ pub async fn add_admin(
     user_id: UserId,
     floppadmin: bool,
 ) -> CommandResult {
-    let mut conn = get_database_conn!(ctx, Result);
+    let mut conn = get_database_conn!(ctx);
 
     conn.exec_drop(
         format!(
@@ -68,7 +68,7 @@ pub async fn add_admin(
 }
 
 pub async fn remove_admin(ctx: &Context, server_id: GuildId, user_id: UserId) -> CommandResult {
-    let mut conn = get_database_conn!(ctx, Result);
+    let mut conn = get_database_conn!(ctx);
 
     conn.exec_drop(
         format!(

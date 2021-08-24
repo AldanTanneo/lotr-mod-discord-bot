@@ -133,7 +133,7 @@ pub async fn display(
     page: &GenericPage,
     wiki: &Wikis,
 ) -> CommandResult {
-    let rclient = get_reqwest_client!(ctx, Result);
+    let rclient = get_reqwest_client!(ctx);
 
     let img = match wiki {
         LotrMod(_) | Minecraft => {
