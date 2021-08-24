@@ -37,6 +37,16 @@ pub async fn announce(ctx: &Context, msg: &Message, args: Args) -> CommandResult
                     .await
                     .is_ok()
                 {
+                    println!(
+                        "Annoucement by {} {} in {}, {}: {}",
+                        msg.author.tag(),
+                        msg.author.id,
+                        channel_id,
+                        msg.guild_id
+                            .map(|id| id.to_string())
+                            .unwrap_or_else(|| "None".into()),
+                        value.to_string()
+                    );
                     success!(ctx, msg);
                 } else {
                     failure!(ctx, msg, "Error sending the message! Check your JSON content and/or the bot permissions.");
@@ -84,6 +94,16 @@ pub async fn edit(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
                     .await
                     .is_ok()
                     {
+                        println!(
+                            "Announcement edited by {} {} in {}, {}: {}",
+                            msg.author.tag(),
+                            msg.author.id,
+                            channel_id,
+                            msg.guild_id
+                                .map(|id| id.to_string())
+                                .unwrap_or_else(|| "None".into()),
+                            value.to_string()
+                        );
                         success!(ctx, msg);
                     }
                 }
