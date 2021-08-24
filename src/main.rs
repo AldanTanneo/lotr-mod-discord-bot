@@ -64,7 +64,6 @@ struct Moderation;
 #[group]
 #[commands(custom_command)]
 #[default_command(custom_command)]
-#[commands(custom_command)]
 struct CustomCommand;
 
 #[tokio::main]
