@@ -209,10 +209,12 @@ pub async fn user_info(ctx: &Context, msg: &Message, mut args: Args) -> CommandR
         .await?;
     let user = &member.user;
 
+    let colour = member.colour(ctx).await.unwrap_or_default();
+
     msg.channel_id
         .send_message(ctx, |m| {
             m.embed(|e| {
-                e.colour(Colour::PURPLE);
+                e.colour(colour);
                 e.thumbnail(user.face());
                 if let Some(nick) = &member.nick {
                     e.title(nick);
