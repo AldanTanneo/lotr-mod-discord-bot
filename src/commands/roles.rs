@@ -176,7 +176,7 @@ async fn display_roles(ctx: &Context, msg: &Message, in_dms: bool) -> CommandRes
 
 #[command]
 #[only_in(guilds)]
-#[checks(allowed_blacklist)]
+#[checks(user_blacklist)]
 #[sub_commands(add, delete, list, display, cache)]
 pub async fn role(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     if msg.delete(ctx).await.is_err() {

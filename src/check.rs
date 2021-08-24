@@ -62,12 +62,55 @@ pub async fn allowed_blacklist(ctx: &Context, msg: &Message) -> Result<(), Reaso
         && msg.author.id != OWNER_ID
         && !has_permission(ctx, server_id, msg.author.id, MANAGE_BOT_PERMS).await
     {
-        msg.delete(ctx)
-            .await
-            .map_err(|_| Reason::Log("Blacklisted".into()))?;
+        if let Err(err) = msg.delete(ctx).await {
+            println!("Could not delete blacklisted message: {}", err);
+        }
         Err(Reason::UserAndLog {
             user: "You are not allowed to use this command here.".into(),
-            log: "Sending DM warning".into(),
+            log: format!(
+                "=== BLACKLIST ===\nUser: {} ({})\nGuild: {}\nChannel: {}\nMessage: {}\n=== END ===",
+                msg.author.tag(),
+                msg.author.id,
+                msg.guild_id
+                    .map(|id| id.to_string())
+                    .unwrap_or_else(|| "None".into()),
+                msg.channel_id,
+                msg.content
+            ),
+        })
+    } else {
+        Ok(())
+    }
+}
+
+#[check]
+#[name = "user_blacklist"]
+pub async fn user_blacklist(ctx: &Context, msg: &Message) -> Result<(), Reason> {
+    let server_id = msg
+        .guild_id
+        .ok_or_else(|| Reason::Log("Not in a guild".into()))?;
+
+    if check_blacklist(ctx, server_id, msg.author.id, ChannelId(0))
+        .await
+        .unwrap_or(true)
+        && !is_admin!(ctx, msg)
+        && msg.author.id != OWNER_ID
+        && !has_permission(ctx, server_id, msg.author.id, MANAGE_BOT_PERMS).await
+    {
+        if let Err(err) = msg.delete(ctx).await {
+            println!("Could not delete user blacklisted message: {}", err);
+        }
+        Err(Reason::UserAndLog {
+            user: "You are not allowed to use this command here.".into(),
+            log: format!(
+                "=== USER BLACKLIST ===\nUser: {} {}\nGuild: {}\nMessage: {}\n=== END ===",
+                msg.author.tag(),
+                msg.author.id,
+                msg.guild_id
+                    .map(|id| id.to_string())
+                    .unwrap_or_else(|| "None".into()),
+                msg.content
+            ),
         })
     } else {
         Ok(())
@@ -136,8 +179,16 @@ pub async fn dispatch_error_hook(ctx: &Context, msg: &Message, error: DispatchEr
                         _ => (),
                     }
                 }
-                Reason::UserAndLog { user, log: _ } => {
-                    if msg.author.dm(ctx, |m| m.content(user)).await.is_err() {
+                Reason::UserAndLog { user, log } => {
+                    println!("{}", log);
+                    if msg
+                        .author
+                        .dm(ctx, |m| {
+                            m.embed(|e| e.colour(serenity::utils::Colour::RED).description(user))
+                        })
+                        .await
+                        .is_err()
+                    {
                         println!("Error sending blacklist warning")
                     }
                 }
@@ -181,10 +232,11 @@ pub async fn after_hook(
             "=== ERROR REPORT ===
 Error in command `{}`: {:?}
 === MESSAGE ===
-Author: {} ({})
+Author: {} {}
 Guild: {}
 Channel: {}
-Content: {}",
+Content: {}
+=== END ===",
             cmd_name,
             why,
             msg.author.tag(),
