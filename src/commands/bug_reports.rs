@@ -6,7 +6,7 @@ use crate::check::*;
 use crate::constants::LOTR_DISCORD;
 use crate::database::bug_reports::{
     add_bug_report, add_link, change_bug_status, change_title, get_bug_from_id, get_bug_list,
-    get_bug_statistics, remove_link, switch_edition,
+    get_bug_statistics, remove_link, switch_edition, BugOrder,
 };
 use crate::database::BugStatus;
 use crate::failure;
@@ -96,14 +96,20 @@ pub async fn buglist(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
         args.advance();
     }
     let status = args.single::<BugStatus>().ok();
-    let ascending = match args.current() {
-        Some("latest") => Some(false),
-        Some("oldest") => Some(true),
-        _ => None,
+
+    let mut display_order = match args.current() {
+        Some("latest") => BugOrder::Chronological(false),
+        Some("oldest") => BugOrder::Chronological(true),
+        Some("highest") => BugOrder::Priority(false),
+        Some("lowest") => BugOrder::Priority(true),
+        _ => BugOrder::None,
     };
-    if ascending.is_some() {
+    if let BugOrder::None = display_order {
+        display_order = BugOrder::Chronological(false);
+    } else {
         args.advance();
     }
+
     let page = match args.single::<u32>() {
         Ok(0) => {
             println!("Invalid page number entered!");
@@ -119,15 +125,9 @@ pub async fn buglist(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
         None
     }
     .unwrap_or(10);
-    if let Some((bugs, total_bugs)) = get_bug_list(
-        ctx,
-        status,
-        limit,
-        ascending.unwrap_or_default(),
-        legacy,
-        page - 1,
-    )
-    .await
+
+    if let Some((bugs, total_bugs)) =
+        get_bug_list(ctx, status, limit, display_order, legacy, page - 1).await
     {
         let title;
         let content_alt;

@@ -8,6 +8,12 @@ pub use super::{BugReport, BugStatus, PartialBugReport};
 use crate::constants::{TABLE_BUG_REPORTS, TABLE_BUG_REPORTS_LINKS};
 use crate::get_database_conn;
 
+pub enum BugOrder {
+    Chronological(bool),
+    Priority(bool),
+    None,
+}
+
 pub async fn get_bug_from_id(ctx: &Context, bug_id: u64) -> Result<BugReport, CommandError> {
     let mut conn = get_database_conn!(ctx);
 
@@ -88,7 +94,7 @@ pub async fn get_bug_list(
     ctx: &Context,
     status: Option<BugStatus>,
     limit: u32,
-    ascending: bool,
+    display_order: BugOrder,
     legacy: Option<bool>,
     page: u32,
 ) -> Option<(Vec<PartialBugReport>, u32)> {
@@ -114,7 +120,7 @@ pub async fn get_bug_list(
 
     conn.exec_map(
         format!(
-            "SELECT bug_id, title, status, timestamp, legacy FROM {} WHERE {} {legacy} ORDER BY timestamp {order} LIMIT :limit OFFSET :offset",
+            "SELECT bug_id, title, status, timestamp, legacy FROM {} WHERE {} {legacy} ORDER BY {ordering} LIMIT :limit OFFSET :offset",
             TABLE_BUG_REPORTS,
             if let Some(status) = status {
                 format!("status = '{}'", status.as_str())
@@ -126,7 +132,12 @@ pub async fn get_bug_list(
             } else {
                 "".into()
             },
-            order = if ascending { "ASC" } else { "DESC" },
+            ordering = match display_order {
+                BugOrder::Chronological(false) | BugOrder::None => "timestamp DESC",
+                BugOrder::Chronological(true) => "timestamp ASC",
+                BugOrder::Priority(false) => "status DESC, timestamp DESC",
+                BugOrder::Priority(true) => "status ASC, timestamp DESC"
+            },
         ),
         params! {
             "limit" => limit,

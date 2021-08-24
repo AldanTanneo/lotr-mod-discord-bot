@@ -14,13 +14,13 @@ use BugStatus::*;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum BugStatus {
+    Closed,
+    ForgeVanilla,
     Resolved,
     Low,
     Medium,
     High,
     Critical,
-    Closed,
-    ForgeVanilla,
 }
 
 impl std::fmt::Display for BugStatus {
