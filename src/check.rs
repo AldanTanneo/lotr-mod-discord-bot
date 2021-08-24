@@ -177,10 +177,20 @@ pub async fn after_hook(
 ) {
     if let Err(why) = error {
         println!(
-            "=== ERROR REPORT ===\nError in command `{}`: {:?}\n=== MESSAGE ===\nAuthor: {}\nGuild: {}\nChannel: {}\nContent: {}",
-            cmd_name, why, msg.author, 
-            msg.guild_id.map(|id| id.to_string()).unwrap_or_else(|| "None".into()), 
-            msg.channel_id, 
+            "=== ERROR REPORT ===
+Error in command `{}`: {:?}
+=== MESSAGE ===
+Author: {}
+Guild: {}
+Channel: {}
+Content: {}",
+            cmd_name,
+            why,
+            msg.author,
+            msg.guild_id
+                .map(|id| id.to_string())
+                .unwrap_or_else(|| "None".into()),
+            msg.channel_id,
             msg.content,
         );
     }
