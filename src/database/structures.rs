@@ -97,17 +97,16 @@ impl BugStatus {
         }
     }
 
-    pub const fn icon(&self) -> &str {
-        match self {
-            Resolved => "✅",
-            Low | Medium | High | Critical => "⚠️",
-            Closed => "❌",
-            ForgeVanilla => "🇻", // not a V: the [V] emoji
-        }
-    }
-
     pub fn reaction(&self) -> ReactionType {
-        ReactionType::Unicode(self.icon().to_string())
+        ReactionType::Unicode(
+            match self {
+                Resolved => "✅",
+                Low | Medium | High | Critical => "⚠️",
+                Closed => "❌",
+                ForgeVanilla => "🇻", // not a V: the [V] emoji
+            }
+            .to_string(),
+        )
     }
 }
 

@@ -303,7 +303,7 @@ pub async fn bug(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult 
                                 );
                             }
                             e.footer(|f| {
-                                f.text(format!("{} Status: {}", bug.status.icon(), bug.status))
+                                f.text(format!("Status: {}", bug.status))
                             });
                             e.timestamp(&bug.timestamp);
                             e
