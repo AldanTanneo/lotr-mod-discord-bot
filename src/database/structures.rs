@@ -76,7 +76,7 @@ impl BugStatus {
     pub const fn colour(&self) -> Colour {
         match self {
             Resolved => Colour::new(0x2fd524),
-            Low => Colour::new(0xfef01),
+            Low => Colour::new(0xfef001),
             Medium => Colour::new(0xfd9a01),
             High => Colour::new(0xfd6104),
             Critical => Colour::new(0xff0000),
