@@ -87,7 +87,7 @@ async fn cache(ctx: &Context) -> CommandResult {
         let data_read = ctx.data.read().await;
         data_read.get::<PrefixCache>().unwrap().clone()
     };
-    println!("==== PREFIX CACHE ====\n{:?}", prefix_cache);
+    println!("=== PREFIX CACHE ===\n{:?}\n=== END ===", prefix_cache);
     Ok(())
 }
 
@@ -120,8 +120,6 @@ pub async fn admin(ctx: &Context, msg: &Message) -> CommandResult {
 #[command]
 #[only_in(guilds)]
 #[checks(is_admin)]
-#[max_args(1)]
-#[min_args(1)]
 pub async fn add(ctx: &Context, msg: &Message) -> CommandResult {
     let server_id = msg.guild_id.ok_or(NotInGuild)?;
 
@@ -145,8 +143,6 @@ pub async fn add(ctx: &Context, msg: &Message) -> CommandResult {
 #[command]
 #[only_in(guilds)]
 #[checks(is_admin)]
-#[max_args(1)]
-#[min_args(1)]
 pub async fn remove(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let server_id = msg.guild_id.ok_or(NotInGuild)?;
 

@@ -177,12 +177,12 @@ async fn display_roles(ctx: &Context, msg: &Message, in_dms: bool) -> CommandRes
 #[command]
 #[only_in(guilds)]
 #[checks(user_blacklist)]
-#[sub_commands(add, delete, list, display, cache)]
+#[sub_commands(add, delete, listroles, display, cache)]
 pub async fn role(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     if msg.delete(ctx).await.is_err() {
         warn!(ctx, msg);
     }
-    if args.is_empty() {
+    if args.is_empty() || args.current().unwrap().to_lowercase().eq("list") {
         return display_roles(ctx, msg, true).await;
     }
     let role_name = format_role_name(args.rest());
@@ -370,7 +370,8 @@ pub async fn delete(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 #[command]
 #[only_in(guilds)]
 #[checks(allowed_blacklist)]
-pub async fn list(ctx: &Context, msg: &Message) -> CommandResult {
+#[aliases("roles")]
+pub async fn listroles(ctx: &Context, msg: &Message) -> CommandResult {
     display_roles(ctx, msg, false).await
 }
 
@@ -421,6 +422,6 @@ async fn cache(ctx: &Context) -> CommandResult {
         let data_read = ctx.data.read().await;
         data_read.get::<role_cache::RoleCache>().unwrap().clone()
     };
-    println!("==== ROLE CACHE ====\n{:?}", role_cache);
+    println!("=== ROLE CACHE ===\n{:?}\n=== END ===", role_cache);
     Ok(())
 }
