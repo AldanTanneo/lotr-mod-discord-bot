@@ -1,6 +1,9 @@
 -- phpMyAdmin SQL Dump
 -- version 4.8.4
 -- https://www.phpmyadmin.net/
+--
+-- Server version: 8.0.15-5
+-- PHP Version: 7.2.34
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 SET AUTOCOMMIT = 0;
@@ -37,8 +40,9 @@ CREATE TABLE `bug_reports` (
   `channel_id` bigint(20) NOT NULL,
   `message_id` bigint(20) NOT NULL,
   `title` tinytext COLLATE utf8mb4_bin NOT NULL,
-  `status` enum('resolved','low','medium','high','critical','closed') COLLATE utf8mb4_bin NOT NULL DEFAULT 'medium',
-  `timestamp` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
+  `status` enum('resolved','low','medium','high','critical','closed','forgevanilla') CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL DEFAULT 'medium',
+  `timestamp` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `legacy` tinyint(1) NOT NULL DEFAULT '0'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 -- --------------------------------------------------------
@@ -94,6 +98,17 @@ CREATE TABLE `floppa_images` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `list_guilds`
+--
+
+CREATE TABLE `list_guilds` (
+  `guild_id` bigint(20) NOT NULL,
+  `guild_name` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `lotr_mod_bot_prefix`
 --
 
@@ -110,7 +125,35 @@ CREATE TABLE `lotr_mod_bot_prefix` (
 
 CREATE TABLE `mc_server_ip` (
   `server_id` bigint(20) NOT NULL,
-  `mc_ip` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL
+  `mc_ip` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+  `port` smallint(6) NOT NULL DEFAULT '25565'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `roles`
+--
+
+CREATE TABLE `roles` (
+  `server_id` bigint(20) NOT NULL,
+  `role_id` bigint(20) NOT NULL,
+  `role_name` tinytext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+  `role_properties` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+  `role_colour` int(10) UNSIGNED NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `roles__aliases`
+--
+
+CREATE TABLE `roles__aliases` (
+  `alias_uid` int(11) NOT NULL,
+  `server_id` bigint(20) NOT NULL,
+  `alias_name` tinytext COLLATE utf8mb4_bin NOT NULL,
+  `role_id` bigint(20) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 -- --------------------------------------------------------
@@ -166,6 +209,12 @@ ALTER TABLE `floppa_images`
   ADD PRIMARY KEY (`id`);
 
 --
+-- Indexes for table `list_guilds`
+--
+ALTER TABLE `list_guilds`
+  ADD PRIMARY KEY (`guild_id`);
+
+--
 -- Indexes for table `lotr_mod_bot_prefix`
 --
 ALTER TABLE `lotr_mod_bot_prefix`
@@ -176,6 +225,18 @@ ALTER TABLE `lotr_mod_bot_prefix`
 --
 ALTER TABLE `mc_server_ip`
   ADD PRIMARY KEY (`server_id`);
+
+--
+-- Indexes for table `roles`
+--
+ALTER TABLE `roles`
+  ADD PRIMARY KEY (`role_id`);
+
+--
+-- Indexes for table `roles__aliases`
+--
+ALTER TABLE `roles__aliases`
+  ADD PRIMARY KEY (`alias_uid`);
 
 --
 -- Indexes for table `user_blacklist`
@@ -222,6 +283,12 @@ ALTER TABLE `custom_commands`
 --
 ALTER TABLE `floppa_images`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `roles__aliases`
+--
+ALTER TABLE `roles__aliases`
+  MODIFY `alias_uid` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `user_blacklist`
