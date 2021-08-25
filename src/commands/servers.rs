@@ -18,8 +18,7 @@ use crate::{failure, success};
 async fn server_ip(ctx: &Context, msg: &Message) -> CommandResult {
     let server_id = msg.guild_id.ok_or(NotInGuild)?;
 
-    let ip = get_minecraft_ip(ctx, server_id).await;
-    if let Some(ip) = ip {
+    if let Some(ip) = get_minecraft_ip(ctx, server_id).await {
         msg.channel_id
             .send_message(ctx, |m| {
                 m.embed(|e| {
@@ -34,9 +33,10 @@ async fn server_ip(ctx: &Context, msg: &Message) -> CommandResult {
         failure!(
             ctx,
             msg,
-            "No registered Minecraft IP for this server. Set one using `ip set <server ip>`."
-        );
+            "No registered Minecraft IP for this server. Set one using  `!ip set <server ip>`."
+        )
     }
+
     Ok(())
 }
 
@@ -44,13 +44,15 @@ async fn server_ip(ctx: &Context, msg: &Message) -> CommandResult {
 #[only_in(guilds)]
 #[checks(is_admin)]
 #[aliases("set")]
-pub async fn set_ip(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+pub async fn set_ip(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let server_id = msg.guild_id.ok_or(NotInGuild)?;
 
-    if let Ok(ip) = args.single_quoted::<String>() {
-        println!("Setting up IP");
+    if let Some(ip) = args.current() {
+        println!("Setting up IP to {} on {}", ip, server_id);
         set_minecraft_ip(ctx, server_id, &ip).await?;
-        success!(ctx, msg, "Set Minecraft server IP to  `{}`", ip);
+        success!(ctx, msg, "Set Minecraft server IP to  `{}`", ip)
+    } else {
+        failure!(ctx, msg, "You must provide an IP address to set.")
     }
 
     Ok(())
@@ -71,9 +73,9 @@ pub async fn remove_ip(ctx: &Context, msg: &Message) -> CommandResult {
             msg,
             "Successfully removed ip  `{}`  from this server",
             ip
-        );
+        )
     } else {
-        failure!(ctx, msg, "No registered Minecraft IP for this server.");
+        failure!(ctx, msg, "No registered Minecraft IP for this server.")
     }
     Ok(())
 }
@@ -93,11 +95,10 @@ pub async fn online(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
         failure!(
             ctx,
             msg,
-            "No registered Minecraft IP for this server. Set one using `ip set <server ip>`."
+            "No registered Minecraft IP for this server. Set one using  `!ip set <server ip>`."
         );
         return Ok(());
     };
-    println!("Getting status for ip: \"{}\"", ip);
     let server = get_server_status(ctx, &ip).await;
     if let Some(server) = server {
         msg.channel_id

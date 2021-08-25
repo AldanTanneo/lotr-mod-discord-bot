@@ -67,7 +67,7 @@ enum Reason<'a> {
 
 async fn can_have_role<'a>(
     ctx: &Context,
-    role: &'a roles::Role,
+    role: &'a roles::CustomRole,
     member: &Member,
     server_id: GuildId,
 ) -> Result<(), Reason<'a>> {
@@ -326,7 +326,7 @@ pub async fn add(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
                     role_cache::add_role(
                         ctx,
                         server_id,
-                        roles::Role {
+                        roles::CustomRole {
                             id: role_id,
                             name: format_role_name(&role.name),
                             properties: role_properties,
@@ -334,6 +334,7 @@ pub async fn add(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
                         },
                     )
                     .await?;
+                    println!("Created role {} on {}", role.name, server_id);
                     success!(ctx, msg);
                 }
                 Err(err) => handle_json_error!(ctx, msg, err),
@@ -358,8 +359,10 @@ pub async fn add(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 #[aliases("remove")]
 pub async fn delete(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let server_id = msg.guild_id.ok_or(NotInGuild)?;
-    if let Ok(role_id) = args.parse::<RoleId>() {
-        role_cache::delete_role(ctx, server_id, role_id).await?;
+    let role_name = format_role_name(args.rest());
+    if let Some(role) = role_cache::get_role(ctx, server_id, role_name).await {
+        role_cache::delete_role(ctx, server_id, role.id).await?;
+        println!("Removed role {} on {}", role.name, server_id);
         success!(ctx, msg);
     } else {
         failure!(ctx, msg, "The first argument must be a role mention.");
@@ -378,6 +381,7 @@ pub async fn listroles(ctx: &Context, msg: &Message) -> CommandResult {
 #[command]
 #[only_in(guilds)]
 #[checks(allowed_blacklist)]
+#[aliases("show")]
 pub async fn display(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     if args.is_empty() {
         return display_roles(ctx, msg, false).await;

@@ -19,8 +19,6 @@ pub async fn google_search(ctx: &Context, query: &str, wiki: &Wikis) -> Option<[
         ("siteSearch", &wiki.site()),
     ];
 
-    println!("Google search \"{}\"", query);
-
     let res_body = rclient
         .get(GOOGLE_API)
         .query(&req)
@@ -33,5 +31,6 @@ pub async fn google_search(ctx: &Context, query: &str, wiki: &Wikis) -> Option<[
 
     let result: GoogleSearch = serde_json::from_str(&res_body).ok()?;
     let hit = result.items.get(0)?;
+    println!("Google search result: {}", hit.link);
     Some([hit.title.clone(), hit.link.clone(), hit.snippet.clone()])
 }

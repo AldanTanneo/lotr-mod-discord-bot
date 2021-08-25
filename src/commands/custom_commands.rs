@@ -1,6 +1,8 @@
 use serde_json::Value;
 use serenity::client::Context;
+use serenity::framework::standard::CommandError;
 use serenity::framework::standard::{macros::command, Args, CommandResult};
+use serenity::futures::future::join;
 use serenity::model::channel::Message;
 
 use crate::announcement::announce;
@@ -23,11 +25,12 @@ use crate::{failure, handle_json_error, is_admin, success};
 pub async fn custom_command(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let server_id = msg.guild_id.ok_or(NotInGuild)?;
 
-    println!("Custom command execution...");
     let name = args.single::<String>()?.to_lowercase(); // getting command name
     let subcommand = args.current(); // getting possible subcommand but not advancing
 
     if let Some(command_data) = get_command_data(ctx, server_id, &name, false).await {
+        println!("Custom command execution: {}", msg.content);
+
         let mut message: Value = serde_json::from_str(&command_data.body.replace("\\$", "$"))?;
         let mut delete = message["self_delete"].as_bool().unwrap_or_default();
         // early interrupt in case of blacklist / admin command
@@ -49,13 +52,30 @@ pub async fn custom_command(ctx: &Context, msg: &Message, mut args: Args) -> Com
                         .await
                         .unwrap_or(true)
                 {
-                    msg.delete(ctx).await?;
-                    msg.author
-                        .dm(ctx, |m| {
-                            m.content("You are not allowed to use this command here!")
-                        })
-                        .await?;
-                    return Ok(());
+                    println!(
+                        "=== BLACKLIST ===\nUser: {} {}\nGuild: {}\nMessage: {}\n=== END ===",
+                        msg.author.tag(),
+                        msg.author.id,
+                        msg.guild_id
+                            .map(|id| id.to_string())
+                            .unwrap_or_else(|| "None".into()),
+                        msg.content
+                    );
+                    return match join(
+                        msg.author.dm(ctx, |m| {
+                            m.embed(|e| {
+                                e.colour(serenity::utils::Colour::RED)
+                                    .description("You are not allowed to use this command here.")
+                            })
+                        }),
+                        msg.delete(ctx),
+                    )
+                    .await
+                    {
+                        (Err(e), _) => Err(CommandError::from(e)),
+                        (_, Err(e)) => Err(CommandError::from(e)),
+                        _ => Ok(()),
+                    };
                 } else if s == "admin" {
                     failure!(ctx, msg, "You are not an admin on this server!");
                 }
@@ -126,8 +146,6 @@ pub async fn custom_command(ctx: &Context, msg: &Message, mut args: Args) -> Com
         if delete {
             msg.delete(ctx).await?;
         }
-    } else {
-        println!("Could not find custom command \"{}\"", name);
     }
     Ok(())
 }
@@ -216,12 +234,12 @@ async fn custom_command_remove(ctx: &Context, msg: &Message, mut args: Args) -> 
 #[command]
 #[aliases("display", "show")]
 #[checks(is_admin)]
-async fn custom_command_display(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+async fn custom_command_display(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let server_id = msg.guild_id.ok_or(NotInGuild)?;
 
-    if let Ok(name) = args.single::<String>() {
-        if let Some(command) = get_command_data(ctx, server_id, &name, true).await {
-            println!("Displaying command docs...");
+    if let Some(name) = args.current() {
+        if let Some(command) = get_command_data(ctx, server_id, name, true).await {
+            println!("Displaying command docs for command {}", command.name);
             let mut file_too_big = false;
             let bytes = command.body.as_str().as_bytes();
             msg.channel_id
@@ -257,7 +275,6 @@ async fn custom_command_display(ctx: &Context, msg: &Message, mut args: Args) ->
             failure!(ctx, msg, "The custom command does not exist!");
         }
     } else if let Some(list) = get_custom_commands_list(ctx, server_id).await {
-        println!("displaying a list of custom commands");
         let mut newline: u32 = 0;
         msg.channel_id
             .send_message(ctx, |m| {

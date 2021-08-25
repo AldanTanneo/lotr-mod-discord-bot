@@ -52,43 +52,43 @@ pub async fn curseforge(ctx: &Context, msg: &Message, mut args: Args) -> Command
     } else {
         CURSEFORGE_ID_LEGACY
     };
-    let project = curseforge::get_project_info(ctx, id).await;
-    if let Some(project) = project {
-        msg.channel_id
-            .send_message(ctx, |m| {
-                m.embed(|e| {
-                    e.author(|a| {
-                        a.name("Curseforge");
-                        a.icon_url(crate::constants::CURSEFORGE_ICON)
-                    });
-                    e.colour(Colour(0xf16436));
-                    e.title(&project.title);
-                    e.url(&project.urls.curseforge);
-                    e.description(&project.summary);
-                    e.thumbnail(&project.thumbnail);
-                    e.field(
-                        "Download link",
-                        format!(
-                            "[{}]({}) ({})",
-                            &project.download.name,
-                            &project.download.url,
-                            ByteSize(project.download.filesize)
-                        ),
-                        false,
-                    );
-                    e.footer(|f| {
-                        f.text(format!(
-                            "Total download count: {}",
-                            pretty_large_int(project.downloads.total)
-                        ))
-                    });
-                    e.timestamp(project.download.uploaded_at);
-                    e
-                })
+    let project = curseforge::get_project_info(ctx, id).await?;
+
+    msg.channel_id
+        .send_message(ctx, |m| {
+            m.embed(|e| {
+                e.author(|a| {
+                    a.name("Curseforge");
+                    a.icon_url(crate::constants::CURSEFORGE_ICON)
+                });
+                e.colour(Colour(0xf16436));
+                e.title(&project.title);
+                e.url(&project.urls.curseforge);
+                e.description(&project.summary);
+                e.thumbnail(&project.thumbnail);
+                e.field(
+                    "Download link",
+                    format!(
+                        "[{}]({}) ({})",
+                        &project.download.name,
+                        &project.download.url,
+                        ByteSize(project.download.filesize)
+                    ),
+                    false,
+                );
+                e.footer(|f| {
+                    f.text(format!(
+                        "Total download count: {}",
+                        pretty_large_int(project.downloads.total)
+                    ))
+                });
+                e.timestamp(project.download.uploaded_at);
+                e
             })
-            .await
-            .unwrap();
-    }
+        })
+        .await
+        .unwrap();
+
     Ok(())
 }
 

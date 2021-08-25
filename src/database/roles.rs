@@ -32,14 +32,14 @@ pub struct RoleProperties {
 }
 
 #[derive(Debug, Clone)]
-pub struct Role {
+pub struct CustomRole {
     pub id: RoleId,
     pub name: String,
     pub properties: RoleProperties,
     pub colour: Colour,
 }
 
-pub async fn get_role(ctx: &Context, server_id: GuildId, role_name: &str) -> Option<Role> {
+pub async fn get_role(ctx: &Context, server_id: GuildId, role_name: &str) -> Option<CustomRole> {
     let mut conn = get_database_conn!(ctx);
 
     let (id, name, properties, colour): (u64, String, String, u32) = conn.exec_first(
@@ -57,7 +57,7 @@ pub async fn get_role(ctx: &Context, server_id: GuildId, role_name: &str) -> Opt
 
     serde_json::from_str(&properties)
         .ok()
-        .map(|properties| Role {
+        .map(|properties| CustomRole {
             id: RoleId(id),
             name,
             properties,
@@ -65,7 +65,7 @@ pub async fn get_role(ctx: &Context, server_id: GuildId, role_name: &str) -> Opt
         })
 }
 
-pub async fn add_role(ctx: &Context, server_id: GuildId, role: &Role) -> CommandResult {
+pub async fn add_role(ctx: &Context, server_id: GuildId, role: &CustomRole) -> CommandResult {
     let mut conn = get_database_conn!(ctx);
     let empty = Vec::new();
 

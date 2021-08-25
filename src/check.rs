@@ -157,7 +157,7 @@ pub async fn is_lotr_discord(_: &Context, msg: &Message) -> Result<(), Reason> {
         Ok(())
     } else {
         Err(Reason::Log(
-            "Tried to use the bug tracker outside of LOTR Discord".into(),
+            "Tried to use a LOTR Mod Discord only command outside the server".into(),
         ))
     }
 }
@@ -181,15 +181,14 @@ pub async fn dispatch_error_hook(ctx: &Context, msg: &Message, error: DispatchEr
                 }
                 Reason::UserAndLog { user, log } => {
                     println!("{}", log);
-                    if msg
+                    if let Err(e) = msg
                         .author
                         .dm(ctx, |m| {
                             m.embed(|e| e.colour(serenity::utils::Colour::RED).description(user))
                         })
                         .await
-                        .is_err()
                     {
-                        println!("Error sending blacklist warning")
+                        println!("Error sending warning DM: {}", e)
                     }
                 }
                 Reason::Log(err_message) => {

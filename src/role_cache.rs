@@ -10,22 +10,16 @@ use crate::database::roles;
 pub struct RoleCache;
 
 impl TypeMapKey for RoleCache {
-    type Value = Arc<DashMap<(String, GuildId), Arc<roles::Role>>>;
+    type Value = Arc<DashMap<(String, GuildId), Arc<roles::CustomRole>>>;
 }
 
 macro_rules! get_role_cache {
     ($ctx:ident) => {{
         let data_read = $ctx.data.read().await;
-        data_read.get::<$crate::role_cache::RoleCache>()?.clone()
-    }};
-    ($ctx:ident, Result) => {{
-        let data_read = $ctx.data.read().await;
-        if let Some(cache) = data_read.get::<$crate::role_cache::RoleCache>() {
-            cache.clone()
-        } else {
-            println!("Could not get role cache");
-            return Ok(());
-        }
+        data_read
+            .get::<$crate::role_cache::RoleCache>()
+            .expect("Expected a role cache in the type map")
+            .clone()
     }};
 }
 
@@ -33,7 +27,7 @@ pub async fn get_role(
     ctx: &Context,
     server_id: GuildId,
     role_name: String,
-) -> Option<Arc<roles::Role>> {
+) -> Option<Arc<roles::CustomRole>> {
     let role_cache = get_role_cache!(ctx);
 
     if let Some(role) = role_cache.get(&(role_name.clone(), server_id)) {
@@ -53,10 +47,10 @@ pub async fn get_role(
     }
 }
 
-pub async fn add_role(ctx: &Context, server_id: GuildId, role: roles::Role) -> CommandResult {
+pub async fn add_role(ctx: &Context, server_id: GuildId, role: roles::CustomRole) -> CommandResult {
     roles::add_role(ctx, server_id, &role).await?;
 
-    let role_cache = get_role_cache!(ctx, Result);
+    let role_cache = get_role_cache!(ctx);
 
     let key = (role.name.clone(), server_id);
 
@@ -79,7 +73,7 @@ pub async fn add_role(ctx: &Context, server_id: GuildId, role: roles::Role) -> C
 
 pub async fn delete_role(ctx: &Context, server_id: GuildId, role_id: RoleId) -> CommandResult {
     roles::delete_role(ctx, server_id, role_id).await?;
-    let role_cache = get_role_cache!(ctx, Result);
+    let role_cache = get_role_cache!(ctx);
 
     role_cache.retain(|(_, cached_server_id), cached_role| {
         cached_server_id != &server_id && cached_role.id != role_id

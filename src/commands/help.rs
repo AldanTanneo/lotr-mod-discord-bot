@@ -83,7 +83,7 @@ pub async fn help(ctx: &Context, msg: &Message) -> CommandResult {
 `{prefix}coremod`  Technical support command
 `{prefix}user`  Display information about a user
 `{prefix}role <role name>`  Claim the given role. The role has to be explicitly \
-defined by admins of the server.",
+defined by admins of the server. Use  `{prefix}roles`  to see a list of available roles.",
                         prefix=prefix,
                         json=if is_admin {" [json]"} else {""}
                     ),
@@ -128,7 +128,6 @@ Available languages: `en`, `de`, `fr`, `es`, `nl`, `ja`, `zh`, `ru`
             .direct_message(ctx, |m| {
                 m.embed(|e| {
                     e.colour(Colour::DARK_GREEN);
-                    e.title("Available commands");
                     if is_minecraft_server || is_admin {
                         e.field(
                             "**Minecraft server commands**",
@@ -382,14 +381,16 @@ async fn admin_help(ctx: &Context, msg: &Message) -> CommandResult {
 `{prefix}admin list`  Display a list of bot admins
 `{prefix}blacklist [user or channel mention]`  Prevent some commands to be used by the user or \
 in the channel (except for bot admins). When used without arguments, displays the blacklist.", 
-prefix=prefix),
+                        prefix=prefix
+                    ),
                     false,
                 );
 
                 e.field(
-    "**Role commands**", 
-    format!("`{prefix}role add <role mention> <role json>`  Define a new role for the  \
-`{prefix}role`  command. All fields in the role JSON are optional:
+                    "**Role commands**",
+                    format!(
+"`{prefix}role add <role mention> [role json properties]`  Define a new role for the  \
+`{prefix}role`  command. All fields in the role JSON are optional.
 ```json
 {{
     \"aliases\": [\"a list\", \"of aliases\"],
@@ -397,11 +398,19 @@ prefix=prefix),
     \"required_roles\": [\"a list\", \"of role names\"],
     \"incompatible_roles\": [\"a list\", \"of role names\"]
 }}
-```", prefix=prefix), false);
+```
+`{prefix}role remove <role mention>`  Delete a role from the bot. This will not delete the role \
+itself.
+`{prefix}role show <role name>`  Display a role and its properties.",
+                        prefix=prefix
+                    ),
+                    false,
+                );
 
                 e.field(
-    "**Annoucements & Custom commands**", 
-    format!("`{prefix}announce <channel mention> <json message content>`  Make the bot send a \
+                    "**Annoucements & Custom commands**",
+                    format!(
+"`{prefix}announce <channel mention> <json message content>`  Make the bot send a \
 message to the mentioned channel.  For the JSON argument documentation, type `{prefix}help json`
 
 `{prefix}define <command name> <json command content>`  Define or update a custom command. \
@@ -411,7 +420,9 @@ or leave empty to get a list of commands
 `{prefix}command remove <command name>`  Remove a custom command
 
 *Only bot admins can use these commands*
-*For bugtracker help, use  `{prefix}help bugtracker`*", prefix=prefix),
+*For bugtracker help, use  `{prefix}help bugtracker`*",
+                        prefix=prefix
+                    ),
                     false,
                 )
             })
