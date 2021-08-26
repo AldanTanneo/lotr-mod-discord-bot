@@ -71,10 +71,11 @@ pub async fn help(ctx: &Context, msg: &Message) -> CommandResult {
                     "**General commands**",
                     format!(
 "`{prefix}curseforge [legacy|renewed]`  Display the mod download link (default: `legacy`)
-`{prefix}invite`  Send the bot invite link in DMs
+`{prefix}invite`  Send the bot invite link
 `{prefix}help{json}`  Send this message in DMs
 `{prefix}donate`  Display the mod donation links
 `{prefix}facebook`  Display the mod Facebook page link
+`{prefix}instagram`  Display the mod Instagram page link
 `{prefix}discord`  Display the invite link to the community discord
 
 *Not available in DMs:*

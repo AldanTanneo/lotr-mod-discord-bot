@@ -53,12 +53,14 @@ pub async fn custom_command(ctx: &Context, msg: &Message, mut args: Args) -> Com
                         .unwrap_or(true)
                 {
                     println!(
-                        "=== BLACKLIST ===\nUser: {} {}\nGuild: {}\nMessage: {}\n=== END ===",
+                        "=== BLACKLIST ===\nUser: {} {:?}\nGuild: {}
+Channel: {:?}\nMessage: {}\n=== END ===",
                         msg.author.tag(),
                         msg.author.id,
                         msg.guild_id
-                            .map(|id| id.to_string())
+                            .map(|id| format!("{:?}", id))
                             .unwrap_or_else(|| "None".into()),
+                        msg.channel_id,
                         msg.content
                     );
                     return match join(
@@ -152,6 +154,7 @@ pub async fn custom_command(ctx: &Context, msg: &Message, mut args: Args) -> Com
 
 #[command]
 #[checks(is_admin)]
+#[only_in(guilds)]
 pub async fn define(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let server_id = msg.guild_id.ok_or(NotInGuild)?;
 

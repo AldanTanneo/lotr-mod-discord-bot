@@ -44,7 +44,7 @@ pub async fn allowed_blacklist(ctx: &Context, msg: &Message) -> Result<(), Reaso
         .channel_id
         .to_channel(ctx)
         .await
-        .map_err(|e| Reason::Log(format!("Could not retrieve channel: {}", e)))?
+        .map_err(|e| Reason::Log(format!("Could not retrieve channel: {:?}", e)))?
         .guild()
         .map(|g| g.thread_metadata.map(|_| g.category_id).flatten())
         .ok_or_else(|| Reason::Log("Not in a guild".into()))?;
@@ -68,11 +68,11 @@ pub async fn allowed_blacklist(ctx: &Context, msg: &Message) -> Result<(), Reaso
         Err(Reason::UserAndLog {
             user: "You are not allowed to use this command here.".into(),
             log: format!(
-                "=== BLACKLIST ===\nUser: {} ({})\nGuild: {}\nChannel: {}\nMessage: {}\n=== END ===",
+                "=== BLACKLIST ===\nUser: {} {:?}\nGuild: {}\nChannel: {:?}\nMessage: {}\n=== END ===",
                 msg.author.tag(),
                 msg.author.id,
                 msg.guild_id
-                    .map(|id| id.to_string())
+                    .map(|id| format!("{:?}", id))
                     .unwrap_or_else(|| "None".into()),
                 msg.channel_id,
                 msg.content
@@ -103,11 +103,11 @@ pub async fn user_blacklist(ctx: &Context, msg: &Message) -> Result<(), Reason> 
         Err(Reason::UserAndLog {
             user: "You are not allowed to use this command here.".into(),
             log: format!(
-                "=== USER BLACKLIST ===\nUser: {} {}\nGuild: {}\nMessage: {}\n=== END ===",
+                "=== USER BLACKLIST ===\nUser: {} {:?}\nGuild: {}\nMessage: {}\n=== END ===",
                 msg.author.tag(),
                 msg.author.id,
                 msg.guild_id
-                    .map(|id| id.to_string())
+                    .map(|id| format!("{:?}", id))
                     .unwrap_or_else(|| "None".into()),
                 msg.content
             ),
@@ -231,9 +231,9 @@ pub async fn after_hook(
             "=== ERROR REPORT ===
 Error in command `{}`: {:?}
 === MESSAGE ===
-Author: {} {}
+Author: {} {:?}
 Guild: {}
-Channel: {}
+Channel: {:?}
 Content: {}
 === END ===",
             cmd_name,
@@ -241,7 +241,7 @@ Content: {}
             msg.author.tag(),
             msg.author.id,
             msg.guild_id
-                .map(|id| id.to_string())
+                .map(|id| format!("{:?}", id))
                 .unwrap_or_else(|| "None".into()),
             msg.channel_id,
             msg.content,

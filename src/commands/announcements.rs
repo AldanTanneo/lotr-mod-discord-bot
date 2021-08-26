@@ -33,23 +33,21 @@ pub async fn announce(ctx: &Context, msg: &Message, args: Args) -> CommandResult
         let message = get_json_from_message(msg).await;
         match message {
             Ok(value) => {
-                if announcement::announce(ctx, channel_id, &value)
-                    .await
-                    .is_ok()
-                {
+                if let Err(e) = announcement::announce(ctx, channel_id, &value).await {
+                    failure!(ctx, msg, "Error sending the message! Check your JSON content and/or the bot permissions.");
+                    return Err(e);
+                } else {
                     println!(
-                        "Annoucement by {} {} in {}, {}: {}",
+                        "Annoucement by {} {:?} in {:?}, {}: {}",
                         msg.author.tag(),
                         msg.author.id,
                         channel_id,
                         msg.guild_id
-                            .map(|id| id.to_string())
+                            .map(|id| format!("{:?}", id))
                             .unwrap_or_else(|| "None".into()),
                         value.to_string()
                     );
                     success!(ctx, msg);
-                } else {
-                    failure!(ctx, msg, "Error sending the message! Check your JSON content and/or the bot permissions.");
                 }
             }
             Err(e) => handle_json_error!(ctx, msg, e),
