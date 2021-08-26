@@ -33,6 +33,9 @@ pub const CURSEFORGE_ICON: &str = "https://tinyimg.io/i/SVsK1qC.png";
 /// Facebook logo for the !facebook command
 pub const FACEBOOK_ICON: &str =
     "https://facebookbrand.com/wp-content/uploads/2019/04/f_logo_RGB-Hex-Blue_512.png";
+/// Instagram logo for the !instagram command
+pub const INSTAGRAM_ICON: &str =
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/Instagram_logo_2016.svg/768px-Instagram_logo_2016.svg.png";
 /// Visual for the !donate command
 pub const DONATE_THUMBNAIL: &str =
     "https://media.discordapp.net/attachments/781837314975989772/809773869971013653/Donate.png";
@@ -91,7 +94,7 @@ pub const TABLE_ROLES_ALIASES: &str = "roles__aliases";
 pub const TABLE_LIST_GUILDS: &str = "list_guilds";
 
 /// Reserved command names that cannot be used as [custom commands][crate::commands::custom_commands]
-pub const RESERVED_NAMES: [&str; 48] = [
+pub const RESERVED_NAMES: [&str; 50] = [
     "legacy",
     "renewed",
     "download",
@@ -140,4 +143,6 @@ pub const RESERVED_NAMES: [&str; 48] = [
     "role",
     "roles",
     "listroles",
+    "instagram",
+    "ig",
 ];

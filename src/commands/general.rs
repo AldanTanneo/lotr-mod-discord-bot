@@ -19,7 +19,7 @@ pub async fn renewed(ctx: &Context, msg: &Message) -> CommandResult {
                 e.title("Use the 1.7.10 version");
                 e.description(
                     "The 1.16.5 version of the mod is a work in progress, missing many features \
-such as NPCs and structures. You can find those in the full 1.7.10 Legacy edition \
+such as structures or NPC dialogue. You can find those in the full 1.7.10 Legacy edition \
 [here](https://www.curseforge.com/minecraft/mc-mods/the-lord-of-the-rings-mod-legacy).
 
 For a list of features present in the renewed version, check \
@@ -147,10 +147,15 @@ To fix this, go to your `/.minecraft/mods` folder and change the file extension!
 #[command]
 #[checks(allowed_blacklist)]
 pub async fn invite(ctx: &Context, msg: &Message) -> CommandResult {
-    msg.author
-        .dm(ctx, |m| {
+    let user_icon = ctx.cache.current_user_field(|user| user.face()).await;
+    msg.channel_id
+        .send_message(ctx, |m| {
             m.embed(|e| {
                 e.colour(Colour::BLURPLE);
+                e.author(|a| {
+                    a.name("LOTR Mod Bot");
+                    a.icon_url(user_icon)
+                });
                 e.field(
                     "Invite me to your server!",
                     "My invite link is available \
@@ -160,10 +165,6 @@ pub async fn invite(ctx: &Context, msg: &Message) -> CommandResult {
             })
         })
         .await?;
-
-    if msg.guild_id.is_some() {
-        msg.reply(ctx, "Sent invite link to DMs!").await?;
-    }
 
     Ok(())
 }
@@ -194,6 +195,27 @@ updates and teasers [here](https://www.facebook.com/LOTRMC)!",
                 e.thumbnail(crate::constants::FACEBOOK_ICON);
                 e.title("Link to the Facebook page");
                 e.url("https://www.facebook.com/LOTRMC");
+                e
+            })
+        })
+        .await?;
+    Ok(())
+}
+
+#[command]
+#[aliases("ig")]
+pub async fn instagram(ctx: &Context, msg: &Message) -> CommandResult {
+    msg.channel_id
+        .send_message(ctx, |m| {
+            m.embed(|e| {
+                e.colour(Colour::new(0xC13584));
+                e.description(
+                    "Check the mod’s Instagram page for
+updates and teasers [here](https://www.instagram.com/lotrmcmod/)!",
+                );
+                e.thumbnail(crate::constants::INSTAGRAM_ICON);
+                e.title("Link to the Instagram page");
+                e.url("https://www.instagram.com/lotrmcmod/");
                 e
             })
         })
