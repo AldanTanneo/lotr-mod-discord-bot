@@ -187,7 +187,7 @@ pub async fn facebook(ctx: &Context, msg: &Message) -> CommandResult {
     msg.channel_id
         .send_message(ctx, |m| {
             m.embed(|e| {
-                e.colour(Colour::new(0x3B5998));
+                e.colour(Colour::new(0x1877F2));
                 e.description(
                     "Check the mod’s Facebook page for
 updates and teasers [here](https://www.facebook.com/LOTRMC)!",
