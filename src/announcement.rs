@@ -13,21 +13,9 @@ use std::convert::TryFrom;
 macro_rules! embed_parser {
     ($embed:expr) => {
         |e| {
-            if let Some(colour) = $embed["colour"].as_str() {
-                // embed side bar colour
-                // (hexadecimal color encoding)
-                if let Ok(c) = u32::from_str_radix(&colour.to_uppercase(), 16) {
-                    e.colour(Color::new(c));
-                }
-            } else if let Some(color) = $embed["color"].as_str() {
-                // supports english and american spelling
-                if let Ok(c) = u32::from_str_radix(&color.to_uppercase(), 16) {
-                    e.colour(Color::new(c));
-                }
-            }
-            if $embed["author"].is_object() {
+            let author = &$embed["author"];
+            if author.is_object() {
                 // embed author
-                let author = &$embed["author"];
                 e.author(|a| {
                     if let Some(name) = author["name"].as_str() {
                         // author name
@@ -43,7 +31,44 @@ macro_rules! embed_parser {
                     }
                     a
                 });
+            } else if author.as_str() == Some("lotr_facebook") {
+                e.author(|a| {
+                    a.name("LOTR Mod Official Facebook");
+                    a.url("https://www.facebook.com/LOTRMC");
+                    a.icon_url(crate::constants::FACEBOOK_ICON);
+                    a
+                });
+                e.colour(crate::constants::FACEBOOK_COLOUR);
+            } else if author.as_str() == Some("lotr_instagram") {
+                e.author(|a| {
+                    a.name("LOTR Mod Official Instagram");
+                    a.url("https://www.instagram.com/lotrmcmod");
+                    a.icon_url(crate::constants::INSTAGRAM_ICON);
+                    a
+                });
+                e.colour(crate::constants::INSTAGRAM_COLOUR);
+            } else if author.as_str() == Some("mevans") {
+                e.author(|a| {
+                    a.name("Mevans");
+                    a.icon_url("https://cdn.discordapp.com/emojis/405159804127150090.png");
+                    a
+                });
             }
+
+            // Set the colour after the author for a potential override
+            if let Some(colour) = $embed["colour"].as_str() {
+                // embed side bar colour
+                // (hexadecimal color encoding)
+                if let Ok(c) = u32::from_str_radix(&colour.to_uppercase(), 16) {
+                    e.colour(Color::new(c));
+                }
+            } else if let Some(color) = $embed["color"].as_str() {
+                // supports english and american spelling
+                if let Ok(c) = u32::from_str_radix(&color.to_uppercase(), 16) {
+                    e.colour(Color::new(c));
+                }
+            }
+
             if let Some(title) = $embed["title"].as_str() {
                 // embed title
                 e.title(title);
@@ -245,7 +270,8 @@ pub async fn edit_message(
             }
             if message["embed"].is_object() {
                 // message embed content
-                m.embed(embed_parser!(message["embed"]));
+                let embed = &message["embed"];
+                m.embed(embed_parser!(embed));
             }
             m
         })

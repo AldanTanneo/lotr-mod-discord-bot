@@ -1,6 +1,6 @@
 //! Constants used in commands and API bindings
-
 use serenity::model::prelude::*;
+use serenity::utils::Colour;
 
 /// User ID of the bot
 pub const BOT_ID: UserId = UserId(780858391383638057);
@@ -30,12 +30,19 @@ pub const FORGE_ICON: &str =
     "https://pbs.twimg.com/profile_images/778706890914095109/fhMDH9o6_400x400.jpg";
 /// Curseforge logo for the !curseforge command
 pub const CURSEFORGE_ICON: &str = "https://tinyimg.io/i/SVsK1qC.png";
+
 /// Facebook logo for the !facebook command
 pub const FACEBOOK_ICON: &str =
     "https://facebookbrand.com/wp-content/uploads/2019/04/f_logo_RGB-Hex-Blue_512.png";
+/// Facebook embed colour
+pub const FACEBOOK_COLOUR: Colour = Colour::new(0x1877f2);
+
 /// Instagram logo for the !instagram command
 pub const INSTAGRAM_ICON: &str =
     "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/Instagram_logo_2016.svg/768px-Instagram_logo_2016.svg.png";
+/// Instagram embed colour
+pub const INSTAGRAM_COLOUR: Colour = Colour::new(0xC13584);
+
 /// Visual for the !donate command
 pub const DONATE_THUMBNAIL: &str =
     "https://media.discordapp.net/attachments/781837314975989772/809773869971013653/Donate.png";
