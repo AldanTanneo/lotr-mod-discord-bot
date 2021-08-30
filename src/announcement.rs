@@ -6,7 +6,7 @@ use serenity::client::Context;
 use serenity::framework::standard::CommandResult;
 use serenity::futures::future::join_all;
 use serenity::model::prelude::*;
-use serenity::utils::Color;
+use serenity::utils::Colour;
 use std::convert::TryFrom;
 
 /// Macro that builds an embed. Used in [`announce`] and [`edit_message`].
@@ -60,12 +60,12 @@ macro_rules! embed_parser {
                 // embed side bar colour
                 // (hexadecimal color encoding)
                 if let Ok(c) = u32::from_str_radix(&colour.to_uppercase(), 16) {
-                    e.colour(Color::new(c));
+                    e.colour(Colour::new(c));
                 }
             } else if let Some(color) = $embed["color"].as_str() {
                 // supports english and american spelling
                 if let Ok(c) = u32::from_str_radix(&color.to_uppercase(), 16) {
-                    e.colour(Color::new(c));
+                    e.colour(Colour::new(c));
                 }
             }
 

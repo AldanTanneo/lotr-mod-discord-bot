@@ -19,8 +19,8 @@ pub async fn renewed(ctx: &Context, msg: &Message) -> CommandResult {
                 e.title("Use the 1.7.10 version");
                 e.description(
                     "The 1.16.5 version of the mod is a work in progress, missing many features \
-such as structures or NPC dialogue. You can find those in the full 1.7.10 Legacy edition \
-[here](https://www.curseforge.com/minecraft/mc-mods/the-lord-of-the-rings-mod-legacy).
+such as structures, mini quests or NPC speechbanks. You can find those in the full 1.7.10 Legacy \
+edition [here](https://www.curseforge.com/minecraft/mc-mods/the-lord-of-the-rings-mod-legacy).
 
 For a list of features present in the renewed version, check \
 [this page](https://lotrminecraftmod.fandom.com/wiki/Updates/Renewed).",
