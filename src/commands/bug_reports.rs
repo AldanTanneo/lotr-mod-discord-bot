@@ -286,6 +286,12 @@ pub async fn bug(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult 
                                     if let Some(image) = message.attachments.get(0) {
                                         e.image(&image.url);
                                     }
+                                    e.footer(|f| {
+                                        f.text(format!(
+                                            "Status: {} • Submitted by {}",
+                                            bug.status, &message.author.name
+                                        ))
+                                    });
                                 }
                                 if !bug.links.is_empty() {
                                     e.field(
@@ -299,7 +305,6 @@ pub async fn bug(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult 
                                         false,
                                     );
                                 }
-                                e.footer(|f| f.text(format!("Status: {}", bug.status)));
                                 e.timestamp(&bug.timestamp);
                                 e
                             })
