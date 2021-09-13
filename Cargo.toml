@@ -20,7 +20,7 @@ humantime-serde = "1.0.1"
 dashmap = "4.0"
 
 [dependencies.tokio]
-version = "1.10"
+version = "1.11"
 features = [
     "macros", 
     "rt-multi-thread"
