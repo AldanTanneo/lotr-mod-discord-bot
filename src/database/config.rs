@@ -9,10 +9,25 @@ use std::sync::Arc;
 use crate::constants::{TABLE_MC_SERVER_IP, TABLE_PREFIX};
 use crate::get_database_conn;
 
-pub struct PrefixCache;
+#[derive(Debug, Clone)]
+pub struct PrefixCache(Arc<DashMap<GuildId, String>>);
 
 impl TypeMapKey for PrefixCache {
-    type Value = Arc<DashMap<GuildId, String>>;
+    type Value = Self;
+}
+
+impl std::ops::Deref for PrefixCache {
+    type Target = DashMap<GuildId, String>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl PrefixCache {
+    pub fn new() -> Self {
+        Self(Arc::new(DashMap::new()))
+    }
 }
 
 pub async fn get_prefix(ctx: &Context, server_id: GuildId) -> Option<String> {

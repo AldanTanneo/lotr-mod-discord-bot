@@ -148,6 +148,16 @@ To fix this, go to your `/.minecraft/mods` folder and change the file extension!
 #[checks(allowed_blacklist)]
 pub async fn invite(ctx: &Context, msg: &Message) -> CommandResult {
     let user_icon = ctx.cache.current_user_field(|user| user.face()).await;
+    /*let invite_link = ctx
+    .cache
+    .current_user()
+    .await
+    .invite_url_with_oauth2_scopes(
+        ctx,
+        Permissions::ADD_REACTIONS | Permissions::MANAGE_MESSAGES | Permissions::MANAGE_ROLES,
+        &[],
+    )
+    .await?;*/
     msg.channel_id
         .send_message(ctx, |m| {
             m.embed(|e| {
@@ -159,7 +169,7 @@ pub async fn invite(ctx: &Context, msg: &Message) -> CommandResult {
                 e.field(
                     "Invite me to your server!",
                     "My invite link is available \
-[here](https://github.com/AldanTanneo/lotr-mod-discord-bot/)",
+[here](https://discord.com/api/oauth2/authorize?client_id=780858391383638057&permissions=189784255552&scope=bot%20applications.commands)",
                     false,
                 )
             })

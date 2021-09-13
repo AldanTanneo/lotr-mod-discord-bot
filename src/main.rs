@@ -17,12 +17,11 @@ pub mod event_handler;
 pub mod role_cache;
 pub mod utils;
 
-use dashmap::DashMap;
-use mysql_async::{OptsBuilder, Pool};
+use mysql_async::OptsBuilder;
 use serenity::client::ClientBuilder;
 use serenity::framework::standard::{macros::group, StandardFramework};
 use serenity::http::client::Http;
-use std::{env, sync::Arc};
+use std::env;
 
 use api::ReqwestClient;
 use check::{after_hook, dispatch_error_hook};
@@ -87,7 +86,7 @@ async fn main() {
         .expect("DB_PORT must be a valid u16");
 
     // create database pool for bot guild data
-    let pool: Pool = Pool::new(
+    let pool = DatabasePool::new(
         OptsBuilder::default()
             .user(Some(db_user))
             .db_name(Some(db_name))
@@ -97,16 +96,10 @@ async fn main() {
     );
 
     // reqwest client for API calls
-    let reqwest_client = Arc::new(
-        reqwest::Client::builder()
-            .use_rustls_tls()
-            .build()
-            .expect("Could not build the reqwest client"),
-    );
-    let cloned_client = Arc::clone(&reqwest_client);
+    let reqwest_client = ReqwestClient::new();
 
-    let role_cache_map = DashMap::new();
-    let prefix_cache = DashMap::new();
+    let role_cache = RoleCache::new();
+    let prefix_cache = PrefixCache::new();
 
     // initialize bot framework
     let framework = StandardFramework::new()
@@ -140,16 +133,16 @@ async fn main() {
         .bucket("basic", |b| b.delay(2).time_span(10).limit(3))
         .await;
 
-    let mut http = Http::new(reqwest_client, &format!("Bot {}", &token));
+    let mut http = Http::new(reqwest_client.as_arc(), &format!("Bot {}", &token));
     http.application_id = application_id;
     // building client
     let mut client = ClientBuilder::new_with_http(http)
         .event_handler(Handler)
         .framework(framework)
-        .type_map_insert::<DatabasePool>(Arc::new(pool))
-        .type_map_insert::<ReqwestClient>(cloned_client)
-        .type_map_insert::<RoleCache>(Arc::new(role_cache_map))
-        .type_map_insert::<PrefixCache>(Arc::new(prefix_cache))
+        .type_map_insert::<DatabasePool>(pool)
+        .type_map_insert::<ReqwestClient>(reqwest_client)
+        .type_map_insert::<RoleCache>(role_cache)
+        .type_map_insert::<PrefixCache>(prefix_cache)
         .await
         .expect("Error creating client");
 

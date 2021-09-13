@@ -7,6 +7,7 @@ use serenity::utils::Colour;
 use std::iter;
 use std::time::Duration;
 
+use crate::commands::roles::format_role_name;
 use crate::constants::TABLE_ROLES;
 use crate::constants::TABLE_ROLES_ALIASES;
 use crate::get_database_conn;
@@ -31,12 +32,18 @@ pub struct RoleProperties {
     pub aliases: Option<Vec<String>>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct CustomRole {
     pub id: RoleId,
     pub name: String,
     pub properties: RoleProperties,
     pub colour: Colour,
+}
+
+impl std::fmt::Debug for CustomRole {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "({} {:?})", self.name, self.id)
+    }
 }
 
 pub async fn get_role(ctx: &Context, server_id: GuildId, role_name: &str) -> Option<CustomRole> {
@@ -92,7 +99,7 @@ pub async fn add_role(ctx: &Context, server_id: GuildId, role: &CustomRole) -> C
             ),
             iter::once(&role.name).chain(aliases.iter()).map(|alias| params! {
                 "server_id" => server_id.0,
-                "alias_name" => crate::commands::roles::format_role_name(alias),
+                "alias_name" => format_role_name(alias),
                 "role_id" => role.id.0,
             }),
         )

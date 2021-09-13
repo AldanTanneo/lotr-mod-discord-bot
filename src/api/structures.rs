@@ -2,8 +2,6 @@
 //! and some structures for the other the API functions.
 
 use serde::{Deserialize, Serialize};
-use serenity::prelude::TypeMapKey;
-use std::sync::Arc;
 
 use Lang::*;
 use Namespace::*;
@@ -87,12 +85,6 @@ pub struct GenericPage {
     pub title: String,
     pub desc: Option<String>,
     pub link: String,
-}
-
-pub struct ReqwestClient;
-
-impl TypeMapKey for ReqwestClient {
-    type Value = Arc<reqwest::Client>;
 }
 
 impl From<RandomPage> for GenericPage {

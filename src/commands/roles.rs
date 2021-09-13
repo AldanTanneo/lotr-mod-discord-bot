@@ -53,7 +53,7 @@ macro_rules! role_log {
 
 #[inline]
 pub fn format_role_name(name: &str) -> String {
-    name.to_lowercase().replace(&['-', '_'][..], " ")
+    name.replace(&['-', '_'][..], " ")
 }
 
 #[derive(Debug, Clone)]
