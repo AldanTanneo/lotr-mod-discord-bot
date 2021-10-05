@@ -1,12 +1,66 @@
 use serenity::client::Context;
-use serenity::framework::standard::{macros::command, Args, CommandResult};
+use serenity::framework::standard::{macros::command, Args, CommandError, CommandResult};
+use serenity::http::error::{DiscordJsonError, DiscordJsonSingleError, ErrorResponse};
 use serenity::model::prelude::*;
+use serenity::prelude::HttpError;
 
 use crate::announcement;
 use crate::check::*;
 use crate::constants::OWNER_ID;
 use crate::utils::get_json_from_message;
 use crate::{failure, handle_json_error, success};
+
+async fn announcement_error_handler(
+    ctx: &Context,
+    msg: &Message,
+    error: &CommandError,
+) -> CommandResult {
+    match error.downcast_ref::<HttpError>() {
+        Some(HttpError::UnsuccessfulRequest(ErrorResponse {
+            error:
+                DiscordJsonError {
+                    code,
+                    message,
+                    errors,
+                    ..
+                },
+            ..
+        })) => {
+            msg.channel_id
+                .send_message(ctx, |m| {
+                    m.embed(|e| {
+                        e.author(|a| a.name("Error sending announcement"));
+                        e.colour(serenity::utils::Colour::RED);
+                        e.title(message);
+                        e.description(format!("Error code: `{}`", code));
+                        for DiscordJsonSingleError {
+                            code,
+                            message,
+                            path,
+                        } in errors
+                        {
+                            e.field(
+                                format!("`{}`", code),
+                                format!("{}\nPath: `{}`", message, path),
+                                false,
+                            );
+                        }
+                        e
+                    })
+                })
+                .await?;
+        }
+        _ => {
+            failure!(
+                ctx,
+                msg,
+                "Error sending/editing the message! Check your JSON content and/or the bot permissions."
+            );
+        }
+    };
+
+    Ok(())
+}
 
 #[command]
 #[only_in(guilds)]
@@ -33,9 +87,9 @@ pub async fn announce(ctx: &Context, msg: &Message, args: Args) -> CommandResult
         let message = get_json_from_message(msg).await;
         match message {
             Ok(value) => {
-                if let Err(e) = announcement::announce(ctx, channel_id, &value).await {
-                    failure!(ctx, msg, "Error sending the message! Check your JSON content and/or the bot permissions.");
-                    return Err(e);
+                if let Err(error) = announcement::announce(ctx, channel_id, &value).await {
+                    announcement_error_handler(ctx, msg, &error).await?;
+                    return Err(error);
                 } else {
                     println!(
                         "Annoucement by {} {:?} in {:?}, {}: {}",
@@ -83,15 +137,17 @@ pub async fn edit(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
             let message = get_json_from_message(msg).await;
             match message {
                 Ok(value) => {
-                    if announcement::edit_message(
+                    if let Err(error) = announcement::edit_message(
                         ctx,
                         channel_id,
                         MessageId(msg_id.unwrap_or(0)),
                         &value,
                     )
                     .await
-                    .is_ok()
                     {
+                        announcement_error_handler(ctx, msg, &error).await?;
+                        return Err(error);
+                    } else {
                         println!(
                             "Announcement edited by {} {} in {}, {}: {}",
                             msg.author.tag(),
