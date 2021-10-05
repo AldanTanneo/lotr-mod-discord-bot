@@ -2,7 +2,7 @@ use serenity::client::Context;
 use serenity::framework::standard::{macros::command, Args, CommandError, CommandResult};
 use serenity::http::error::{DiscordJsonError, DiscordJsonSingleError, ErrorResponse};
 use serenity::model::prelude::*;
-use serenity::prelude::HttpError;
+use serenity::prelude::{HttpError, SerenityError};
 
 use crate::announcement;
 use crate::check::*;
@@ -15,49 +15,57 @@ async fn announcement_error_handler(
     msg: &Message,
     error: &CommandError,
 ) -> CommandResult {
-    match error.downcast_ref::<HttpError>() {
-        Some(HttpError::UnsuccessfulRequest(ErrorResponse {
-            error:
-                DiscordJsonError {
-                    code,
-                    message,
-                    errors,
-                    ..
-                },
-            ..
-        })) => {
-            msg.channel_id
-                .send_message(ctx, |m| {
-                    m.embed(|e| {
-                        e.author(|a| a.name("Error sending announcement"));
-                        e.colour(serenity::utils::Colour::RED);
-                        e.title(message);
-                        e.description(format!("Error code: `{}`", code));
-                        for DiscordJsonSingleError {
-                            code,
-                            message,
-                            path,
-                        } in errors
-                        {
-                            e.field(
-                                format!("`{}`", code),
-                                format!("{}\nPath: `{}`", message, path),
-                                false,
-                            );
-                        }
-                        e
+    if let Some(SerenityError::Http(http_error)) = error.downcast_ref::<SerenityError>() {
+        match http_error.as_ref() {
+            HttpError::UnsuccessfulRequest(ErrorResponse {
+                error:
+                    DiscordJsonError {
+                        code,
+                        message,
+                        errors,
+                        ..
+                    },
+                ..
+            }) => {
+                msg.channel_id
+                    .send_message(ctx, |m| {
+                        m.embed(|e| {
+                            e.author(|a| a.name("Error sending announcement"));
+                            e.colour(serenity::utils::Colour::RED);
+                            e.title(message);
+                            e.description(format!("Error code: `{}`", code));
+                            for DiscordJsonSingleError {
+                                code,
+                                message,
+                                path,
+                            } in errors
+                            {
+                                e.field(
+                                    format!("`{}`", code),
+                                    format!("{}\nPath: `{}`", message, path),
+                                    false,
+                                );
+                            }
+                            e
+                        })
                     })
-                })
-                .await?;
-        }
-        _ => {
-            failure!(
+                    .await?;
+            }
+            _ => {
+                failure!(
                 ctx,
                 msg,
                 "Error sending/editing the message! Check your JSON content and/or the bot permissions."
             );
+            }
         }
-    };
+    } else {
+        failure!(
+                ctx,
+                msg,
+                "Error sending/editing the message! Check your JSON content and/or the bot permissions."
+            );
+    }
 
     Ok(())
 }
