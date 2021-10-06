@@ -50,6 +50,8 @@ async fn announcement_error_handler(
                         })
                     })
                     .await?;
+
+                failure!(ctx, msg);
             }
             _ => {
                 failure!(
