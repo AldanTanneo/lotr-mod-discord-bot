@@ -56,6 +56,7 @@ async fn dagohon(ctx: &Context, msg: &Message) -> CommandResult {
 #[command]
 #[checks(allowed_blacklist)]
 #[bucket = "basic"]
+#[only_in(guilds)]
 async fn colour(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let colour_value = args
         .current()

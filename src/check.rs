@@ -36,9 +36,12 @@ use crate::utils::has_permission;
 #[check]
 #[name = "allowed_blacklist"]
 pub async fn allowed_blacklist(ctx: &Context, msg: &Message) -> Result<(), Reason> {
-    let server_id = msg
-        .guild_id
-        .ok_or_else(|| Reason::Log("Not in a guild".into()))?;
+    let server_id = if let Some(id) = msg.guild_id {
+        id
+    } else {
+        // if not in a guild, always allow - no blacklist in DMs
+        return Ok(());
+    };
 
     let thread_parent_channel = msg
         .channel_id
@@ -86,9 +89,12 @@ pub async fn allowed_blacklist(ctx: &Context, msg: &Message) -> Result<(), Reaso
 #[check]
 #[name = "user_blacklist"]
 pub async fn user_blacklist(ctx: &Context, msg: &Message) -> Result<(), Reason> {
-    let server_id = msg
-        .guild_id
-        .ok_or_else(|| Reason::Log("Not in a guild".into()))?;
+    let server_id = if let Some(id) = msg.guild_id {
+        id
+    } else {
+        // if not in a guild, always allow - no blacklist in DMs
+        return Ok(());
+    };
 
     if check_blacklist(ctx, server_id, msg.author.id, ChannelId(0))
         .await
