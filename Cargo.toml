@@ -18,6 +18,7 @@ mysql_async = "0.28"
 chrono = "0.4"
 humantime-serde = "1.0.1"
 dashmap = "4.0"
+alea = "0.2"
 
 [dependencies.tokio]
 version = "1.12"

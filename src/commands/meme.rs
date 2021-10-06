@@ -61,12 +61,12 @@ async fn colour(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
         .current()
         .map(|s| u32::from_str_radix(s.trim_start_matches('#'), 16).ok())
         .flatten()
-        .unwrap_or_else(|| (&args as *const Args) as u32 & BIT_FILTER_24BITS);
+        .unwrap_or_else(|| alea::u32() & BIT_FILTER_24BITS);
 
     msg.channel_id
         .send_message(ctx, |m| {
             m.embed(|e| {
-                e.title(format!("Random colour #{:06x}", colour_value));
+                e.title(format!("Colour: #{:06x}", colour_value));
                 e.image(format!(
                     "https://singlecolorimage.com/get/{:06x}/400x300",
                     colour_value
