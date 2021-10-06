@@ -3,7 +3,7 @@ use serenity::framework::standard::{macros::command, Args, CommandResult};
 use serenity::model::prelude::*;
 
 use crate::check::*;
-use crate::constants::OWNER_ID;
+use crate::constants::{BIT_FILTER_24BITS, OWNER_ID};
 use crate::database::floppa::{add_floppa, get_floppa, is_floppadmin};
 use crate::success;
 use crate::utils::NotInGuild;
@@ -50,6 +50,33 @@ async fn dagohon(ctx: &Context, msg: &Message) -> CommandResult {
             m.allowed_mentions(|a| a.empty_parse())
         })
         .await?;
+    Ok(())
+}
+
+#[command]
+#[checks(allowed_blacklist)]
+#[bucket = "basic"]
+async fn colour(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
+    let colour_value = args
+        .current()
+        .map(|s| u32::from_str_radix(s.trim_start_matches('#'), 16).ok())
+        .flatten()
+        .unwrap_or_else(|| (&args as *const Args) as u32 & BIT_FILTER_24BITS);
+
+    msg.channel_id
+        .send_message(ctx, |m| {
+            m.embed(|e| {
+                e.title(format!("Random colour #{:06x}", colour_value));
+                e.image(format!(
+                    "https://singlecolorimage.com/get/{:06x}/400x300",
+                    colour_value
+                ));
+                e.colour(colour_value);
+                e
+            })
+        })
+        .await?;
+
     Ok(())
 }
 

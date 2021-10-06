@@ -45,7 +45,7 @@ use role_cache::RoleCache;
 struct General;
 
 #[group]
-#[commands(floppa, aeugh, dagohon)]
+#[commands(floppa, aeugh, dagohon, colour)]
 struct Meme;
 
 #[group]

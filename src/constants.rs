@@ -13,6 +13,9 @@ pub const LOTR_DISCORD: GuildId = GuildId(405091134327619587);
 /// and [custom commands][crate::commands::custom_commands]
 pub const MAX_JSON_FILE_SIZE: u64 = 10240;
 
+/// Bit filter for colours
+pub const BIT_FILTER_24BITS: u32 = !(!0 << 24);
+
 /// Set of [permissions][Permissions] needed to manage the bot (bot admins and owner excepted).
 ///
 /// Equivalent to `ADMINISTRATOR | MANAGE_GUILD | MANAGE_CHANNELS`
