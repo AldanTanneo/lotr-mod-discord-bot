@@ -1,15 +1,14 @@
-//! Module with all the bot commands
-//!
-//! Commands are split in 8 categories in order not to have huge files with a
-//! bunch of commands just thrown in.
+pub mod minecraft;
 
-pub mod admin;
-pub mod announcements;
-pub mod bug_reports;
-pub mod custom_commands;
-pub mod general;
-pub mod help;
-pub mod meme;
-pub mod roles;
-pub mod servers;
-pub mod wiki;
+use crate::{Context, Result};
+
+/// Display the invite link to the LOTR Mod Community discord
+#[poise::command(slash_command)]
+pub async fn discord(ctx: Context<'_>) -> Result {
+    ctx.say(
+        "The invite for the LOTR Mod Community Discord is available here:
+https://discord.gg/QXkZzKU",
+    )
+    .await?;
+    Ok(())
+}
