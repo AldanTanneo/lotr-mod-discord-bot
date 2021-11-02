@@ -46,8 +46,15 @@ use role_cache::RoleCache;
 struct General;
 
 #[group]
-#[commands(qa_moderator, qa_answer_channel, qa_question_channel, qa_disable)]
+#[commands(
+    qa_moderator,
+    qa_answer_channel,
+    qa_question_channel,
+    qa_disable,
+    qa_summary
+)]
 #[prefix("q&a")]
+#[default_command(qa_summary)]
 struct QA;
 
 #[group]

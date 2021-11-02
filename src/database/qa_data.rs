@@ -45,6 +45,20 @@ pub async fn is_qa_moderator(ctx: &Context, user_id: UserId, guild_id: GuildId) 
     .ok()?
 }
 
+pub async fn get_qa_moderator_list(ctx: &Context, guild_id: GuildId) -> Option<Vec<UserId>> {
+    let mut conn = get_database_conn!(ctx);
+
+    conn.exec_map(
+        "SELECT user_id FROM qa__moderators WHERE guild_id = :guild_id",
+        params! {
+            "guild_id" => guild_id.0
+        },
+        UserId,
+    )
+    .await
+    .ok()
+}
+
 pub async fn is_questions_channel(
     ctx: &Context,
     guild_id: GuildId,
