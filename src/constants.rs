@@ -25,6 +25,9 @@ pub const MANAGE_BOT_PERMS: Permissions = Permissions {
         | Permissions::MANAGE_CHANNELS.bits,
 };
 
+/// Bot icon
+pub const BOT_ICON: &str =
+    "https://cdn.discordapp.com/avatars/780858391383638057/ed9b9a5b688dc3b8d9ea580584d25033.webp";
 /// Termite icon for bug reports
 pub const TERMITE_IMAGE: &str =
     "https://media.discordapp.net/attachments/781837314975989772/839479742457839646/termite.png";
@@ -104,7 +107,7 @@ pub const TABLE_ROLES_ALIASES: &str = "roles__aliases";
 pub const TABLE_LIST_GUILDS: &str = "list_guilds";
 
 /// Reserved command names that cannot be used as [custom commands][crate::commands::custom_commands]
-pub const RESERVED_NAMES: [&str; 50] = [
+pub const RESERVED_NAMES: [&str; 51] = [
     "legacy",
     "renewed",
     "download",
@@ -155,4 +158,5 @@ pub const RESERVED_NAMES: [&str; 50] = [
     "listroles",
     "instagram",
     "ig",
+    "q&a",
 ];

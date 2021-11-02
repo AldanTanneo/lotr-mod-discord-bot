@@ -2,7 +2,7 @@
 name = "lotr-mod-discord-bot"
 version = "0.1.0"
 authors = ["AldanTanneo <aldantanneo@gmail.com>"]
-edition = "2018"
+edition = "2021"
 
 [profile.release]
 lto = true

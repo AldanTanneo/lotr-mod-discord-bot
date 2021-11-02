@@ -14,6 +14,7 @@ pub mod commands;
 pub mod constants;
 pub mod database;
 pub mod event_handler;
+pub mod qa_answers;
 pub mod role_cache;
 pub mod utils;
 
@@ -27,7 +28,7 @@ use api::ReqwestClient;
 use check::{after_hook, dispatch_error_hook};
 use commands::{
     admin::*, announcements::*, bug_reports::*, custom_commands::*, general::*, help::*, meme::*,
-    roles::*, servers::*, wiki::*,
+    qa_setup::*, roles::*, servers::*, wiki::*,
 };
 use constants::{BOT_ID, OWNER_ID};
 use database::{
@@ -43,6 +44,11 @@ use role_cache::RoleCache;
     discord, user_info, role, listroles, instagram
 )]
 struct General;
+
+#[group]
+#[commands(qa_moderator, qa_answer_channel, qa_question_channel, qa_disable)]
+#[prefix("q&a")]
+struct QA;
 
 #[group]
 #[commands(floppa, aeugh, dagohon, colour)]
@@ -127,6 +133,7 @@ async fn main() {
         .group(&MODERATION_GROUP)
         .group(&BUGREPORTS_GROUP)
         .group(&GENERAL_GROUP)
+        .group(&QA_GROUP)
         // Must go last
         .group(&CUSTOMCOMMAND_GROUP)
         // rate limiting some commands

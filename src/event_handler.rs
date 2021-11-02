@@ -112,4 +112,34 @@ impl EventHandler for Handler {
                 .unwrap();
         }
     }
+
+    async fn reaction_add(&self, ctx: Context, reaction: Reaction) {
+        let guild_id = match reaction.guild_id {
+            None => return,
+            Some(guild_id) => {
+                if guild_id != LOTR_DISCORD {
+                    return;
+                }
+                guild_id
+            }
+        };
+
+        if reaction.emoji.unicode_eq("❓") {
+            crate::qa_answers::handle_reaction(&ctx, reaction, guild_id).await;
+        }
+    }
+
+    async fn message(&self, ctx: Context, message: Message) {
+        let guild_id = match message.guild_id {
+            None => return,
+            Some(guild_id) => {
+                if guild_id != LOTR_DISCORD {
+                    return;
+                }
+                guild_id
+            }
+        };
+
+        crate::qa_answers::handle_message(&ctx, &message, guild_id).await;
+    }
 }
