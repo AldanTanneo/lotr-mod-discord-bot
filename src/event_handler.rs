@@ -140,6 +140,10 @@ impl EventHandler for Handler {
             }
         };
 
+        if message.referenced_message.is_none() {
+            return;
+        }
+
         crate::qa_answers::handle_message(&ctx, &message, guild_id).await;
     }
 }

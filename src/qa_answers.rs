@@ -108,10 +108,6 @@ pub async fn handle_reaction(ctx: &Context, reaction: Reaction, guild_id: GuildI
 }
 
 pub async fn handle_message(ctx: &Context, message: &Message, guild_id: GuildId) {
-    if message.referenced_message.is_none() {
-        return;
-    }
-
     if !is_questions_channel(ctx, guild_id, message.channel_id)
         .await
         .unwrap_or_default()
