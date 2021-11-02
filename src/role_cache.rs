@@ -56,6 +56,12 @@ impl std::ops::Deref for RoleCache {
     }
 }
 
+impl Default for RoleCache {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl RoleCache {
     pub fn new() -> Self {
         Self(Arc::new(DashMap::new()))

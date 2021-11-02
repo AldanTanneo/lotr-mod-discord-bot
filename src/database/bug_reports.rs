@@ -29,7 +29,7 @@ pub async fn get_bug_from_id(ctx: &Context, bug_id: u64) -> Result<BugReport, Co
             "SELECT channel_id, message_id, title, status, timestamp, legacy FROM {} WHERE bug_id={}",
             TABLE_BUG_REPORTS, bug_id
         ))
-        .await?.ok_or(CommandError::from("Bug report does not exist!"))?;
+        .await?.ok_or_else(|| CommandError::from("Bug report does not exist!"))?;
 
     let links: Vec<(u64, String, String)> = conn
         .exec(
@@ -87,7 +87,7 @@ pub async fn add_bug_report(
 
     conn.query_first(format!("SELECT MAX(bug_id) FROM {}", TABLE_BUG_REPORTS))
         .await?
-        .ok_or(CommandError::from("Could not get newest bug id!"))
+        .ok_or_else(|| CommandError::from("Could not get newest bug id!"))
 }
 
 pub async fn get_bug_list(
@@ -171,7 +171,7 @@ pub async fn change_bug_status(
             TABLE_BUG_REPORTS, bug_id
         ))
         .await?
-        .ok_or(CommandError::from("Could not find bug in database"))?;
+        .ok_or_else(|| CommandError::from("Could not find bug in database"))?;
 
     let old_status: BugStatus = old_status_string
         .parse()

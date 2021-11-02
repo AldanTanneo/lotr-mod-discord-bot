@@ -49,7 +49,7 @@ pub async fn set_ip(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 
     if let Some(ip) = args.current() {
         println!("Setting up IP to {} on {}", ip, server_id);
-        set_minecraft_ip(ctx, server_id, &ip).await?;
+        set_minecraft_ip(ctx, server_id, ip).await?;
         success!(ctx, msg, "Set Minecraft server IP to  `{}`", ip)
     } else {
         failure!(ctx, msg, "You must provide an IP address to set.")

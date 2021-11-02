@@ -24,6 +24,12 @@ impl std::ops::Deref for PrefixCache {
     }
 }
 
+impl Default for PrefixCache {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl PrefixCache {
     pub fn new() -> Self {
         Self(Arc::new(DashMap::new()))

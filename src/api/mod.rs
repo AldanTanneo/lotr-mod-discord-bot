@@ -25,6 +25,12 @@ impl std::ops::Deref for ReqwestClient {
     }
 }
 
+impl Default for ReqwestClient {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ReqwestClient {
     pub fn new() -> Self {
         Self(
