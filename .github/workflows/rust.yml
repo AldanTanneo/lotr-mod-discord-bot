@@ -15,16 +15,19 @@ on:
 env:
   CARGO_TERM_COLOR: always
 
-jobs:
-  fmt:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: Format
-        run: cargo fmt
+jobs: 
   check:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
-    - name: Check
-      run: cargo check
+    - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+    - name: Run cargo format
+        uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+    - name: Run cargo check
+        uses: actions-rs/cargo@v1
+        with:
+          command: check
