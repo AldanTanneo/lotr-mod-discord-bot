@@ -17,6 +17,7 @@ env:
 
 jobs:
   check:
+    name: Check code and formatting
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
