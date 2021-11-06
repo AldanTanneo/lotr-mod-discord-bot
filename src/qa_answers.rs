@@ -112,7 +112,6 @@ pub async fn handle_message(ctx: &Context, message: &Message, guild_id: GuildId)
         .await
         .unwrap_or_default()
     {
-        println!("Not a questions channel");
         return;
     }
 
@@ -120,7 +119,6 @@ pub async fn handle_message(ctx: &Context, message: &Message, guild_id: GuildId)
         .await
         .unwrap_or_default()
     {
-        println!("Not a q&a mod");
         return;
     }
 
