@@ -105,9 +105,9 @@ pub async fn announce(ctx: &Context, msg: &Message, args: Args) -> CommandResult
                 } else {
                     println!(
                         "=== ANNOUNCEMENT ===
-Author: {} {:?}
-Channel: {} {:?}
-Guild: {} {:?} 
+Author: {}, {:?}
+Channel: #{}, {:?}
+Guild: {:?}, {:?}
 Content: {}
 === END ===",
                         msg.author.tag(),
@@ -176,9 +176,9 @@ pub async fn edit(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
                     } else {
                         println!(
                             "=== ANNOUNCEMENT EDITED ===
-Edit author: {} {:?},
-Channel: {} {:?}
-Guild: {} {:?}
+Edit author: {}, {:?}
+Channel: #{}, {:?}
+Guild: {:?}, {:?}
 Content: {}
 === END ===",
                             msg.author.tag(),
