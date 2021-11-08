@@ -226,7 +226,13 @@ pub async fn buglist(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
                     } else {
                         &content
                     });
-                    e.footer(|f| f.text(format!("Page {}/{}", page, (total_bugs - 1) / limit + 1)));
+                    e.footer(|f| {
+                        f.text(format!(
+                            "Page {}/{}",
+                            page,
+                            (total_bugs.max(1) - 1) / limit + 1
+                        ))
+                    });
                     e
                 })
             })
