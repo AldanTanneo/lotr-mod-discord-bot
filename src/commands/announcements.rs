@@ -78,14 +78,16 @@ async fn announcement_error_handler(
 #[sub_commands("edit")]
 pub async fn announce(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let channel = args.parse::<ChannelId>();
+
+    let guild_id = msg.guild_id.expect("Should be only used in guilds");
+
     if let Ok(channel_id) = channel {
         if msg.author.id != OWNER_ID
             && msg.guild_id
-                != channel_id
-                    .to_channel(ctx)
-                    .await?
-                    .guild()
-                    .map(|c| c.guild_id)
+                != ctx
+                    .cache
+                    .guild_channel_field(channel_id, |c| c.guild_id)
+                    .await
         {
             failure!(
                 ctx,
@@ -102,13 +104,24 @@ pub async fn announce(ctx: &Context, msg: &Message, args: Args) -> CommandResult
                     return Err(error);
                 } else {
                     println!(
-                        "Annoucement by {} {:?} in {:?}, {}: {}",
+                        "=== ANNOUNCEMENT ===
+Author: {} {:?}
+Channel: {} {:?}
+Guild: {} {:?} 
+Content: {}
+=== END ===",
                         msg.author.tag(),
                         msg.author.id,
+                        ctx.cache
+                            .guild_channel_field(channel_id, |c| c.name.clone())
+                            .await
+                            .unwrap_or_else(|| "Unknown channel".to_string()),
                         channel_id,
-                        msg.guild_id
-                            .map(|id| format!("{:?}", id))
-                            .unwrap_or_else(|| "None".into()),
+                        ctx.cache
+                            .guild_field(guild_id, |g| g.name.clone())
+                            .await
+                            .unwrap_or_else(|| "Unknown Guild".to_string()),
+                        guild_id,
                         value.to_string()
                     );
                     success!(ctx, msg);
@@ -127,14 +140,22 @@ pub async fn announce(ctx: &Context, msg: &Message, args: Args) -> CommandResult
 #[only_in(guilds)]
 pub async fn edit(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let channel = args.single::<ChannelId>();
-    let msg_id = args.single::<u64>().ok();
+    let msg_id = if let Ok(msg_id) = args.single::<u64>() {
+        msg_id
+    } else {
+        failure!(ctx, msg, "The second argument must be a message ID!");
+        return Ok(());
+    };
+
+    let guild_id = msg.guild_id.expect("Should be only used in guilds");
+
     if let Ok(channel_id) = channel {
-        if msg.guild_id
-            != channel_id
-                .to_channel(ctx)
-                .await?
-                .guild()
-                .map(|c| c.guild_id)
+        if msg.author.id != OWNER_ID
+            && msg.guild_id
+                != ctx
+                    .cache
+                    .guild_channel_field(channel_id, |c| c.guild_id)
+                    .await
         {
             failure!(
                 ctx,
@@ -143,29 +164,35 @@ pub async fn edit(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
             );
             return Ok(());
         };
-        if msg_id.is_some() && channel_id.message(ctx, msg_id.unwrap_or(0)).await.is_ok() {
+        if channel_id.message(ctx, msg_id).await.is_ok() {
             let message = get_json_from_message(msg).await;
             match message {
                 Ok(value) => {
-                    if let Err(error) = announcement::edit_message(
-                        ctx,
-                        channel_id,
-                        MessageId(msg_id.unwrap_or(0)),
-                        &value,
-                    )
-                    .await
+                    if let Err(error) =
+                        announcement::edit_message(ctx, channel_id, MessageId(msg_id), &value).await
                     {
                         announcement_error_handler(ctx, msg, &error).await?;
                         return Err(error);
                     } else {
                         println!(
-                            "Announcement edited by {} {} in {}, {}: {}",
+                            "=== ANNOUNCEMENT EDITED ===
+Edit author: {} {:?},
+Channel: {} {:?}
+Guild: {} {:?}
+Content: {}
+=== END ===",
                             msg.author.tag(),
                             msg.author.id,
+                            ctx.cache
+                                .guild_channel_field(channel_id, |c| c.name.clone())
+                                .await
+                                .unwrap_or_else(|| "Unknown channel".to_string()),
                             channel_id,
-                            msg.guild_id
-                                .map(|id| id.to_string())
-                                .unwrap_or_else(|| "None".into()),
+                            ctx.cache
+                                .guild_field(guild_id, |g| g.name.clone())
+                                .await
+                                .unwrap_or_else(|| "Unknown guild".to_string()),
+                            guild_id,
                             value.to_string()
                         );
                         success!(ctx, msg);
