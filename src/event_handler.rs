@@ -27,7 +27,7 @@ impl EventHandler for Handler {
                         "Bot started and ready!\n\tGuilds: {}\n\t_Do `!guilds` to see all guilds_",
                         ready.guilds.len(),
                     ))
-                    .colour(Colour(alea::u32() & BIT_FILTER_24BITS))
+                    .colour(Colour::DARK_GREEN)
                     // pseudo random color
                 })
             })
