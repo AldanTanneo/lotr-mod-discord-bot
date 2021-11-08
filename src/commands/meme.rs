@@ -93,11 +93,11 @@ async fn floppadd(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
         let url = args.single::<String>();
         if let Ok(floppa_url) = url {
             let owner = OWNER_ID.to_user(ctx).await?;
-            let guild = server_id
-                .to_partial_guild(ctx)
+            let guild = ctx
+                .cache
+                .guild_field(server_id, |g| g.name.clone())
                 .await
-                .map(|g| g.name)
-                .unwrap_or_else(|_| "DMs".to_string());
+                .unwrap_or_else(|| "Unknown guild".into());
 
             let dm = owner
                 .dm(ctx, |m| {
