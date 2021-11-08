@@ -81,12 +81,14 @@ struct CustomCommand;
 #[tokio::main]
 async fn main() {
     // get environment variables for bot login
+    // Discord token & application id
     let token = env::var("DISCORD_TOKEN").expect("Expected a token in the environment");
     let application_id: u64 = env::var("APPLICATION_ID")
         .expect("Expected an application id in the environment")
         .parse()
         .expect("APPLICATION_ID must be a valid u64");
 
+    // Database credentials
     let db_name: String = env::var("DB_NAME").expect("Expected an environment variable DB_NAME");
     let db_user: String = env::var("DB_USER").expect("Expected an environment variable DB_USER");
     let db_password: String =
@@ -149,6 +151,7 @@ async fn main() {
 
     let mut http = Http::new(reqwest_client.as_arc(), &format!("Bot {}", &token));
     http.application_id = application_id;
+
     // building client
     let mut client = ClientBuilder::new_with_http(http)
         .event_handler(Handler)
@@ -159,6 +162,33 @@ async fn main() {
         .type_map_insert::<PrefixCache>(prefix_cache)
         .await
         .expect("Error creating client");
+
+    {
+        // Ctrl+C listener
+
+        let shard_manager = client.shard_manager.clone();
+        tokio::spawn(async move {
+            tokio::signal::ctrl_c().await.unwrap();
+            println!("Shutting down...");
+            shard_manager.clone().lock().await.shutdown_all().await;
+        });
+    }
+
+    #[cfg(unix)]
+    {
+        // Sigterm listener
+
+        let shard_manager = client.shard_manager.clone();
+        tokio::spawn(async move {
+            tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())
+                .unwrap()
+                .recv()
+                .await
+                .unwrap();
+            println!("Shutting down...");
+            shard_manager.lock().await.shutdown_all().await;
+        });
+    }
 
     // start listening for events by starting a single shard
     if let Err(why) = client.start().await {
