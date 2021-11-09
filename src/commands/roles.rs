@@ -258,7 +258,7 @@ pub async fn role(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
                         "You have not been on the server for enough time to be able to claim the \
 **{}** role! It will unlock on {}",
                         role.name,
-                        date.format("%B %-d %Y at %R (UTC)")
+                        date.format("<t:%s:F>")
                     );
                 }
                 IncompatibleRole(incompatible_role_name) => {
