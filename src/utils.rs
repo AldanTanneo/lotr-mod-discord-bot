@@ -1,5 +1,4 @@
 use serde::de::DeserializeOwned;
-use serde_json::Error;
 use serenity::client::Context;
 use serenity::model::prelude::*;
 
@@ -21,10 +20,22 @@ impl std::error::Error for NotInGuild {}
 pub enum JsonMessageError {
     FileTooBig,
     DownloadError,
-    JsonError(Error),
+    JsonError(serde_json::Error),
 }
 
 use JsonMessageError::*;
+
+impl std::fmt::Display for JsonMessageError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            FileTooBig => write!(f, "File too big to download"),
+            DownloadError => write!(f, "Could not download attachment"),
+            JsonError(e) => write!(f, "Error reading JSON content: {}", e),
+        }
+    }
+}
+
+impl std::error::Error for JsonMessageError {}
 
 pub async fn get_json_from_message<T: DeserializeOwned>(
     msg: &Message,
@@ -66,12 +77,7 @@ macro_rules! handle_json_error {
                 $crate::failure!($ctx, $msg, "Could not download attachment!");
             }
             $crate::utils::JsonMessageError::JsonError(e) => {
-                println!("Error reading JSON content: {}", e);
-                $crate::failure!(
-                    $ctx,
-                    $msg,
-                    "Could not read your JSON content! Check for syntax errors."
-                );
+                $crate::failure!($ctx, $msg, "Error reading JSON content: {}", e);
             }
         }
     };
