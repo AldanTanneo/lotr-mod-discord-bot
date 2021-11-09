@@ -68,18 +68,18 @@ pub const PAYPAL_LINK_POUNDS: &str =
 pub const PAYPAL_LINK_EUROS: &str =
     "[Paypal](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=5Q4NK7C5N2FB4)";
 
-/// A Curseforge [public API](https://www.cfwidget.com/) for the
+/// The [Curseforge API](https://www.curseforge.com/) for the
 /// [`!curseforge`][crate::commands::general::curseforge] command
-pub const CURSE_API: &str = "https://api.cfwidget.com/minecraft/mc-mods/";
+pub const CURSE_API: &str = "https://addons-ecs.forgesvc.net/api/v2/addon/";
 /// A Minecraft server [public API](https://api.mcsrvstat.us/) for the [`!online`][crate::commands::servers::online] command
 pub const MINECRAFT_API: &str = "https://api.mcsrvstat.us/2/";
 /// Google API for custom google search
 pub const GOOGLE_API: &str = "https://www.googleapis.com/customsearch/v1?";
 
 /// Curseforge project ID for the [LOTR Mod Renewed](https://www.curseforge.com/minecraft/mc-mods/the-lord-of-the-rings-mod-renewed)
-pub const CURSEFORGE_ID_RENEWED: u32 = 406893;
+pub const CURSEFORGE_ID_RENEWED: u64 = 406893;
 /// Curseforge project ID for the [LOTR Mod Legacy](https://www.curseforge.com/minecraft/mc-mods/the-lord-of-the-rings-mod-legacy)
-pub const CURSEFORGE_ID_LEGACY: u32 = 423748;
+pub const CURSEFORGE_ID_LEGACY: u64 = 423748;
 
 /// SQL table name for the bot [prefix][crate::database::config]
 pub const TABLE_PREFIX: &str = "lotr_mod_bot_prefix";

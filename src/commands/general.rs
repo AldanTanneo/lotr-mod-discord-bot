@@ -54,6 +54,18 @@ pub async fn curseforge(ctx: &Context, msg: &Message, mut args: Args) -> Command
     };
     let project = curseforge::get_project_info(ctx, id).await?;
 
+    if project.id != id {
+        println!("=== ERROR ===\nCurseforge API call returned the wrong project\n=== END ===");
+        return Ok(());
+    }
+
+    if project.latest_files.is_empty() {
+        println!("=== ERROR ===\nNo Curseforge latest file\n=== END ===");
+        return Ok(());
+    }
+
+    let file = &project.latest_files[0];
+
     msg.channel_id
         .send_message(ctx, |m| {
             m.embed(|e| {
@@ -62,27 +74,29 @@ pub async fn curseforge(ctx: &Context, msg: &Message, mut args: Args) -> Command
                     a.icon_url(crate::constants::CURSEFORGE_ICON)
                 });
                 e.colour(Colour(0xf16436));
-                e.title(&project.title);
-                e.url(&project.urls.curseforge);
+                e.title(&project.name);
+                e.url(&project.website_url);
                 e.description(&project.summary);
-                e.thumbnail(&project.thumbnail);
+                if let Some(icon) = project.attachments.iter().find(|img| img.is_default) {
+                    e.thumbnail(&icon.thumbnail_url);
+                }
                 e.field(
                     "Download link",
                     format!(
-                        "[{}]({}) ({})",
-                        &project.download.name,
-                        &project.download.url,
-                        ByteSize(project.download.filesize)
+                        "[{}]({}/files) ({})",
+                        file.file_name,
+                        project.website_url,
+                        ByteSize(file.file_length)
                     ),
                     false,
                 );
                 e.footer(|f| {
                     f.text(format!(
                         "Total download count: {}",
-                        pretty_large_int(project.downloads.total)
+                        pretty_large_int(project.download_count as u64)
                     ))
                 });
-                e.timestamp(project.download.uploaded_at);
+                e.timestamp(&file.file_date);
                 e
             })
         })
