@@ -132,15 +132,10 @@ pub struct PartialBugReport {
 
 impl std::fmt::Display for PartialBugReport {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let duration = Utc::now()
-            .signed_duration_since(self.timestamp)
-            .num_minutes();
-        let tmp = format!("{}mins ago", duration + 1);
+        let duration = Utc::now().signed_duration_since(self.timestamp).num_days();
         let format_str = match duration {
-            0..=59 => tmp.as_str(),
-            60..=1439 => "Today at %R",
-            1440..=2879 => "Yesterday at %R",
-            _ => "%d/%m/%Y",
+            0..=6 => "<t:%s:R>",
+            _ => "<t:%s:d>",
         };
         write!(
             f,
