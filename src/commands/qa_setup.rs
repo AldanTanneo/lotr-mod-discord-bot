@@ -88,9 +88,10 @@ pub async fn qa_disable(ctx: &Context, msg: &Message) -> CommandResult {
     Ok(())
 }
 
-#[command("info")]
+#[command]
 #[checks(is_admin, is_lotr_discord)]
 #[only_in(guilds)]
+#[aliases("info")]
 pub async fn qa_summary(ctx: &Context, msg: &Message) -> CommandResult {
     let guild_id = msg.guild_id.expect("Should be only used in guilds");
 
@@ -154,6 +155,7 @@ pub async fn qa_summary(ctx: &Context, msg: &Message) -> CommandResult {
 #[command]
 #[owners_only]
 #[checks(is_admin)]
+#[aliases("cache")]
 async fn qa_cache(ctx: &Context) -> CommandResult {
     let channels_cache = {
         let data_read = ctx.data.read().await;
