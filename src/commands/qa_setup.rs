@@ -150,3 +150,18 @@ pub async fn qa_summary(ctx: &Context, msg: &Message) -> CommandResult {
 
     Ok(())
 }
+
+#[command]
+#[owners_only]
+#[checks(is_admin)]
+async fn qa_cache(ctx: &Context) -> CommandResult {
+    let channels_cache = {
+        let data_read = ctx.data.read().await;
+        data_read.get::<qa_data::QaChannelsCache>().unwrap().clone()
+    };
+    println!(
+        "=== Q&A CHANNELS CACHE ===\n{:?}\n=== END ===",
+        channels_cache
+    );
+    Ok(())
+}

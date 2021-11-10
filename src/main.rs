@@ -33,6 +33,7 @@ use commands::{
 use constants::{BOT_ID, OWNER_ID};
 use database::{
     config::{get_prefix, PrefixCache},
+    qa_data::QaChannelsCache,
     DatabasePool,
 };
 use event_handler::Handler;
@@ -51,7 +52,8 @@ struct General;
     qa_answer_channel,
     qa_question_channel,
     qa_disable,
-    qa_summary
+    qa_summary,
+    qa_cache
 )]
 #[prefix("q&a")]
 #[default_command(qa_summary)]
@@ -115,6 +117,7 @@ async fn main() {
 
     let role_cache = RoleCache::new();
     let prefix_cache = PrefixCache::new();
+    let qa_channels_cache = QaChannelsCache::new();
 
     // initialize bot framework
     let framework = StandardFramework::new()
@@ -160,6 +163,7 @@ async fn main() {
         .type_map_insert::<ReqwestClient>(reqwest_client)
         .type_map_insert::<RoleCache>(role_cache)
         .type_map_insert::<PrefixCache>(prefix_cache)
+        .type_map_insert::<QaChannelsCache>(qa_channels_cache)
         .await
         .expect("Error creating client");
 
