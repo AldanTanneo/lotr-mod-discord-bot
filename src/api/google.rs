@@ -1,9 +1,22 @@
+use serde::{Deserialize, Serialize};
 use serenity::client::Context;
 use std::env;
 
-use super::{GoogleSearch, Wikis};
+use super::wiki::structures::Wikis;
 use crate::constants::GOOGLE_API;
 use crate::get_reqwest_client;
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct SearchResult {
+    pub title: String,
+    pub link: String,
+    pub snippet: String,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct GoogleSearch {
+    pub items: Vec<SearchResult>,
+}
 
 pub async fn google_search(ctx: &Context, query: &str, wiki: &Wikis) -> Option<[String; 3]> {
     let api_key = env::var("GOOGLE_API_KEY").expect("Expected a google api key in the environment");

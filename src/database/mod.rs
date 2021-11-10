@@ -9,12 +9,9 @@ pub mod floppa;
 pub mod maintenance;
 pub mod qa_data;
 pub mod roles;
-pub mod structures;
 
 use mysql_async::{OptsBuilder, Pool};
 use serenity::prelude::TypeMapKey;
-
-pub use structures::*;
 
 #[derive(Debug, Clone)]
 pub struct DatabasePool(Pool);

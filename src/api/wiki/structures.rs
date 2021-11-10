@@ -1,70 +1,10 @@
 //! Huge file with text definition for the wiki interface,
 //! and some structures for the other the API functions.
-
-use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 use Lang::*;
 use Namespace::*;
 use Wikis::*;
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct SearchResult {
-    pub title: String,
-    pub link: String,
-    pub snippet: String,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct GoogleSearch {
-    pub items: Vec<SearchResult>,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-pub struct CurseImage {
-    pub is_default: bool,
-    pub thumbnail_url: String,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-pub struct CurseFile {
-    pub file_name: String,
-    pub file_length: u64,
-    pub file_date: DateTime<Utc>,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-pub struct CurseProject {
-    pub id: u64,
-    pub name: String,
-    pub summary: String,
-    pub website_url: String,
-    pub attachments: Vec<CurseImage>,
-    pub latest_files: Vec<CurseFile>,
-    pub download_count: f64,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct Description {
-    pub raw: Vec<String>,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct PlayerList {
-    pub online: u32,
-    pub max: u32,
-    pub list: Option<Vec<String>>,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct MinecraftServer {
-    pub online: bool,
-    pub motd: Description,
-    pub players: PlayerList,
-}
 
 #[derive(Serialize, Deserialize)]
 pub struct RandomPage {

@@ -4,8 +4,8 @@ use serenity::model::channel::Message;
 
 use crate::commands::general::*;
 use crate::{api, failure};
-use api::structures::{Lang, Lang::*, Namespace, Namespace::*, Wikis};
 use api::wiki;
+use api::wiki::structures::{Lang, Lang::*, Namespace, Namespace::*, Wikis};
 
 async fn wiki_search(
     ctx: &Context,

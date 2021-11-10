@@ -6,9 +6,8 @@ use crate::check::*;
 use crate::constants::LOTR_DISCORD;
 use crate::database::bug_reports::{
     add_bug_report, add_link, change_bug_status, change_title, get_bug_from_id, get_bug_list,
-    get_bug_statistics, remove_link, switch_edition, BugOrder,
+    get_bug_statistics, remove_link, switch_edition, BugOrder, BugStatus,
 };
-use crate::database::BugStatus;
 use crate::failure;
 
 macro_rules! termite {

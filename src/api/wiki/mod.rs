@@ -1,3 +1,5 @@
+pub mod structures;
+
 use serde_json::Value;
 use serenity::client::Context;
 use serenity::framework::standard::CommandResult;
@@ -5,8 +7,8 @@ use serenity::model::prelude::Message;
 use serenity::utils::Colour;
 
 use super::google::google_search;
-use super::{GenericPage, Namespace, Namespace::*, RandomRes, Wikis, Wikis::*};
 use crate::get_reqwest_client;
+use structures::{GenericPage, Namespace, Namespace::*, RandomRes, Wikis, Wikis::*};
 
 pub async fn search(
     ctx: &Context,

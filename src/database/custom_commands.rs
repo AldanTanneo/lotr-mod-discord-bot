@@ -3,9 +3,15 @@ use serenity::client::Context;
 use serenity::framework::standard::CommandResult;
 use serenity::model::id::GuildId;
 
-use super::CustomCommand;
 use crate::constants::TABLE_CUSTOM_COMMANDS;
 use crate::get_database_conn;
+
+#[derive(Debug, Clone)]
+pub struct CustomCommand {
+    pub name: String,
+    pub body: String,
+    pub description: Option<String>,
+}
 
 pub async fn check_command_exists(ctx: &Context, server_id: GuildId, name: &str) -> Option<bool> {
     let mut conn = get_database_conn!(ctx);

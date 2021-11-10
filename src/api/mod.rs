@@ -3,12 +3,9 @@
 pub mod curseforge;
 pub mod google;
 pub mod minecraft;
-pub mod structures;
 pub mod wiki;
 
 use serenity::prelude::TypeMapKey;
-
-pub use structures::*;
 
 #[derive(Debug, Clone)]
 pub struct ReqwestClient(reqwest::Client);
