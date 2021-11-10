@@ -227,7 +227,7 @@ pub async fn dispatch_error_hook(ctx: &Context, msg: &Message, error: DispatchEr
 
 #[hook]
 pub async fn after_hook(
-    _: &Context,
+    ctx: &Context,
     msg: &Message,
     cmd_name: &str,
     error: Result<(), CommandError>,
@@ -235,21 +235,35 @@ pub async fn after_hook(
     if let Err(why) = error {
         println!(
             "=== ERROR REPORT ===
-Error in command `{}`: {:?}
+Error in command `{}`: {}
 === MESSAGE ===
-Author: {} {:?}
+Author: {}, {:?}
 Guild: {}
-Channel: {:?}
+Channel: {}
 Content: {}
 === END ===",
             cmd_name,
             why,
             msg.author.tag(),
             msg.author.id,
-            msg.guild_id
-                .map(|id| format!("{:?}", id))
-                .unwrap_or_else(|| "None".into()),
-            msg.channel_id,
+            if let Some(guild_id) = msg.guild_id {
+                if let Some(name) = ctx.cache.guild_field(guild_id, |g| g.name.clone()).await {
+                    format!("{:?}, {:?}", name, guild_id)
+                } else {
+                    format!("{:?}", guild_id)
+                }
+            } else {
+                "None".into()
+            },
+            if let Some(name) = ctx
+                .cache
+                .guild_channel_field(msg.channel_id, |c| c.name.clone())
+                .await
+            {
+                format!("#{}, {:?}", name, msg.channel_id)
+            } else {
+                format!("{:?}", msg.channel_id)
+            },
             msg.content,
         );
     }

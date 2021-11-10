@@ -18,8 +18,8 @@ impl std::error::Error for NotInGuild {}
 
 #[derive(Debug)]
 pub enum JsonMessageError {
-    FileTooBig,
-    DownloadError,
+    FileTooBig(u64),
+    DownloadError(serenity::Error),
     JsonError(serde_json::Error),
 }
 
@@ -28,8 +28,10 @@ use JsonMessageError::*;
 impl std::fmt::Display for JsonMessageError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            FileTooBig => write!(f, "File too big to download"),
-            DownloadError => write!(f, "Could not download attachment"),
+            FileTooBig(size) => {
+                write!(f, "File too big to download: {}", bytesize::ByteSize(*size))
+            }
+            DownloadError(e) => write!(f, "Could not download attachment: {}", e),
             JsonError(e) => write!(f, "Error reading JSON content: {}", e),
         }
     }
@@ -50,13 +52,12 @@ pub async fn get_json_from_message<T: DeserializeOwned>(
     } else {
         let a = &msg.attachments[0];
         if a.size <= MAX_JSON_FILE_SIZE {
-            if let Ok(json_data) = a.download().await {
-                serde_json::from_slice(&json_data).map_err(JsonError)
-            } else {
-                Err(DownloadError)
+            match a.download().await {
+                Ok(json_data) => serde_json::from_slice(&json_data).map_err(JsonError),
+                Err(e) => Err(DownloadError(e)),
             }
         } else {
-            Err(FileTooBig)
+            Err(FileTooBig(a.size))
         }
     }
 }
@@ -65,15 +66,20 @@ pub async fn get_json_from_message<T: DeserializeOwned>(
 macro_rules! handle_json_error {
     ($ctx:ident, $msg:ident, $error:ident) => {
         match $error {
-            $crate::utils::JsonMessageError::FileTooBig => {
+            $crate::utils::JsonMessageError::FileTooBig(size) => {
                 $crate::failure!(
                     $ctx,
                     $msg,
-                    "Attachment is too big! Filesize must be under {}KB.",
-                    $crate::constants::MAX_JSON_FILE_SIZE / 1024
+                    "Attachment is too big! Filesize must be under {}. Attached file size: {}",
+                    bytesize::ByteSize($crate::constants::MAX_JSON_FILE_SIZE),
+                    bytesize::ByteSize(size)
                 );
             }
-            $crate::utils::JsonMessageError::DownloadError => {
+            $crate::utils::JsonMessageError::DownloadError(e) => {
+                println!(
+                    "=== ERROR ===\nCould not download attachment: {}\n=== END ===",
+                    e
+                );
                 $crate::failure!($ctx, $msg, "Could not download attachment!");
             }
             $crate::utils::JsonMessageError::JsonError(e) => {
