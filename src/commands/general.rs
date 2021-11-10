@@ -83,9 +83,10 @@ pub async fn curseforge(ctx: &Context, msg: &Message, mut args: Args) -> Command
                 e.field(
                     "Download link",
                     format!(
-                        "[{}]({}/files) ({})",
+                        "[{}]({}/files/{}) ({})",
                         file.file_name,
                         project.website_url,
+                        file.id,
                         ByteSize(file.file_length)
                     ),
                     false,
