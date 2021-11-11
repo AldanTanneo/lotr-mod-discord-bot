@@ -1,6 +1,10 @@
 use serenity::client::Context;
+use serenity::collector::CollectComponentInteraction;
 use serenity::framework::standard::{macros::command, Args, CommandResult};
+use serenity::model::interactions::message_component::ButtonStyle;
 use serenity::model::prelude::*;
+use serenity::prelude::*;
+use std::time::Duration;
 
 use crate::check::*;
 use crate::constants::LOTR_DISCORD;
@@ -10,13 +14,15 @@ use crate::database::bug_reports::{
 };
 use crate::failure;
 
+pub const TERMITE_EMOJI: EmojiId = EmojiId(839479605467152384);
+
 macro_rules! termite {
     ($ctx:ident, $msg:ident) => {{
         $msg.react(
             $ctx,
             ReactionType::from(EmojiIdentifier {
                 animated: false,
-                id: EmojiId(839479605467152384),
+                id: TERMITE_EMOJI,
                 name: "bug".into(),
             }),
         )
@@ -78,56 +84,30 @@ pub async fn track(ctx: &Context, msg: &Message, mut args: Args) -> CommandResul
     Ok(())
 }
 
-#[command]
-#[checks(is_lotr_discord)]
-#[aliases(bugs)]
-pub async fn buglist(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    println!("displaying bugs");
-    let legacy = args
-        .current()
-        .map(|s| match s {
-            "legacy" => Some(true),
-            "renewed" => Some(false),
-            _ => None,
-        })
-        .unwrap_or_default();
-    if legacy.is_some() {
-        args.advance();
-    }
-    let status = args.single::<BugStatus>().ok();
-
-    let mut display_order = match args.current() {
-        Some("latest") => BugOrder::Chronological(false),
-        Some("oldest") => BugOrder::Chronological(true),
-        Some("highest") => BugOrder::Priority(false),
-        Some("lowest") => BugOrder::Priority(true),
-        _ => BugOrder::None,
-    };
-    if let BugOrder::None = display_order {
-        display_order = BugOrder::Chronological(false);
-    } else {
-        args.advance();
-    }
-
-    let page = match args.single::<u32>() {
-        Ok(0) => {
-            println!("Invalid page number entered!");
-            1
-        }
-        Ok(n) => n,
-        Err(_) => 1,
-    };
-    let limit = if args.current() == Some("limit") {
-        args.advance();
-        args.single::<u32>().ok()
-    } else {
-        None
-    }
-    .unwrap_or(10);
+async fn display_bugs(
+    ctx: &Context,
+    msg: &Message,
+    status: Option<BugStatus>,
+    limit: u32,
+    display_order: BugOrder,
+    legacy: Option<bool>,
+    page: u32,
+    edit_message: Option<Message>,
+) -> Result<Message, SerenityError> {
+    assert_ne!(page, 0);
 
     if let Some((bugs, total_bugs)) =
         get_bug_list(ctx, status, limit, display_order, legacy, page - 1).await
     {
+        if ((page - 1) * limit) >= total_bugs {
+            failure!(
+                ctx,
+                msg,
+                "Page number too high, consider calling `!bugs` and using the navigation arrows."
+            );
+            return Err(SerenityError::Other("page_too_high"));
+        }
+
         let title;
         let content_alt;
         let content;
@@ -205,41 +185,166 @@ pub async fn buglist(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
                 msg,
                 "Too many bugs to display. Consider lowering the limit."
             );
-            return Ok(());
+            return Err(SerenityError::Other("too_many_bugs"));
         }
 
-        msg.channel_id
-            .send_message(ctx, |m| {
-                m.embed(|e| {
-                    e.author(|a| {
-                        a.name("LOTR Mod Bugtracker");
-                        a.icon_url(crate::constants::TERMITE_IMAGE);
-                        a
+        macro_rules! create_response {
+            () => {
+                |m| {
+                    m.embed(|e| {
+                        e.author(|a| {
+                            a.name("LOTR Mod Bugtracker");
+                            a.icon_url(crate::constants::TERMITE_IMAGE);
+                            a
+                        });
+                        e.colour(colour);
+                        e.title(title);
+                        e.description(if bugs.is_empty() {
+                            content_alt
+                        } else {
+                            &content
+                        });
+                        e.footer(|f| {
+                            f.text(format!(
+                                "Page {}/{}",
+                                page,
+                                (total_bugs.max(1) - 1) / limit + 1
+                            ))
+                        });
+                        e
                     });
-                    e.colour(colour);
-                    e.title(title);
-                    e.description(if bugs.is_empty() && page == 1 {
-                        content_alt
-                    } else if bugs.is_empty() {
-                        "_Page number too high!_"
-                    } else {
-                        &content
+                    m.components(|c| {
+                        c.create_action_row(|a| {
+                            a.create_button(|b| {
+                                b.style(ButtonStyle::Secondary);
+                                b.label("Previous");
+                                b.custom_id("previous_page");
+                                b.emoji(ReactionType::Unicode("⬅️".into()));
+                                if page <= 1 {
+                                    b.disabled(true);
+                                }
+                                b
+                            });
+                            a.create_button(|b| {
+                                b.style(ButtonStyle::Secondary);
+                                b.label("Next");
+                                b.custom_id("next_page");
+                                b.emoji(ReactionType::Unicode("➡️".into()));
+                                if (page * limit) >= total_bugs {
+                                    b.disabled(true);
+                                }
+                                b
+                            });
+                            a
+                        });
+                        c
                     });
-                    e.footer(|f| {
-                        f.text(format!(
-                            "Page {}/{}",
-                            page,
-                            (total_bugs.max(1) - 1) / limit + 1
-                        ))
-                    });
-                    e
-                })
+                    m
+                }
+            };
+        }
+
+        if let Some(mut msg) = edit_message {
+            msg.edit(ctx, create_response!()).await.map(|_| msg)
+        } else {
+            msg.channel_id.send_message(ctx, create_response!()).await
+        }
+    } else {
+        Err(SerenityError::Other(
+            "Could not get bugs from the database!",
+        ))
+    }
+}
+
+#[command]
+#[checks(is_lotr_discord)]
+#[aliases(bugs)]
+pub async fn buglist(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+    let legacy = args
+        .current()
+        .map(|s| match s {
+            "legacy" => Some(true),
+            "renewed" => Some(false),
+            _ => None,
+        })
+        .flatten();
+    if legacy.is_some() {
+        args.advance();
+    }
+    let status = args.single::<BugStatus>().ok();
+
+    let mut display_order = match args.current() {
+        Some("latest") => BugOrder::Chronological(false),
+        Some("oldest") => BugOrder::Chronological(true),
+        Some("highest") => BugOrder::Priority(false),
+        Some("lowest") => BugOrder::Priority(true),
+        _ => BugOrder::None,
+    };
+    if let BugOrder::None = display_order {
+        display_order = BugOrder::Chronological(false);
+    } else {
+        args.advance();
+    }
+
+    let mut page = args.single::<u32>().unwrap_or(1).max(1);
+
+    let limit = if args.current() == Some("limit") {
+        args.advance();
+        args.single::<u32>().ok()
+    } else {
+        None
+    }
+    .unwrap_or(10);
+
+    let mut response_message =
+        match display_bugs(ctx, msg, status, limit, display_order, legacy, page, None).await {
+            Ok(msg) => msg,
+            Err(SerenityError::Other("page_too_high" | "too_many_bugs")) => return Ok(()),
+            Err(e) => return Err(e.into()),
+        };
+
+    while let Some(interaction) = CollectComponentInteraction::new(ctx)
+        .timeout(Duration::from_secs(60))
+        .author_id(msg.author.id)
+        .channel_id(msg.channel_id)
+        .message_id(response_message.id)
+        .await
+    {
+        match interaction.data.custom_id.as_str() {
+            "previous_page" => {
+                if page != 0 {
+                    page -= 1;
+                }
+            }
+            "next_page" => {
+                page += 1;
+            }
+            _ => (),
+        }
+
+        response_message = display_bugs(
+            ctx,
+            msg,
+            status,
+            limit,
+            display_order,
+            legacy,
+            page,
+            Some(response_message),
+        )
+        .await?;
+
+        interaction
+            .create_interaction_response(ctx, |r| {
+                r.kind(InteractionResponseType::DeferredUpdateMessage)
             })
             .await?;
-        termite!(ctx, msg);
-    } else {
-        failure!(ctx, msg, "Could not get bug list!")
     }
+
+    response_message
+        .edit(ctx, |m| m.components(|c| c.set_action_rows(Vec::new())))
+        .await?;
+
     Ok(())
 }
 

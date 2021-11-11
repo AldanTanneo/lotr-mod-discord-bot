@@ -29,7 +29,8 @@ features = [
 ]
 
 [dependencies.serenity]
-version = "0.10.9"
+git = "https://github.com/serenity-rs/serenity"
+branch = "current"
 default-features = false
 features = [
     "builder",
@@ -42,5 +43,6 @@ features = [
     "utils",
     "rustls_backend",
     "cache",
-    "unstable_discord_api"
+    "unstable_discord_api",
+    "collector"
 ]

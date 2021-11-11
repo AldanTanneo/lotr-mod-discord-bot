@@ -8,6 +8,7 @@ use serenity::utils::Colour;
 use crate::constants::{TABLE_BUG_REPORTS, TABLE_BUG_REPORTS_LINKS};
 use crate::get_database_conn;
 
+#[derive(Debug, Clone, Copy)]
 pub enum BugOrder {
     Chronological(bool),
     Priority(bool),
