@@ -305,11 +305,21 @@ pub async fn buglist(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
 
     while let Some(interaction) = CollectComponentInteraction::new(ctx)
         .timeout(Duration::from_secs(60))
-        .author_id(msg.author.id)
         .channel_id(msg.channel_id)
         .message_id(response_message.id)
         .await
     {
+        if interaction.user.id != msg.author.id {
+            interaction.create_interaction_response(ctx, |r| {
+                r.kind(InteractionResponseType::ChannelMessageWithSource);
+                r.interaction_response_data(|d| {
+                    d.content("You are not the original user of the command! Call `!bugs` yourself to use the buttons.");
+                    d.flags(InteractionApplicationCommandCallbackDataFlags::EPHEMERAL)
+                })
+            })
+            .await?;
+            continue;
+        }
         match interaction.data.custom_id.as_str() {
             "previous_page" => {
                 if page != 0 {
@@ -342,7 +352,26 @@ pub async fn buglist(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
     }
 
     response_message
-        .edit(ctx, |m| m.components(|c| c.set_action_rows(Vec::new())))
+        .edit(ctx, |m| {
+            m.components(|c| {
+                c.create_action_row(|a| {
+                    a.create_button(|b| {
+                        b.style(ButtonStyle::Secondary)
+                            .label("Previous")
+                            .custom_id("previous_page")
+                            .emoji(ReactionType::Unicode("⬅️".into()))
+                            .disabled(true)
+                    })
+                    .create_button(|b| {
+                        b.style(ButtonStyle::Secondary)
+                            .label("Next")
+                            .custom_id("next_page")
+                            .emoji(ReactionType::Unicode("➡️".into()))
+                            .disabled(true)
+                    })
+                })
+            })
+        })
         .await?;
 
     Ok(())
