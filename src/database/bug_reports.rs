@@ -115,6 +115,20 @@ impl BugStatus {
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct BugLink {
+    pub id: u64,
+    pub url: String,
+    pub title: String,
+}
+
+impl std::fmt::Display for BugLink {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "[{}]({}) (#{})", self.title, self.url, self.id)
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct BugReport {
     pub bug_id: u64,
     pub channel_id: ChannelId,
@@ -123,7 +137,7 @@ pub struct BugReport {
     pub status: BugStatus,
     pub timestamp: DateTime<Utc>,
     pub legacy: bool,
-    pub links: Vec<(u64, String, String)>,
+    pub links: Vec<BugLink>,
 }
 
 #[derive(Debug, Clone)]
@@ -187,8 +201,8 @@ pub async fn get_bug_from_id(ctx: &Context, bug_id: u64) -> Result<BugReport, Co
         ))
         .await?.ok_or_else(|| CommandError::from("Bug report does not exist!"))?;
 
-    let links: Vec<(u64, String, String)> = conn
-        .exec(
+    let links: Vec<BugLink> = conn
+        .exec_map(
             format!(
                 "SELECT link_id, link_url, link_title FROM {} WHERE bug_id = :bug_id",
                 TABLE_BUG_REPORTS_LINKS
@@ -196,6 +210,7 @@ pub async fn get_bug_from_id(ctx: &Context, bug_id: u64) -> Result<BugReport, Co
             params! {
                 "bug_id" => bug_id
             },
+            |(id, url, title)| BugLink { id, url, title },
         )
         .await?;
 

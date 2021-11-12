@@ -177,23 +177,21 @@ macro_rules! is_admin {
 
 /// Checks a [`User`]'s permissions.
 ///
-/// Returns `true` if `user` has the [permissions][Permissions] `perm` in the
+/// Returns `true` if `user` has any of the [permissions][Permissions] `perm` in the
 /// `guild`. If the user lacks the permissions,
 /// returns `false`.
 pub async fn has_permission(
     ctx: &Context,
-    guild: GuildId,
+    guild_id: GuildId,
     user_id: UserId,
     perm: Permissions,
 ) -> bool {
-    if let Ok(g) = guild.to_partial_guild(&ctx).await {
-        if let Ok(m) = g.member(ctx, user_id).await {
-            return m
-                .permissions(ctx)
-                .await
-                .unwrap_or_default()
-                .intersects(perm);
-        }
+    if let Some(member) = ctx.cache.member(guild_id, user_id).await {
+        return member
+            .permissions(ctx)
+            .await
+            .unwrap_or_default()
+            .intersects(perm);
     }
 
     false

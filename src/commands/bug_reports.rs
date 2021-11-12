@@ -1,13 +1,16 @@
 use serenity::client::Context;
 use serenity::collector::CollectComponentInteraction;
 use serenity::framework::standard::{macros::command, Args, CommandResult};
-use serenity::model::interactions::message_component::ButtonStyle;
-use serenity::model::prelude::*;
+use serenity::model::{
+    interactions::message_component::{ButtonStyle, MessageComponentInteraction},
+    prelude::*,
+};
 use serenity::prelude::*;
 use std::time::Duration;
 
 use crate::check::*;
-use crate::constants::LOTR_DISCORD;
+use crate::constants::{LOTR_DISCORD, MANAGE_BOT_PERMS, OWNER_ID};
+use crate::database::admin_data::is_admin_function;
 use crate::database::bug_reports::{
     add_bug_report, add_link, change_bug_status, change_title, get_bug_from_id, get_bug_list,
     get_bug_statistics, remove_link, switch_edition, BugOrder, BugStatus,
@@ -84,27 +87,47 @@ pub async fn track(ctx: &Context, msg: &Message, mut args: Args) -> CommandResul
     Ok(())
 }
 
+enum Either<'a> {
+    Message(&'a Message),
+    Interaction(&'a MessageComponentInteraction),
+}
+
+impl<'a> Either<'a> {
+    async fn failure(&self, ctx: &Context, message: &str) -> Result<(), SerenityError> {
+        match self {
+            Either::Message(msg) => failure!(ctx, msg, message),
+            Either::Interaction(interaction) => {
+                interaction
+                    .create_interaction_response(ctx, |r| {
+                        r.kind(InteractionResponseType::ChannelMessageWithSource)
+                            .interaction_response_data(|d| {
+                                d.flags(InteractionApplicationCommandCallbackDataFlags::EPHEMERAL)
+                                    .content(message)
+                            })
+                    })
+                    .await?;
+            }
+        }
+        Ok(())
+    }
+}
+
 async fn display_bugs(
     ctx: &Context,
-    msg: &Message,
     status: Option<BugStatus>,
     limit: u32,
     display_order: BugOrder,
     legacy: Option<bool>,
     page: u32,
-    edit_message: Option<Message>,
-) -> Result<Message, SerenityError> {
+    reply_to: Either<'_>,
+) -> Result<Option<Message>, SerenityError> {
     assert_ne!(page, 0);
 
     if let Some((bugs, total_bugs)) =
         get_bug_list(ctx, status, limit, display_order, legacy, page - 1).await
     {
         if ((page - 1) * limit) >= total_bugs {
-            failure!(
-                ctx,
-                msg,
-                "Page number too high, consider calling `!bugs` and using the navigation arrows."
-            );
+            reply_to.failure(ctx, "Page number too high, consider calling `!bugs` and using the navigation arrows.").await?;
             return Err(SerenityError::Other("page_too_high"));
         }
 
@@ -179,75 +202,99 @@ async fn display_bugs(
             colour = serenity::utils::Colour::LIGHT_GREY;
         }
 
-        if content.len() > 2048 {
-            failure!(
-                ctx,
-                msg,
-                "Too many bugs to display. Consider lowering the limit."
-            );
+        if content.len() > 4096 {
+            reply_to
+                .failure(
+                    ctx,
+                    "Too many bugs to display. Consider lowering the limit.",
+                )
+                .await?;
             return Err(SerenityError::Other("too_many_bugs"));
         }
 
-        macro_rules! create_response {
+        macro_rules! create_embed_reponse {
             () => {
-                |m| {
-                    m.embed(|e| {
-                        e.author(|a| {
-                            a.name("LOTR Mod Bugtracker");
-                            a.icon_url(crate::constants::TERMITE_IMAGE);
-                            a
-                        });
-                        e.colour(colour);
-                        e.title(title);
-                        e.description(if bugs.is_empty() {
-                            content_alt
-                        } else {
-                            &content
-                        });
-                        e.footer(|f| {
-                            f.text(format!(
-                                "Page {}/{}",
-                                page,
-                                (total_bugs.max(1) - 1) / limit + 1
-                            ))
-                        });
-                        e
+                |e| {
+                    e.author(|a| {
+                        a.name("LOTR Mod Bugtracker");
+                        a.icon_url(crate::constants::TERMITE_IMAGE);
+                        a
                     });
-                    m.components(|c| {
-                        c.create_action_row(|a| {
-                            a.create_button(|b| {
-                                b.style(ButtonStyle::Secondary);
-                                b.label("Previous");
-                                b.custom_id("previous_page");
-                                b.emoji(ReactionType::Unicode("⬅️".into()));
-                                if page <= 1 {
-                                    b.disabled(true);
-                                }
-                                b
-                            });
-                            a.create_button(|b| {
-                                b.style(ButtonStyle::Secondary);
-                                b.label("Next");
-                                b.custom_id("next_page");
-                                b.emoji(ReactionType::Unicode("➡️".into()));
-                                if (page * limit) >= total_bugs {
-                                    b.disabled(true);
-                                }
-                                b
-                            });
-                            a
-                        });
-                        c
+                    e.colour(colour);
+                    e.title(title);
+                    e.description(if bugs.is_empty() {
+                        content_alt
+                    } else {
+                        &content
                     });
-                    m
+                    e.footer(|f| {
+                        f.text(format!(
+                            "Page {}/{}",
+                            page,
+                            (total_bugs.max(1) - 1) / limit + 1
+                        ))
+                    });
+                    e
                 }
             };
         }
 
-        if let Some(mut msg) = edit_message {
-            msg.edit(ctx, create_response!()).await.map(|_| msg)
-        } else {
-            msg.channel_id.send_message(ctx, create_response!()).await
+        macro_rules! create_buttons {
+            () => {
+                |c| {
+                    c.create_action_row(|a| {
+                        a.create_button(|b| {
+                            b.style(ButtonStyle::Secondary);
+                            b.label("Previous");
+                            b.custom_id("previous_page");
+                            b.emoji(ReactionType::Unicode("⬅️".into()));
+                            if page <= 1 {
+                                b.disabled(true);
+                            }
+                            b
+                        });
+                        a.create_button(|b| {
+                            b.style(ButtonStyle::Secondary);
+                            b.label("Next");
+                            b.custom_id("next_page");
+                            b.emoji(ReactionType::Unicode("➡️".into()));
+                            if (page * limit) >= total_bugs {
+                                b.disabled(true);
+                            }
+                            b
+                        });
+                        a
+                    });
+                    c
+                }
+            };
+        }
+
+        match reply_to {
+            Either::Interaction(interaction) => {
+                interaction
+                    .create_interaction_response(ctx, |r| {
+                        r.kind(InteractionResponseType::UpdateMessage)
+                            .interaction_response_data(|m| {
+                                m.embeds([])
+                                    .create_embed(create_embed_reponse!())
+                                    .components(create_buttons!())
+                            })
+                    })
+                    .await?;
+
+                Ok(None)
+            }
+            Either::Message(msg) => {
+                let response_message = msg
+                    .channel_id
+                    .send_message(ctx, |m| {
+                        m.embed(create_embed_reponse!())
+                            .components(create_buttons!())
+                    })
+                    .await?;
+                Ok(Some(response_message))
+            }
         }
     } else {
         Err(SerenityError::Other(
@@ -257,7 +304,6 @@ async fn display_bugs(
 }
 
 #[command]
-#[checks(is_lotr_discord)]
 #[aliases(bugs)]
 pub async fn buglist(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let legacy = args
@@ -296,12 +342,22 @@ pub async fn buglist(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
     }
     .unwrap_or(10);
 
-    let mut response_message =
-        match display_bugs(ctx, msg, status, limit, display_order, legacy, page, None).await {
-            Ok(msg) => msg,
-            Err(SerenityError::Other("page_too_high" | "too_many_bugs")) => return Ok(()),
-            Err(e) => return Err(e.into()),
-        };
+    let mut response_message = match display_bugs(
+        ctx,
+        status,
+        limit,
+        display_order,
+        legacy,
+        page,
+        Either::Message(msg),
+    )
+    .await
+    {
+        Ok(Some(msg)) => msg,
+        Ok(None) => unreachable!(),
+        Err(SerenityError::Other("page_too_high" | "too_many_bugs")) => return Ok(()),
+        Err(e) => return Err(e.into()),
+    };
 
     while let Some(interaction) = CollectComponentInteraction::new(ctx)
         .timeout(Duration::from_secs(60))
@@ -332,47 +388,19 @@ pub async fn buglist(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
             _ => (),
         }
 
-        response_message = display_bugs(
+        let _ = display_bugs(
             ctx,
-            msg,
             status,
             limit,
             display_order,
             legacy,
             page,
-            Some(response_message),
+            Either::Interaction(interaction.as_ref()),
         )
         .await?;
-
-        interaction
-            .create_interaction_response(ctx, |r| {
-                r.kind(InteractionResponseType::DeferredUpdateMessage)
-            })
-            .await?;
     }
 
-    response_message
-        .edit(ctx, |m| {
-            m.components(|c| {
-                c.create_action_row(|a| {
-                    a.create_button(|b| {
-                        b.style(ButtonStyle::Secondary)
-                            .label("Previous")
-                            .custom_id("previous_page")
-                            .emoji(ReactionType::Unicode("⬅️".into()))
-                            .disabled(true)
-                    })
-                    .create_button(|b| {
-                        b.style(ButtonStyle::Secondary)
-                            .label("Next")
-                            .custom_id("next_page")
-                            .emoji(ReactionType::Unicode("➡️".into()))
-                            .disabled(true)
-                    })
-                })
-            })
-        })
-        .await?;
+    response_message.edit(ctx, |m| m.components(|c| c)).await?;
 
     Ok(())
 }
@@ -390,78 +418,199 @@ pub async fn buglist(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
     bug_toggle_edition
 )]
 pub async fn bug(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    if let Ok(bug_id) = args.single::<String>() {
+    let bug_id = if let Ok(bug_id) = args.single::<String>() {
         if let Ok(bug_id) = bug_id
             .to_uppercase()
             .trim_start_matches("LOTR-")
             .parse::<u64>()
         {
-            match get_bug_from_id(ctx, bug_id).await {
-                Ok(bug) => {
-                    let linked_message = bug.channel_id.message(ctx, bug.message_id).await;
-                    msg.channel_id
-                        .send_message(ctx, |m| {
-                            m.embed(|e| {
-                                e.author(|a| {
-                                    a.name("LOTR Mod Bugtracker");
-                                    a.icon_url(crate::constants::TERMITE_IMAGE);
-                                    a
-                                });
-                                e.colour(bug.status.colour());
-                                e.title(format!(
-                                    "{} LOTR-{}: {}{}",
-                                    bug.status.marker(),
-                                    bug_id,
-                                    bug.title,
-                                    if bug.legacy { " [legacy]" } else { "" }
-                                ));
-                                if let Ok(mut message) = linked_message {
-                                    message.guild_id = Some(LOTR_DISCORD);
-                                    e.description(format!(
-                                        "{}\n[[message link]]({})",
-                                        &message.content,
-                                        &message.link()
-                                    ));
-                                    if let Some(image) = message.attachments.get(0) {
-                                        e.image(&image.url);
-                                    }
-                                    e.footer(|f| {
-                                        f.text(format!(
-                                            "Status: {} • Submitted by {}",
-                                            bug.status, &message.author.name
-                                        ))
-                                    });
-                                }
-                                if !bug.links.is_empty() {
-                                    e.field(
-                                        "Additional information",
-                                        &bug.links.iter().fold(String::new(), |acc, link| {
-                                            format!(
-                                                "[{}]({}) (#{})\n{}",
-                                                link.2, link.1, link.0, acc
-                                            )
-                                        }),
-                                        false,
-                                    );
-                                }
-                                e.timestamp(&bug.timestamp);
-                                e
-                            })
-                        })
-                        .await?;
-                    termite!(ctx, msg);
-                }
-                Err(e) => {
-                    failure!(ctx, msg, "Bug LOTR-{} does not exist!", bug_id);
-                    return Err(e);
-                }
-            }
+            bug_id
         } else {
-            failure!(ctx, msg, "`{}` is not a valid bug id!", bug_id)
+            failure!(ctx, msg, "`{}` is not a valid bug id!", bug_id);
+            return Ok(());
         }
     } else {
-        failure!(ctx, msg, "The first argument must be a bug id.")
+        failure!(ctx, msg, "The first argument must be a bug id.");
+        return Ok(());
+    };
+
+    let mut bug = match get_bug_from_id(ctx, bug_id).await {
+        Ok(bug) => bug,
+        Err(e) => {
+            failure!(ctx, msg, "Bug LOTR-{} does not exist!", bug_id);
+            return Err(e);
+        }
+    };
+
+    macro_rules! create_bug_embed {
+        ($bug:expr, $linked_message:expr) => {
+            |e| {
+                e.author(|a| {
+                    a.name("LOTR Mod Bugtracker");
+                    a.icon_url(crate::constants::TERMITE_IMAGE);
+                    a
+                });
+                e.colour($bug.status.colour());
+                e.title(format!(
+                    "{} LOTR-{}: {}{}",
+                    $bug.status.marker(),
+                    $bug.bug_id,
+                    $bug.title,
+                    if $bug.legacy { " [legacy]" } else { "" }
+                ));
+                if let Ok(ref message) = $linked_message {
+                    e.description(&message.content);
+                    if let Some(image) = message.attachments.get(0) {
+                        e.image(&image.url);
+                    }
+                    e.footer(|f| {
+                        f.text(format!(
+                            "Status: {} • Submitted by {}",
+                            $bug.status, &message.author.name
+                        ))
+                    });
+                } else {
+                    e.footer(|f| f.text(format!("Status: {}", $bug.status)));
+                }
+                if !$bug.links.is_empty() {
+                    e.field(
+                        "Additional information",
+                        &$bug
+                            .links
+                            .iter()
+                            .map(|link| link.to_string())
+                            .collect::<Vec<_>>()
+                            .join("\n"),
+                        false,
+                    );
+                }
+                e.timestamp(&$bug.timestamp);
+                e
+            }
+        };
     }
+
+    macro_rules! create_bug_buttons {
+        ($message_link:expr) => {
+            |c| {
+                if let Some(ref link) = $message_link {
+                    c.create_action_row(|a| {
+                        a.create_button(|b| {
+                            b.style(ButtonStyle::Link).label("Message link").url(link)
+                        })
+                    });
+                }
+                c
+            }
+        };
+        ($message_link:expr, $create_buttons:expr) => {
+            |c| {
+                if $message_link.is_some() || $create_buttons {
+                    c.create_action_row(|a| {
+                        if let Some(link) = $message_link.as_ref() {
+                            a.create_button(|b| {
+                                b.style(ButtonStyle::Link).label("Message link").url(link)
+                            });
+                        }
+                        if $create_buttons {
+                            a.create_button(|b| {
+                                b.style(ButtonStyle::Success)
+                                    .label("Resolve")
+                                    .custom_id("resolve_bug")
+                            });
+
+                            a.create_button(|b| {
+                                b.style(ButtonStyle::Danger)
+                                    .label("Close")
+                                    .custom_id("close_bug")
+                            });
+                        }
+                        a
+                    });
+                }
+                c
+            }
+        };
+    }
+
+    let linked_message = bug
+        .channel_id
+        .message(ctx, bug.message_id)
+        .await
+        .map(|mut m| {
+            m.guild_id = Some(LOTR_DISCORD);
+            m
+        });
+    let message_link = linked_message.as_ref().map(|m| m.link()).ok();
+
+    let server_id = msg.guild_id.unwrap_or_default();
+    let is_lotr_discord = server_id == LOTR_DISCORD;
+    let is_admin = is_admin_function(ctx, server_id, msg.author.id)
+        .await
+        .unwrap_or_default();
+    let has_permission =
+        crate::utils::has_permission(ctx, server_id, msg.author.id, MANAGE_BOT_PERMS).await;
+
+    let create_buttons = bug.status != BugStatus::Resolved
+        && bug.status != BugStatus::Resolved
+        && (msg.author.id == OWNER_ID || (is_lotr_discord && (is_admin || has_permission)));
+
+    let mut response_message = msg
+        .channel_id
+        .send_message(ctx, |m| {
+            m.embed(create_bug_embed!(bug, linked_message))
+                .components(create_bug_buttons!(message_link, create_buttons))
+        })
+        .await?;
+
+    if create_buttons {
+        // Listen to interactions for 60 seconds
+        if let Some(interaction) = CollectComponentInteraction::new(ctx)
+            .timeout(Duration::from_secs(60))
+            .channel_id(msg.channel_id)
+            .message_id(response_message.id)
+            .await
+        {
+            if interaction.user.id != msg.author.id {
+                interaction
+                    .create_interaction_response(ctx, |r| {
+                        r.kind(InteractionResponseType::ChannelMessageWithSource)
+                            .interaction_response_data(|d| {
+                                d.flags(InteractionApplicationCommandCallbackDataFlags::EPHEMERAL)
+                                    .content("You are not allowed to modify bug status!")
+                            })
+                    })
+                    .await?;
+            } else {
+                let new_status = match interaction.data.custom_id.as_str() {
+                    "resolve_bug" => BugStatus::Resolved,
+                    "close_bug" => BugStatus::Closed,
+                    _ => unreachable!(),
+                };
+
+                change_bug_status(ctx, bug_id, new_status).await?;
+
+                bug.status = new_status;
+
+                interaction
+                    .create_interaction_response(ctx, |r| {
+                        r.kind(InteractionResponseType::UpdateMessage)
+                            .interaction_response_data(|m| {
+                                m.embeds([])
+                                    .create_embed(create_bug_embed!(bug, linked_message))
+                                    .components(create_bug_buttons!(message_link))
+                            })
+                    })
+                    .await?;
+            }
+        } else {
+            // If no interaction was received after timeout, remove the buttons
+            response_message
+                .edit(ctx, |m| m.components(create_bug_buttons!(message_link)))
+                .await?;
+        }
+    }
+
     Ok(())
 }
 
