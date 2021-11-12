@@ -543,17 +543,19 @@ pub async fn bug(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult 
         });
     let message_link = linked_message.as_ref().map(|m| m.link()).ok();
 
-    let server_id = msg.guild_id.unwrap_or_default();
-    let is_lotr_discord = server_id == LOTR_DISCORD;
-    let is_admin = is_admin_function(ctx, server_id, msg.author.id)
-        .await
-        .unwrap_or_default();
-    let has_permission =
-        crate::utils::has_permission(ctx, server_id, msg.author.id, MANAGE_BOT_PERMS).await;
+    let is_lotr_discord = msg.guild_id == Some(LOTR_DISCORD);
+    let is_admin = if let Some(guild_id) = msg.guild_id {
+        is_admin_function(ctx, guild_id, msg.author.id)
+            .await
+            .unwrap_or_default()
+            || crate::utils::has_permission(ctx, guild_id, msg.author.id, MANAGE_BOT_PERMS).await
+    } else {
+        false
+    };
 
     let create_buttons = bug.status != BugStatus::Resolved
         && bug.status != BugStatus::Resolved
-        && (msg.author.id == OWNER_ID || (is_lotr_discord && (is_admin || has_permission)));
+        && (msg.author.id == OWNER_ID || (is_lotr_discord && is_admin));
 
     let mut response_message = msg
         .channel_id
@@ -564,9 +566,9 @@ pub async fn bug(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult 
         .await?;
 
     if create_buttons {
-        // Listen to interactions for 60 seconds
+        // Listen to interactions for 120 seconds
         if let Some(interaction) = CollectComponentInteraction::new(ctx)
-            .timeout(Duration::from_secs(60))
+            .timeout(Duration::from_secs(120))
             .channel_id(msg.channel_id)
             .message_id(response_message.id)
             .await

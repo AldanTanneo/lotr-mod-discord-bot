@@ -1,8 +1,9 @@
 use bytesize::ByteSize;
 use serenity::client::Context;
 use serenity::framework::standard::{macros::command, Args, CommandResult};
+use serenity::model::interactions::message_component::ButtonStyle;
 use serenity::model::prelude::*;
-use serenity::utils::Colour;
+use serenity::utils::{colours, Colour};
 
 use crate::api::curseforge;
 use crate::check::*;
@@ -59,46 +60,68 @@ pub async fn curseforge(ctx: &Context, msg: &Message, mut args: Args) -> Command
         return Ok(());
     }
 
-    if project.latest_files.is_empty() {
+    let file = if let Some(file) = project.latest_files.get(0) {
+        file
+    } else {
         println!("=== ERROR ===\nNo Curseforge latest file\n=== END ===");
         return Ok(());
-    }
+    };
 
-    let file = &project.latest_files[0];
+    let url = format!(
+        "{}/files/{}",
+        project.website_url.trim_end_matches('/'),
+        file.id
+    );
+
+    let mod_version = format!(
+        "Download {} {}",
+        if id == CURSEFORGE_ID_LEGACY {
+            "Legacy"
+        } else {
+            "Renewed"
+        },
+        file.file_name
+            .rfind(&[' ', '-', '_', '+', 'v'][..])
+            .map(|i| file.file_name[i + 1..].trim_end_matches(".jar"))
+            .unwrap_or_default()
+    );
 
     msg.channel_id
         .send_message(ctx, |m| {
             m.embed(|e| {
-                e.author(|a| {
-                    a.name("Curseforge");
-                    a.icon_url(crate::constants::CURSEFORGE_ICON)
-                });
-                e.colour(Colour(0xf16436));
-                e.title(&project.name);
-                e.url(&project.website_url);
-                e.description(&project.summary);
                 if let Some(icon) = project.attachments.iter().find(|img| img.is_default) {
                     e.thumbnail(&icon.thumbnail_url);
                 }
-                e.field(
-                    "Download link",
+                e.author(|a| {
+                    a.name("Curseforge")
+                        .icon_url(crate::constants::CURSEFORGE_ICON)
+                })
+                .colour(Colour(0xf16436))
+                .title(&project.name)
+                .url(&project.website_url)
+                .description(&project.summary)
+                .field(
+                    "Latest Version",
                     format!(
-                        "[{}]({}/files/{}) ({})",
+                        "[{}]({}) ({})",
                         file.file_name,
-                        project.website_url,
-                        file.id,
+                        url,
                         ByteSize(file.file_length)
                     ),
                     false,
-                );
-                e.footer(|f| {
+                )
+                .footer(|f| {
                     f.text(format!(
                         "Total download count: {}",
                         pretty_large_int(project.download_count as u64)
                     ))
-                });
-                e.timestamp(&file.file_date);
-                e
+                })
+                .timestamp(&file.file_date)
+            })
+            .components(|c| {
+                c.create_action_row(|a| {
+                    a.create_button(|b| b.style(ButtonStyle::Link).label(mod_version).url(&url))
+                })
             })
         })
         .await
@@ -113,22 +136,32 @@ pub async fn forge(ctx: &Context, msg: &Message, mut args: Args) -> CommandResul
     let (version, mc) = if args.single::<String>().unwrap_or_default() == "legacy" {
         ("1614", "1.7.10")
     } else {
-        ("36.1.0", "1.16.5")
+        ("36.2.0", "1.16.5")
     };
+    let forge_link = crate::constants::FORGE_LINK.replace("{mc}", mc);
     msg.channel_id
         .send_message(ctx, |m| {
             m.embed(|e| {
-                e.colour(Colour::DARK_BLUE);
-                e.title("Have you checked your Forge version?");
-                e.description(format!(
-                    "To function properly, the mod needs to run with \
+                e.colour(Colour::DARK_BLUE)
+                    .title("Have you checked your Forge version?")
+                    .description(format!(
+                        "To function properly, the mod needs to run with \
 Forge {} or later for Minecraft {}",
-                    version, mc
-                ));
-                e.author(|a| {
-                    a.name(format!("Minecraft Forge for {}", mc));
-                    a.icon_url(crate::constants::FORGE_ICON);
-                    a.url(crate::constants::FORGE_LINK.replace("{mc}", mc))
+                        version, mc
+                    ))
+                    .author(|a| {
+                        a.name(format!("Minecraft Forge for {}", mc))
+                            .icon_url(crate::constants::FORGE_ICON)
+                            .url(&forge_link)
+                    })
+            })
+            .components(|c| {
+                c.create_action_row(|b| {
+                    b.create_button(|b| {
+                        b.style(ButtonStyle::Link)
+                            .label(format!("Download Forge for {}", mc))
+                            .url(&forge_link)
+                    })
                 })
             })
         })
@@ -163,30 +196,49 @@ To fix this, go to your `/.minecraft/mods` folder and change the file extension!
 #[checks(allowed_blacklist)]
 pub async fn invite(ctx: &Context, msg: &Message) -> CommandResult {
     let user_icon = ctx.cache.current_user_field(|user| user.face()).await;
-    /*let invite_link = ctx
+    // TODO: Change to a dynamically generated link when serenity fixes their bitflags
+    /*
+    let invite_link = ctx
     .cache
     .current_user()
     .await
     .invite_url_with_oauth2_scopes(
         ctx,
-        Permissions::ADD_REACTIONS | Permissions::MANAGE_MESSAGES | Permissions::MANAGE_ROLES,
-        &[],
+        Permissions::SEND_MESSAGES
+            | Permissions::USE_PUBLIC_THREADS
+            | Permissions::USE_PRIVATE_THREADS
+            | Permissions::MANAGE_THREADS
+            | Permissions::EMBED_LINKS
+            | Permissions::ADD_REACTIONS
+            | Permissions::MANAGE_MESSAGES
+            | Permissions::MANAGE_ROLES,
+        &[OAuth2Scope::Bot, OAuth2Scope::ApplicationsCommands],
     )
-    .await?;*/
+    .await?;
+    */
+    let invite_link = "https://discord.com/api/oauth2/authorize?client_id=780858391383638057&permissions=189784255552&scope=bot%20applications.commands";
     msg.channel_id
         .send_message(ctx, |m| {
             m.embed(|e| {
-                e.colour(Colour::BLURPLE);
-                e.author(|a| {
-                    a.name("LOTR Mod Bot");
-                    a.icon_url(user_icon)
-                });
-                e.field(
-                    "Invite me to your server!",
-                    "My invite link is available \
-[here](https://discord.com/api/oauth2/authorize?client_id=780858391383638057&permissions=189784255552&scope=bot%20applications.commands)",
-                    false,
-                )
+                e.colour(colours::branding::BLURPLE)
+                    .author(|a| {
+                        a.name("LOTR Mod Bot");
+                        a.icon_url(user_icon)
+                    })
+                    .field(
+                        "Invite me to your server!",
+                        format!("My invite link is available [here]({}).", invite_link),
+                        false,
+                    )
+            })
+            .components(|c| {
+                c.create_action_row(|a| {
+                    a.create_button(|b| {
+                        b.style(ButtonStyle::Link)
+                            .label("Invite me")
+                            .url(invite_link)
+                    })
+                })
             })
         })
         .await?;

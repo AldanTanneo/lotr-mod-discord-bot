@@ -1,10 +1,10 @@
 pub mod structures;
 
 use serde_json::Value;
-use serenity::client::Context;
 use serenity::framework::standard::CommandResult;
 use serenity::model::prelude::Message;
-use serenity::utils::Colour;
+use serenity::utils::colours;
+use serenity::{client::Context, model::interactions::message_component::ButtonStyle};
 
 use super::google::google_search;
 use crate::get_reqwest_client;
@@ -194,12 +194,8 @@ pub async fn display(
     msg.channel_id
         .send_message(ctx, |m| {
             m.embed(|e| {
-                e.colour(Colour::BLUE);
-                e.author(|a| {
-                    a.icon_url(wiki.icon());
-                    a.name(wiki.name());
-                    a.url(wiki.site())
-                });
+                e.colour(colours::branding::BLURPLE);
+                e.author(|a| a.icon_url(wiki.icon()).name(wiki.name()).url(wiki.site()));
                 e.title(&page.title);
                 if let Some(desc) = &page.desc {
                     e.description(desc);
@@ -207,9 +203,16 @@ pub async fn display(
                 e.image(&img);
                 e.url(&page.link);
                 e
-            });
-            m.reference_message(msg);
-            m.allowed_mentions(|a| a.empty_parse())
+            })
+            .reference_message(msg)
+            .allowed_mentions(|a| a.empty_parse())
+            .components(|c| {
+                c.create_action_row(|a| {
+                    a.create_button(|b| {
+                        b.style(ButtonStyle::Link).label("See page").url(&page.link)
+                    })
+                })
+            })
         })
         .await?;
 
