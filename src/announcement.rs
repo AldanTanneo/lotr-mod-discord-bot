@@ -5,6 +5,7 @@ use serde_json::Value;
 use serenity::client::Context;
 use serenity::framework::standard::CommandResult;
 use serenity::futures::future::join_all;
+use serenity::model::interactions::message_component::ButtonStyle;
 use serenity::model::prelude::*;
 use serenity::utils::Colour;
 use std::convert::TryFrom;
@@ -237,6 +238,36 @@ pub async fn announce(ctx: &Context, channel: ChannelId, message: &Value) -> Com
                 // message embed content
                 m.embed(embed_parser!(message["embed"]));
             }
+            if let Some(buttons) = message["link_buttons"].as_array() {
+                m.components(|c| {
+                    if !buttons.is_empty() {
+                        c.create_action_row(|a| {
+                            for button in buttons {
+                                if let Some(url) = button["url"].as_str() {
+                                    a.create_button(|b| {
+                                        b.style(ButtonStyle::Link).url(url);
+                                        if let Some(label) = button["label"].as_str() {
+                                            b.label(label);
+                                        }
+                                        if let Some(Some(emoji)) = button["emoji"]
+                                            .as_str()
+                                            .map(|s| ReactionType::try_from(s.trim()).ok())
+                                        {
+                                            b.emoji(emoji);
+                                        }
+                                        if let Some(disabled) = button["disabled"].as_bool() {
+                                            b.disabled(disabled);
+                                        }
+                                        b
+                                    });
+                                }
+                            }
+                            a
+                        });
+                    }
+                    c
+                });
+            }
             m
         })
         .await?;
@@ -272,6 +303,36 @@ pub async fn edit_message(
                 // message embed content
                 let embed = &message["embed"];
                 m.embed(embed_parser!(embed));
+            }
+            if let Some(buttons) = message["link_buttons"].as_array() {
+                m.components(|c| {
+                    if !buttons.is_empty() {
+                        c.create_action_row(|a| {
+                            for button in buttons {
+                                if let Some(url) = button["url"].as_str() {
+                                    a.create_button(|b| {
+                                        b.style(ButtonStyle::Link).url(url);
+                                        if let Some(label) = button["label"].as_str() {
+                                            b.label(label);
+                                        }
+                                        if let Some(Some(emoji)) = button["emoji"]
+                                            .as_str()
+                                            .map(|s| ReactionType::try_from(s.trim()).ok())
+                                        {
+                                            b.emoji(emoji);
+                                        }
+                                        if let Some(disabled) = button["disabled"].as_bool() {
+                                            b.disabled(disabled);
+                                        }
+                                        b
+                                    });
+                                }
+                            }
+                            a
+                        });
+                    }
+                    c
+                });
             }
             m
         })
