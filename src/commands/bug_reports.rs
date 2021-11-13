@@ -553,7 +553,7 @@ pub async fn bug(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult 
         false
     };
 
-    let create_buttons = bug.status != BugStatus::Resolved
+    let mut create_buttons = bug.status != BugStatus::Resolved
         && bug.status != BugStatus::Resolved
         && (msg.author.id == OWNER_ID || (is_lotr_discord && is_admin));
 
@@ -567,8 +567,8 @@ pub async fn bug(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult 
 
     if create_buttons {
         // Listen to interactions for 120 seconds
-        if let Some(interaction) = CollectComponentInteraction::new(ctx)
-            .timeout(Duration::from_secs(120))
+        while let Some(interaction) = CollectComponentInteraction::new(ctx)
+            .timeout(Duration::from_secs(60))
             .channel_id(msg.channel_id)
             .message_id(response_message.id)
             .await
@@ -604,8 +604,14 @@ pub async fn bug(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult 
                             })
                     })
                     .await?;
+
+                create_buttons = false;
+
+                break;
             }
-        } else {
+        }
+
+        if create_buttons {
             // If no interaction was received after timeout, remove the buttons
             response_message
                 .edit(ctx, |m| m.components(create_bug_buttons!(message_link)))
