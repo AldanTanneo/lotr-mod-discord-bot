@@ -277,9 +277,7 @@ async fn custom_commands(ctx: &Context, msg: &Message) -> CommandResult {
     Ok(())
 }
 
-#[command]
-#[checks(is_admin)]
-pub async fn bugtracker(ctx: &Context, msg: &Message) -> CommandResult {
+pub async fn display_bugtracker_help(ctx: &Context, msg: &Message) -> CommandResult {
     let prefix = get_prefix(ctx, msg.guild_id.unwrap_or_default())
         .await
         .unwrap_or_else(|| "!".into());
@@ -357,7 +355,14 @@ Equivalent to  `{prefix}bug status <bug id> closed`.
         msg.reply(ctx, "Bugtracker help message sent to DMs!")
             .await?;
     }
+
     Ok(())
+}
+
+#[command]
+#[checks(is_admin)]
+pub async fn bugtracker(ctx: &Context, msg: &Message) -> CommandResult {
+    display_bugtracker_help(ctx, msg).await
 }
 
 #[command]

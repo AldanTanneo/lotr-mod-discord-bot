@@ -305,6 +305,7 @@ async fn display_bugs(
 
 #[command]
 #[aliases(bugs)]
+#[sub_commands(bugtracker_help)]
 pub async fn buglist(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let legacy = args
         .current()
@@ -415,7 +416,8 @@ pub async fn buglist(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
     bug_link,
     bug_rename,
     stats,
-    bug_toggle_edition
+    bug_toggle_edition,
+    bugtracker_help
 )]
 pub async fn bug(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let bug_id = if let Ok(bug_id) = args.single::<String>() {
@@ -624,7 +626,7 @@ pub async fn bug(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult 
 
 #[command]
 #[checks(is_lotr_discord, is_admin)]
-#[aliases(status)]
+#[aliases("status")]
 pub async fn bug_status(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     if let Ok(bug_id) = args.single::<String>() {
         if let Ok(bug_id) = bug_id
@@ -685,7 +687,7 @@ pub async fn resolve(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
 
 #[command]
 #[checks(is_lotr_discord, is_admin)]
-#[aliases(close)]
+#[aliases("close")]
 pub async fn bug_close(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     if let Ok(bug_id) = args.single::<String>() {
         if let Ok(bug_id) = bug_id
@@ -711,7 +713,7 @@ pub async fn bug_close(ctx: &Context, msg: &Message, mut args: Args) -> CommandR
 #[command]
 #[checks(is_lotr_discord, is_admin)]
 #[sub_commands(bug_link_remove)]
-#[aliases(link)]
+#[aliases("link")]
 pub async fn bug_link(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     if let Ok(bug_id) = args.single::<String>() {
         if let Ok(bug_id) = bug_id
@@ -755,7 +757,7 @@ pub async fn bug_link(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
 
 #[command]
 #[checks(is_admin, is_lotr_discord)]
-#[aliases(remove)]
+#[aliases("remove")]
 pub async fn bug_link_remove(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     if let Ok(bug_id) = args.single::<String>() {
         if let Ok(bug_id) = bug_id
@@ -800,7 +802,7 @@ pub async fn bug_link_remove(ctx: &Context, msg: &Message, mut args: Args) -> Co
 
 #[command]
 #[checks(is_lotr_discord, is_admin)]
-#[aliases(toggle)]
+#[aliases("toggle")]
 pub async fn bug_toggle_edition(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     if let Ok(bug_id) = args.single::<String>() {
         if let Ok(bug_id) = bug_id
@@ -917,4 +919,11 @@ _Open bugs: {}_
         failure!(ctx, msg, "Could not fetch bugtracker statistics");
     }
     Ok(())
+}
+
+#[command]
+#[checks(is_admin, is_lotr_discord)]
+#[aliases("help")]
+pub async fn bugtracker_help(ctx: &Context, msg: &Message) -> CommandResult {
+    crate::commands::help::display_bugtracker_help(ctx, msg).await
 }
