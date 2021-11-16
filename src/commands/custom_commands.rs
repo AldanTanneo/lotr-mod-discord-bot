@@ -20,8 +20,23 @@ use crate::utils::{get_json_from_message, has_permission, to_json_safe_string, N
 use crate::{check::*, FrameworkKey};
 use crate::{failure, handle_json_error, is_admin, success};
 
+pub const fn hash_string(string: &str) -> u64 {
+    let value = string.as_bytes();
+    const MOD: u64 = (1 << 55) - 55;
+    const POW: u64 = 251;
+    let mut hash = 0;
+    let mut i = 0;
+    let n = value.len();
+    while i < n {
+        hash = (hash * POW) % MOD;
+        hash = (hash + value[i] as u64) % MOD;
+        i += 1;
+    }
+    hash
+}
+
 pub async fn manual_dispatch(
-    ctx: &Context,
+    ctx: Context,
     mimicked_message: &Message,
     dispatched_command: &str,
 ) -> CommandResult {
@@ -29,20 +44,32 @@ pub async fn manual_dispatch(
         let data_read = ctx.data.read().await;
         data_read
             .get::<FrameworkKey>()
-            .expect("Should be a framework in the typemap")
+            .expect("There should be a framework in the typemap")
             .clone()
     };
 
     let prefix =
-        crate::database::config::get_prefix(ctx, mimicked_message.guild_id.unwrap_or_default())
+        crate::database::config::get_prefix(&ctx, mimicked_message.guild_id.unwrap_or_default())
             .await
             .unwrap_or_else(|| "!".to_string());
 
     let mut custom_message = mimicked_message.clone();
     custom_message.content = prefix + dispatched_command;
 
+    let previous_msg_hash = Value::Number(hash_string(&mimicked_message.content).into());
+    if let Some(vec) = custom_message.nonce.as_array_mut() {
+        if vec.contains(&previous_msg_hash) {
+            println!("=== ABORT: POSSIBLE LOOP ===");
+            return Ok(());
+        } else {
+            vec.push(previous_msg_hash);
+        }
+    } else {
+        custom_message.nonce = Value::Array(vec![previous_msg_hash]);
+    }
+
     println!("Manual dispatch of content: {}", custom_message.content);
-    framework.dispatch(ctx.clone(), custom_message).await;
+    tokio::task::spawn(async move { framework.dispatch(ctx, custom_message).await });
 
     Ok(())
 }
@@ -66,19 +93,33 @@ pub async fn custom_command(ctx: &Context, msg: &Message, mut args: Args) -> Com
 
         let mut message: Value = serde_json::from_str(&command_data.body.replace("\\$", "$"))?;
         let mut delete = message["self_delete"].as_bool().unwrap_or_default();
+
+        let default_command_type = message["type"].as_str();
+        let subcommands_object = &message["subcommands"];
         // early interrupt in case of blacklist / admin command
-        let command_type = if subcommand.is_some()
-            && message["subcommands"][subcommand.unwrap()]["type"].is_string()
-        {
+        let command_type = if let Some(subcommand) = subcommand {
             // optionnally overriding the command type
-            message["subcommands"][subcommand.unwrap()]["type"].as_str()
+            if subcommands_object[subcommand]["type"].is_string() {
+                subcommands_object[subcommand]["type"].as_str()
+            } else if let Some(subcommand_alias) = subcommands_object[subcommand].as_str() {
+                if subcommands_object[subcommand_alias]["type"].is_string() {
+                    subcommands_object[subcommand_alias]["type"].as_str()
+                } else {
+                    default_command_type
+                }
+            } else {
+                default_command_type
+            }
         } else {
-            message["type"].as_str()
+            default_command_type
         };
 
         let is_alias = command_type == Some("alias");
 
         if let Some(s) = command_type {
+            if s == "group" {
+                return Ok(());
+            }
             let is_admin = msg.author.id == OWNER_ID
                 || is_admin!(ctx, msg)
                 || has_permission(ctx, server_id, msg.author.id, MANAGE_BOT_PERMS).await;
@@ -123,16 +164,28 @@ Channel: {:?}\nMessage: {}\n=== END ===",
 
         let mut command_body = command_data.body;
         if let Some(subcommand) = subcommand {
-            if message["subcommands"][subcommand].is_object() {
-                message = message["subcommands"][subcommand].clone();
+            if subcommands_object[subcommand].is_object() {
+                message = subcommands_object[subcommand].clone();
                 command_body = serde_json::to_string(&message)?;
                 args.advance();
-            } else if let Value::String(subcommand) = &message["subcommands"][subcommand] {
-                if message["subcommands"][subcommand].is_object() {
-                    message = message["subcommands"][subcommand].clone();
+            } else if let Some(subcommand_alias) = subcommands_object[subcommand].as_str() {
+                if subcommands_object[subcommand_alias].is_object() {
+                    message = subcommands_object[subcommand_alias].clone();
                     command_body = serde_json::to_string(&message)?;
                     args.advance();
+                } else {
+                    println!(
+                        "Subcommand {:?} of custom command {:?} has no body!",
+                        subcommand_alias, name
+                    );
+                    return Ok(());
                 }
+            } else {
+                println!(
+                    "Subcommand {:?} of custom command {:?} has no body!",
+                    subcommand, name
+                );
+                return Ok(());
             }
         }
 
@@ -143,11 +196,15 @@ Channel: {:?}\nMessage: {}\n=== END ===",
                 .replace('$', "\u{200B}$")
                 .replace("\\\u{200B}$", "\\$");
 
-            if b.contains("\u{200B}$me") || b.contains("\u{200B}$ping") {
+            if b.contains("\u{200B}$me")
+                || b.contains("\u{200B}$ping")
+                || b.contains("\u{200B}$channel")
+            {
                 changed = true;
                 b = b
                     .replace("\u{200B}$me", &to_json_safe_string(&msg.author.name))
-                    .replace("\u{200B}$ping", &to_json_safe_string(msg.author.mention()));
+                    .replace("\u{200B}$ping", &msg.author.mention().to_string())
+                    .replace("\u{200B}$channel", &msg.channel_id.mention().to_string());
             }
 
             if b.contains("\u{200B}$args") {
@@ -204,7 +261,7 @@ Channel: {:?}\nMessage: {}\n=== END ===",
 
         if is_alias {
             if let Some(command) = message["command"].as_str() {
-                manual_dispatch(ctx, msg, command).await?;
+                manual_dispatch(ctx.clone(), msg, command).await?;
                 return Ok(());
             }
         }
@@ -251,17 +308,19 @@ pub async fn define(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
                 .unwrap_or_default();
             if let Some(map) = message["subcommands"].as_object() {
                 // validate that all subcommands are well defined
-                for (key, val) in map
-                    .iter()
-                    .filter_map(|(key, val)| val.as_str().map(|v| (key, v)))
-                {
-                    if !map.contains_key(val) {
-                        failure!(ctx, msg, "The alias `{:?}: {:?}` is not defined!", key, val);
-                        return Ok(());
-                    }
+                if let Some((key, val)) = map.iter().find_map(|(key, val)| {
+                    val.as_str()
+                        .map(|v| {
+                            (!(map.contains_key(v) && map[v].is_object()) || v == key)
+                                .then(|| (key, v))
+                        })
+                        .flatten()
+                }) {
+                    failure!(ctx, msg, "The alias `{:?}: {:?}` is not defined!", key, val);
+                    return Ok(());
                 }
                 // validate that all aliases subcommands have a "command" field
-                for (key, _val) in map.iter().filter(|(_key, val)| {
+                if let Some((key, _val)) = map.iter().find(|(_key, val)| {
                     val["type"].as_str() == Some("alias") && !val["command"].is_string()
                 }) {
                     failure!(
