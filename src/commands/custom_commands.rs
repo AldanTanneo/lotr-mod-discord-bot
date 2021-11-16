@@ -137,7 +137,7 @@ Channel: {:?}\nMessage: {}\n=== END ===",
         }
 
         if command_body.contains('$') {
-            let mut changed = !args.is_empty();
+            let mut changed = false;
 
             let mut b = command_body
                 .replace('$', "\u{200B}$")
@@ -150,15 +150,27 @@ Channel: {:?}\nMessage: {}\n=== END ===",
                     .replace("\u{200B}$ping", &to_json_safe_string(msg.author.mention()));
             }
 
-            for (i, arg) in args.iter::<String>().filter_map(Result::ok).enumerate() {
-                b = b.replace(
-                    format!("\u{200B}${}", i).as_str(),
-                    &to_json_safe_string(
-                        arg.replace('$', "\\$")
-                            .replace('@', "@\u{200B}")
-                            .trim_matches('"'),
-                    ),
-                );
+            if b.contains("\u{200B}$args") {
+                changed = true;
+                b = b.replace("\u{200B}$args", &to_json_safe_string(&args.rest()));
+            } else {
+                args.iter::<String>()
+                    .filter_map(Result::ok)
+                    .enumerate()
+                    .for_each(|(i, arg)| {
+                        let key = format!("\u{200B}${}", i);
+                        if b.contains(&key) {
+                            changed = true;
+                            b = b.replace(
+                                key.as_str(),
+                                &to_json_safe_string(
+                                    arg.replace('$', "\\$")
+                                        .replace('@', "@\u{200B}")
+                                        .trim_matches('"'),
+                                ),
+                            );
+                        }
+                    });
             }
 
             let argc = args.len() - 1;
@@ -186,7 +198,7 @@ Channel: {:?}\nMessage: {}\n=== END ===",
         }
 
         if let Some(b) = message["self_delete"].as_bool() {
-            // optionnally overriding the self delete behavior
+            // optionally overriding the self delete behavior
             delete = b;
         }
 
@@ -224,11 +236,43 @@ pub async fn define(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
 
     match get_json_from_message::<Value>(msg).await {
         Ok(mut message) => {
+            if message["type"].as_str() == Some("alias") && !message["command"].is_string() {
+                failure!(
+                    ctx,
+                    msg,
+                    "Custom commands with the `\"alias\"` type require a `\"command\"` string field."
+                );
+                return Ok(());
+            }
+
             let mut documentation = message
                 .as_object_mut()
                 .map(|map| map.remove("documentation").unwrap_or_default())
                 .unwrap_or_default();
             if let Some(map) = message["subcommands"].as_object() {
+                // validate that all subcommands are well defined
+                for (key, val) in map
+                    .iter()
+                    .filter_map(|(key, val)| val.as_str().map(|v| (key, v)))
+                {
+                    if !map.contains_key(val) {
+                        failure!(ctx, msg, "The alias `{:?}: {:?}` is not defined!", key, val);
+                        return Ok(());
+                    }
+                }
+                // validate that all aliases subcommands have a "command" field
+                for (key, _val) in map.iter().filter(|(_key, val)| {
+                    val["type"].as_str() == Some("alias") && !val["command"].is_string()
+                }) {
+                    failure!(
+                        ctx,
+                        msg,
+                        "The subcommand `{:?}` with the `\"alias\"` type requires a `\"command\"` string field.",
+                        key
+                    );
+                    return Ok(());
+                }
+
                 let s = map
                     .keys()
                     .map(String::as_str)
