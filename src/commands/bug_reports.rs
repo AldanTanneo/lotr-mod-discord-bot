@@ -112,6 +112,33 @@ impl<'a> Either<'a> {
     }
 }
 
+macro_rules! create_buttons {
+    ($disable_previous:expr, $disable_next:expr) => {
+        |c| {
+            c.create_action_row(|a| {
+                a.create_button(|b| {
+                    b.style(ButtonStyle::Secondary);
+                    b.label("Previous");
+                    b.custom_id("previous_page");
+                    b.emoji(ReactionType::Unicode("⬅️".into()));
+                    b.disabled($disable_previous);
+                    b
+                });
+                a.create_button(|b| {
+                    b.style(ButtonStyle::Secondary);
+                    b.label("Next");
+                    b.custom_id("next_page");
+                    b.emoji(ReactionType::Unicode("➡️".into()));
+                    b.disabled($disable_next);
+                    b
+                });
+                a
+            });
+            c
+        }
+    };
+}
+
 async fn display_bugs(
     ctx: &Context,
     status: Option<BugStatus>,
@@ -239,37 +266,6 @@ async fn display_bugs(
             };
         }
 
-        macro_rules! create_buttons {
-            () => {
-                |c| {
-                    c.create_action_row(|a| {
-                        a.create_button(|b| {
-                            b.style(ButtonStyle::Secondary);
-                            b.label("Previous");
-                            b.custom_id("previous_page");
-                            b.emoji(ReactionType::Unicode("⬅️".into()));
-                            if page <= 1 {
-                                b.disabled(true);
-                            }
-                            b
-                        });
-                        a.create_button(|b| {
-                            b.style(ButtonStyle::Secondary);
-                            b.label("Next");
-                            b.custom_id("next_page");
-                            b.emoji(ReactionType::Unicode("➡️".into()));
-                            if (page * limit) >= total_bugs {
-                                b.disabled(true);
-                            }
-                            b
-                        });
-                        a
-                    });
-                    c
-                }
-            };
-        }
-
         match reply_to {
             Either::Interaction(interaction) => {
                 interaction
@@ -278,7 +274,10 @@ async fn display_bugs(
                             .interaction_response_data(|m| {
                                 m.embeds([])
                                     .create_embed(create_embed_reponse!())
-                                    .components(create_buttons!())
+                                    .components(create_buttons!(
+                                        page <= 1,
+                                        (page * limit) >= total_bugs
+                                    ))
                             })
                     })
                     .await?;
@@ -290,7 +289,7 @@ async fn display_bugs(
                     .channel_id
                     .send_message(ctx, |m| {
                         m.embed(create_embed_reponse!())
-                            .components(create_buttons!())
+                            .components(create_buttons!(page <= 1, (page * limit) >= total_bugs))
                     })
                     .await?;
                 Ok(Some(response_message))
@@ -361,7 +360,7 @@ pub async fn buglist(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
     };
 
     while let Some(interaction) = CollectComponentInteraction::new(ctx)
-        .timeout(Duration::from_secs(60))
+        .timeout(Duration::from_secs(120))
         .channel_id(msg.channel_id)
         .message_id(response_message.id)
         .await
@@ -401,7 +400,9 @@ pub async fn buglist(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
         .await?;
     }
 
-    response_message.edit(ctx, |m| m.components(|c| c)).await?;
+    response_message
+        .edit(ctx, |m| m.components(create_buttons!(true, true)))
+        .await?;
 
     Ok(())
 }
@@ -505,7 +506,7 @@ pub async fn bug(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult 
                 c
             }
         };
-        ($message_link:expr, $create_buttons:expr) => {
+        ($message_link:expr, $create_buttons:expr, $disabled:expr) => {
             |c| {
                 if $message_link.is_some() || $create_buttons {
                     c.create_action_row(|a| {
@@ -519,12 +520,14 @@ pub async fn bug(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult 
                                 b.style(ButtonStyle::Success)
                                     .label("Resolve")
                                     .custom_id("resolve_bug")
+                                    .disabled($disabled)
                             });
 
                             a.create_button(|b| {
                                 b.style(ButtonStyle::Danger)
                                     .label("Close")
                                     .custom_id("close_bug")
+                                    .disabled($disabled)
                             });
                         }
                         a
@@ -563,14 +566,14 @@ pub async fn bug(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult 
         .channel_id
         .send_message(ctx, |m| {
             m.embed(create_bug_embed!(bug, linked_message))
-                .components(create_bug_buttons!(message_link, create_buttons))
+                .components(create_bug_buttons!(message_link, create_buttons, false))
         })
         .await?;
 
     if create_buttons {
         // Listen to interactions for 120 seconds
         while let Some(interaction) = CollectComponentInteraction::new(ctx)
-            .timeout(Duration::from_secs(60))
+            .timeout(Duration::from_secs(120))
             .channel_id(msg.channel_id)
             .message_id(response_message.id)
             .await
@@ -616,7 +619,9 @@ pub async fn bug(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult 
         if create_buttons {
             // If no interaction was received after timeout, remove the buttons
             response_message
-                .edit(ctx, |m| m.components(create_bug_buttons!(message_link)))
+                .edit(ctx, |m| {
+                    m.components(create_bug_buttons!(message_link, create_buttons, true))
+                })
                 .await?;
         }
     }
