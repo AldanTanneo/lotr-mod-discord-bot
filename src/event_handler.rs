@@ -1,11 +1,10 @@
 use crate::constants::*;
-use crate::database::{maintenance::update_list_guilds, DatabasePool};
 
 use mysql_async::prelude::*;
 use serenity::async_trait;
 use serenity::client::{Context, EventHandler};
 use serenity::model::prelude::*;
-use serenity::utils::Colour;
+use serenity::utils::colours;
 
 pub struct Handler;
 
@@ -23,41 +22,26 @@ impl EventHandler for Handler {
             .unwrap()
             .dm(&ctx, |m| {
                 m.embed(|e| {
-                    e.title(format!(
-                        "Bot started and ready!\n\tGuilds: {}\n\t_Do `!guilds` to see all guilds_",
-                        ready.guilds.len(),
-                    ))
-                    .colour(Colour::DARK_GREEN)
-                    // pseudo random color
+                    e.title("Bot started and ready!")
+                        .description(format!("Guilds: {}", ready.guilds.len().to_string()))
+                        .footer(|f| f.text("Use !guilds to see all guilds"))
+                        .colour(colours::branding::GREEN)
                 })
             })
             .await
         {
-            println!("Error starting the bot: {:?}", e);
-        }
-
-        println!("UPDATING GUILD LIST");
-        match update_list_guilds(&ctx).await {
-            Ok(n) => println!(
-                "Successfully updated list_guilds table, before - after = {}",
-                n
-            ),
-            Err(e) => println!("Error updating list_guilds table: {:?}", e),
+            println!("Error starting the bot: {}", e);
+        } else {
+            println!("Started bot!");
         }
     }
 
     async fn guild_delete(&self, ctx: Context, incomplete: GuildUnavailable, guild: Option<Guild>) {
         if !incomplete.unavailable {
-            let pool = {
-                let data_read = ctx.data.read().await;
-                data_read
-                    .get::<DatabasePool>()
-                    .expect("Could not retrieve database pool")
-                    .clone()
-            };
             let guild_name: String = if let Some(guild) = guild {
                 guild.name
-            } else if let Ok(mut conn) = pool.get_conn().await {
+            } else {
+                let mut conn = crate::get_database_conn!(ctx);
                 if let Ok(option) = conn
                     .query_first(format!(
                         "SELECT guild_name FROM {} WHERE guild_id = {}",
@@ -69,8 +53,6 @@ impl EventHandler for Handler {
                 } else {
                     "unknown (database query failed)".into()
                 }
-            } else {
-                "unknown (database connection failed)".into()
             };
 
             OWNER_ID
@@ -83,7 +65,7 @@ impl EventHandler for Handler {
                             "Bot was kicked from {} (`{}`)",
                             guild_name, incomplete.id.0
                         ))
-                        .colour(Colour::RED)
+                        .colour(colours::branding::RED)
                     })
                 })
                 .await
@@ -95,17 +77,35 @@ impl EventHandler for Handler {
 
     async fn guild_create(&self, ctx: Context, guild: Guild, is_new: bool) {
         if is_new {
+            let guild_owner = guild
+                .owner_id
+                .to_user(&ctx)
+                .await
+                .map(|u| u.tag())
+                .unwrap_or_else(|_| "Unknown user".to_string());
+
             OWNER_ID
                 .to_user(&ctx)
                 .await
                 .unwrap()
                 .dm(&ctx, |m| {
                     m.embed(|e| {
+                        if let Some(num_members) = guild.approximate_member_count {
+                            e.description(format!(
+                                "Owner: {}\n{} members",
+                                guild_owner, num_members
+                            ));
+                        } else {
+                            e.description(format!("Owner: {}", guild_owner));
+                        }
+                        if let Some(icon) = guild.icon_url() {
+                            e.thumbnail(icon);
+                        }
                         e.title(format!(
                             "Bot was added to {} (`{}`)",
                             guild.name, guild.id.0
                         ))
-                        .colour(Colour::DARK_GREEN)
+                        .colour(colours::branding::GREEN)
                     })
                 })
                 .await

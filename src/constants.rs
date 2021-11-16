@@ -107,7 +107,7 @@ pub const TABLE_ROLES_ALIASES: &str = "roles__aliases";
 pub const TABLE_LIST_GUILDS: &str = "list_guilds";
 
 /// Reserved command names that cannot be used as [custom commands][crate::commands::custom_commands]
-pub const RESERVED_NAMES: [&str; 51] = [
+pub const RESERVED_NAMES: [&str; 52] = [
     "legacy",
     "renewed",
     "download",
@@ -159,4 +159,5 @@ pub const RESERVED_NAMES: [&str; 51] = [
     "instagram",
     "ig",
     "q&a",
+    "shutdown",
 ];
