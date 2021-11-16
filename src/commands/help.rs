@@ -361,6 +361,7 @@ Equivalent to  `{prefix}bug status <bug id> closed`.
 
 #[command]
 #[checks(is_admin)]
+#[aliases("bug", "bugs")]
 pub async fn bugtracker(ctx: &Context, msg: &Message) -> CommandResult {
     display_bugtracker_help(ctx, msg).await
 }
