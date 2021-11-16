@@ -275,3 +275,12 @@ pub async fn listguilds(ctx: &Context) -> CommandResult {
         .await?;
     Ok(())
 }
+
+#[command]
+#[only_in(dms)]
+#[owners_only]
+pub async fn shutdown(ctx: &Context) -> CommandResult {
+    println!("=== SHUTTING DOWN CURRENT SHARD ===");
+    ctx.shard.shutdown_clean();
+    Ok(())
+}
