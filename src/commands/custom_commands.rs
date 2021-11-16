@@ -257,6 +257,13 @@ Channel: {:?}\nMessage: {}\n=== END ===",
         if delete {
             msg.delete(ctx).await?;
         }
+    } else if msg.nonce.is_array() {
+        failure!(
+            ctx,
+            msg,
+            "This command is an alias of the deleted command `{}`",
+            name
+        );
     }
     Ok(())
 }
