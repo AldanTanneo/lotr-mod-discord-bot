@@ -22,7 +22,9 @@ use mysql_async::OptsBuilder;
 use serenity::client::ClientBuilder;
 use serenity::framework::standard::{macros::group, StandardFramework};
 use serenity::http::client::Http;
+use serenity::prelude::*;
 use std::env;
+use std::sync::Arc;
 
 use api::ReqwestClient;
 use check::{after_hook, dispatch_error_hook};
@@ -72,13 +74,39 @@ struct Wiki;
 struct BugReports;
 
 #[group]
-#[commands(admin, floppadd, blacklist, announce, floppadmin, listguilds, define)]
+#[commands(
+    admin, floppadd, blacklist, announce, floppadmin, listguilds, define, shutdown
+)]
 struct Moderation;
 
 #[group]
 #[commands(custom_command)]
 #[default_command(custom_command)]
 struct CustomCommand;
+
+#[derive(Clone)]
+pub struct FrameworkKey(Arc<StandardFramework>);
+
+impl TypeMapKey for FrameworkKey {
+    type Value = Self;
+}
+
+impl std::ops::Deref for FrameworkKey {
+    type Target = StandardFramework;
+
+    fn deref(&self) -> &Self::Target {
+        self.0.as_ref()
+    }
+}
+
+impl FrameworkKey {
+    pub fn new(framework: StandardFramework) -> Self {
+        Self(Arc::new(framework))
+    }
+    pub fn as_arc(&self) -> Arc<StandardFramework> {
+        self.0.clone()
+    }
+}
 
 #[tokio::main]
 async fn main() {
@@ -155,15 +183,18 @@ async fn main() {
     let mut http = Http::new(reqwest_client.as_arc(), &format!("Bot {}", &token));
     http.application_id = application_id;
 
+    let framework = FrameworkKey::new(framework);
+
     // building client
     let mut client = ClientBuilder::new_with_http(http)
         .event_handler(Handler)
-        .framework(framework)
+        .framework_arc(framework.as_arc())
         .type_map_insert::<DatabasePool>(pool)
         .type_map_insert::<ReqwestClient>(reqwest_client)
         .type_map_insert::<RoleCache>(role_cache)
         .type_map_insert::<PrefixCache>(prefix_cache)
         .type_map_insert::<QaChannelsCache>(qa_channels_cache)
+        .type_map_insert::<FrameworkKey>(framework)
         .await
         .expect("Error creating client");
 

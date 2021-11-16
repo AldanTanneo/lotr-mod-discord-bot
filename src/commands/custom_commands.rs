@@ -2,12 +2,12 @@ use serde_json::Value;
 use serenity::client::Context;
 use serenity::framework::standard::CommandError;
 use serenity::framework::standard::{macros::command, Args, CommandResult};
+use serenity::framework::Framework;
 use serenity::futures::future::join;
 use serenity::model::channel::Message;
 use serenity::prelude::Mentionable;
 
 use crate::announcement::announce;
-use crate::check::*;
 use crate::constants::{MANAGE_BOT_PERMS, OWNER_ID, RESERVED_NAMES};
 use crate::database::{
     blacklist::check_blacklist,
@@ -17,7 +17,35 @@ use crate::database::{
     },
 };
 use crate::utils::{get_json_from_message, has_permission, to_json_safe_string, NotInGuild};
+use crate::{check::*, FrameworkKey};
 use crate::{failure, handle_json_error, is_admin, success};
+
+pub async fn manual_dispatch(
+    ctx: &Context,
+    mimicked_message: &Message,
+    dispatched_command: &str,
+) -> CommandResult {
+    let framework = {
+        let data_read = ctx.data.read().await;
+        data_read
+            .get::<FrameworkKey>()
+            .expect("Should be a framework in the typemap")
+            .clone()
+    };
+
+    let prefix =
+        crate::database::config::get_prefix(ctx, mimicked_message.guild_id.unwrap_or_default())
+            .await
+            .unwrap_or_else(|| "!".to_string());
+
+    let mut custom_message = mimicked_message.clone();
+    custom_message.content = prefix + dispatched_command;
+
+    println!("Manual dispatch of content: {}", custom_message.content);
+    framework.dispatch(ctx.clone(), custom_message).await;
+
+    Ok(())
+}
 
 #[command]
 #[aliases("command")]
@@ -47,6 +75,9 @@ pub async fn custom_command(ctx: &Context, msg: &Message, mut args: Args) -> Com
         } else {
             message["type"].as_str()
         };
+
+        let is_alias = command_type == Some("alias");
+
         if let Some(s) = command_type {
             let is_admin = msg.author.id == OWNER_ID
                 || is_admin!(ctx, msg)
@@ -71,7 +102,7 @@ Channel: {:?}\nMessage: {}\n=== END ===",
                     return match join(
                         msg.author.dm(ctx, |m| {
                             m.embed(|e| {
-                                e.colour(serenity::utils::Colour::RED)
+                                e.colour(serenity::utils::colours::branding::RED)
                                     .description("You are not allowed to use this command here.")
                             })
                         }),
@@ -85,6 +116,7 @@ Channel: {:?}\nMessage: {}\n=== END ===",
                     };
                 } else if s == "admin" {
                     failure!(ctx, msg, "You are not an admin on this server!");
+                    return Ok(());
                 }
             }
         }
@@ -103,6 +135,7 @@ Channel: {:?}\nMessage: {}\n=== END ===",
                 }
             }
         }
+
         if command_body.contains('$') {
             let mut changed = !args.is_empty();
 
@@ -155,6 +188,13 @@ Channel: {:?}\nMessage: {}\n=== END ===",
         if let Some(b) = message["self_delete"].as_bool() {
             // optionnally overriding the self delete behavior
             delete = b;
+        }
+
+        if is_alias {
+            if let Some(command) = message["command"].as_str() {
+                manual_dispatch(ctx, msg, command).await?;
+                return Ok(());
+            }
         }
         announce(ctx, msg.channel_id, &message).await?;
         if delete {
