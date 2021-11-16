@@ -173,19 +173,7 @@ Channel: {:?}\nMessage: {}\n=== END ===",
                     message = subcommands_object[subcommand_alias].clone();
                     command_body = serde_json::to_string(&message)?;
                     args.advance();
-                } else {
-                    println!(
-                        "Subcommand {:?} of custom command {:?} has no body!",
-                        subcommand_alias, name
-                    );
-                    return Ok(());
                 }
-            } else {
-                println!(
-                    "Subcommand {:?} of custom command {:?} has no body!",
-                    subcommand, name
-                );
-                return Ok(());
             }
         }
 
