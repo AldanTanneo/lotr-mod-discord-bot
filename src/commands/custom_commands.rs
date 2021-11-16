@@ -4,6 +4,7 @@ use serenity::framework::standard::CommandError;
 use serenity::framework::standard::{macros::command, Args, CommandResult};
 use serenity::futures::future::join;
 use serenity::model::channel::Message;
+use serenity::prelude::Mentionable;
 
 use crate::announcement::announce;
 use crate::check::*;
@@ -15,15 +16,19 @@ use crate::database::{
         remove_custom_command,
     },
 };
-use crate::utils::{get_json_from_message, has_permission, NotInGuild};
+use crate::utils::{get_json_from_message, has_permission, to_json_safe_string, NotInGuild};
 use crate::{failure, handle_json_error, is_admin, success};
 
 #[command]
-#[only_in(guilds)]
 #[aliases("command")]
 #[sub_commands(define, custom_command_remove, custom_command_display)]
 pub async fn custom_command(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    let server_id = msg.guild_id.ok_or(NotInGuild)?;
+    let server_id = if let Some(id) = msg.guild_id {
+        id
+    } else {
+        // No custom commands for DMs!
+        return Ok(());
+    };
 
     let name = args.single::<String>()?.to_lowercase(); // getting command name
     let subcommand = args.current(); // getting possible subcommand but not advancing
@@ -99,20 +104,27 @@ Channel: {:?}\nMessage: {}\n=== END ===",
             }
         }
         if command_body.contains('$') {
+            let mut changed = !args.is_empty();
+
             let mut b = command_body
                 .replace('$', "\u{200B}$")
                 .replace("\\\u{200B}$", "\\$");
-            let mut changed = false;
-            for (i, arg) in args.iter::<String>().filter_map(Result::ok).enumerate() {
+
+            if b.contains("\u{200B}$me") || b.contains("\u{200B}$ping") {
                 changed = true;
+                b = b
+                    .replace("\u{200B}$me", &to_json_safe_string(&msg.author.name))
+                    .replace("\u{200B}$ping", &to_json_safe_string(msg.author.mention()));
+            }
+
+            for (i, arg) in args.iter::<String>().filter_map(Result::ok).enumerate() {
                 b = b.replace(
                     format!("\u{200B}${}", i).as_str(),
-                    &arg.trim_matches('"')
-                        .replace('$', "\\$")
-                        .replace('@', "@\u{200B}")
-                        .replace('\\', "\\\\")
-                        .replace('\n', "\\n")
-                        .replace('"', "\\\""),
+                    &to_json_safe_string(
+                        arg.replace('$', "\\$")
+                            .replace('@', "@\u{200B}")
+                            .trim_matches('"'),
+                    ),
                 );
             }
 

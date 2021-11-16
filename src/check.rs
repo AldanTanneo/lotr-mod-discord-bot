@@ -49,7 +49,7 @@ pub async fn allowed_blacklist(ctx: &Context, msg: &Message) -> Result<(), Reaso
         .await
         .map_err(|e| Reason::Log(format!("Could not retrieve channel: {:?}", e)))?
         .guild()
-        .map(|g| g.thread_metadata.map(|_| g.category_id).flatten())
+        .map(|g| g.thread_metadata.map(|_| g.parent_id).flatten())
         .ok_or_else(|| Reason::Log("Not in a guild".into()))?;
 
     let mut channel_id = msg.channel_id;
@@ -169,10 +169,18 @@ pub async fn is_lotr_discord(_: &Context, msg: &Message) -> Result<(), Reason> {
 }
 
 #[hook]
-pub async fn dispatch_error_hook(ctx: &Context, msg: &Message, error: DispatchError) {
+pub async fn dispatch_error_hook(
+    ctx: &Context,
+    msg: &Message,
+    error: DispatchError,
+    command_name: &str,
+) {
     match error {
         DispatchError::CheckFailed(s, reason) => {
-            println!("Check failed: {}", s);
+            println!(
+                "=== CHECK FAILED ===\nCheck failed in command {}: {}",
+                command_name, s
+            );
             match reason {
                 Reason::User(err_message) => {
                     match join(
@@ -223,6 +231,7 @@ pub async fn dispatch_error_hook(ctx: &Context, msg: &Message, error: DispatchEr
         }
         _ => println!("Dispatch error: {:?}", error),
     }
+    println!("=== END ===");
 }
 
 #[hook]
@@ -247,7 +256,7 @@ Content: {}
             msg.author.tag(),
             msg.author.id,
             if let Some(guild_id) = msg.guild_id {
-                if let Some(name) = ctx.cache.guild_field(guild_id, |g| g.name.clone()).await {
+                if let Some(name) = ctx.cache.guild_field(guild_id, |g| g.name.clone()) {
                     format!("{:?}, {:?}", name, guild_id)
                 } else {
                     format!("{:?}", guild_id)
@@ -258,7 +267,6 @@ Content: {}
             if let Some(name) = ctx
                 .cache
                 .guild_channel_field(msg.channel_id, |c| c.name.clone())
-                .await
             {
                 format!("#{}, {:?}", name, msg.channel_id)
             } else {

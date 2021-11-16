@@ -556,7 +556,7 @@ pub async fn bug(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult 
     };
 
     let mut create_buttons = bug.status != BugStatus::Resolved
-        && bug.status != BugStatus::Resolved
+        && bug.status != BugStatus::Closed
         && (msg.author.id == OWNER_ID || (is_lotr_discord && is_admin));
 
     let mut response_message = msg

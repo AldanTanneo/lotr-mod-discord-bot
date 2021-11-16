@@ -86,7 +86,6 @@ pub async fn update_blacklist(ctx: &Context, msg: &Message, mut args: Args) -> C
                 || is_admin!(ctx, server_id, user.id)
                 || member
                     .permissions(ctx)
-                    .await
                     .unwrap_or_default()
                     .intersects(MANAGE_BOT_PERMS)
             {

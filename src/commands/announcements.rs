@@ -83,11 +83,7 @@ pub async fn announce(ctx: &Context, msg: &Message, args: Args) -> CommandResult
 
     if let Ok(channel_id) = channel {
         if msg.author.id != OWNER_ID
-            && msg.guild_id
-                != ctx
-                    .cache
-                    .guild_channel_field(channel_id, |c| c.guild_id)
-                    .await
+            && msg.guild_id != ctx.cache.guild_channel_field(channel_id, |c| c.guild_id)
         {
             failure!(
                 ctx,
@@ -114,12 +110,10 @@ Content: {}
                         msg.author.id,
                         ctx.cache
                             .guild_channel_field(channel_id, |c| c.name.clone())
-                            .await
                             .unwrap_or_else(|| "Unknown channel".to_string()),
                         channel_id,
                         ctx.cache
                             .guild_field(guild_id, |g| g.name.clone())
-                            .await
                             .unwrap_or_else(|| "Unknown Guild".to_string()),
                         guild_id,
                         value.to_string()
@@ -151,11 +145,7 @@ pub async fn edit(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
 
     if let Ok(channel_id) = channel {
         if msg.author.id != OWNER_ID
-            && msg.guild_id
-                != ctx
-                    .cache
-                    .guild_channel_field(channel_id, |c| c.guild_id)
-                    .await
+            && msg.guild_id != ctx.cache.guild_channel_field(channel_id, |c| c.guild_id)
         {
             failure!(
                 ctx,
@@ -185,12 +175,10 @@ Content: {}
                             msg.author.id,
                             ctx.cache
                                 .guild_channel_field(channel_id, |c| c.name.clone())
-                                .await
                                 .unwrap_or_else(|| "Unknown channel".to_string()),
                             channel_id,
                             ctx.cache
                                 .guild_field(guild_id, |g| g.name.clone())
-                                .await
                                 .unwrap_or_else(|| "Unknown guild".to_string()),
                             guild_id,
                             value.to_string()

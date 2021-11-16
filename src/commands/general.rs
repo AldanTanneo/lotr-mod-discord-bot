@@ -195,7 +195,7 @@ To fix this, go to your `/.minecraft/mods` folder and change the file extension!
 #[command]
 #[checks(allowed_blacklist)]
 pub async fn invite(ctx: &Context, msg: &Message) -> CommandResult {
-    let user_icon = ctx.cache.current_user_field(|user| user.face()).await;
+    let user_icon = ctx.cache.current_user_field(|user| user.face());
     // TODO: Change to a dynamically generated link when serenity fixes their bitflags
     /*
     let invite_link = ctx
@@ -344,7 +344,7 @@ pub async fn user_info(ctx: &Context, msg: &Message, mut args: Args) -> CommandR
         .await?;
     let user = &member.user;
 
-    let colour = member.colour(ctx).await.unwrap_or_default();
+    let colour = member.colour(ctx).unwrap_or_default();
 
     msg.channel_id
         .send_message(ctx, |m| {

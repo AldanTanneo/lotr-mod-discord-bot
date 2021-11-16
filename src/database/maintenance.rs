@@ -25,7 +25,7 @@ pub async fn update_list_guilds(ctx: &Context) -> Result<i64, CommandError> {
     let mut id = GuildId(0);
     while let Ok(vec) = ctx
         .http
-        .get_guilds(&serenity::http::GuildPagination::After(id), 100)
+        .get_guilds(Some(&serenity::http::GuildPagination::After(id)), Some(100))
         .await
     {
         if vec.is_empty() {

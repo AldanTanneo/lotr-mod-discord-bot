@@ -186,18 +186,14 @@ pub async fn has_permission(
     user_id: UserId,
     perm: Permissions,
 ) -> bool {
-    if let Some(member) = ctx.cache.member(guild_id, user_id).await {
-        return member
-            .permissions(ctx)
-            .await
-            .unwrap_or_default()
-            .intersects(perm);
+    if let Some(member) = ctx.cache.member(guild_id, user_id) {
+        return member.permissions(ctx).unwrap_or_default().intersects(perm);
     }
 
     false
 }
 
-pub fn parse_motd<T: ToString>(motd: T) -> String {
+pub fn parse_motd(motd: impl ToString) -> String {
     let motd = motd.to_string();
     let mut res = String::with_capacity(motd.len());
     let mut stack: Vec<&str> = Vec::new();
@@ -242,4 +238,23 @@ pub fn parse_motd<T: ToString>(motd: T) -> String {
     }
     stack.drain(..).rev().for_each(|t| res.push_str(t));
     res
+}
+
+pub fn to_json_safe_string(s: impl ToString) -> String {
+    // serialize as string to get string escapes
+    let s = serde_json::ser::to_string(&serde_json::Value::String(s.to_string())).unwrap();
+    // remove the surrounding quotes
+    s[1..s.len() - 1].to_string()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::to_json_safe_string;
+
+    #[test]
+    fn test_json_safe_string() {
+        let s = "\"holà\"\n}";
+
+        assert_eq!(to_json_safe_string(s), "\\\"holà\\\"\\n}");
+    }
 }
