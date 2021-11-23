@@ -20,10 +20,14 @@ use crate::utils::{get_json_from_message, has_permission, to_json_safe_string, N
 use crate::{check::*, FrameworkKey};
 use crate::{failure, handle_json_error, is_admin, success};
 
+/// Simple rolling hash function to compare strings
 pub const fn hash_string(string: &str) -> u64 {
-    let value = string.as_bytes();
-    const MOD: u64 = (1 << 55) - 55;
+    // prime number slightly under 2^56
+    const MOD: u64 = 3u64.pow(35) - 28;
+    // prime number slightly under 2^8
     const POW: u64 = 251;
+
+    let value = string.as_bytes();
     let mut hash = 0;
     let mut i = 0;
     let n = value.len();
