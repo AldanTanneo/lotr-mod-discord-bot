@@ -186,7 +186,17 @@ pub async fn has_permission(
     user_id: UserId,
     perm: Permissions,
 ) -> bool {
+    if ctx
+        .cache
+        .guild_field(guild_id, |g| g.owner_id == user_id)
+        .unwrap_or_default()
+    {
+        return true;
+    }
+
     if let Some(member) = ctx.cache.member(guild_id, user_id) {
+        return member.permissions(ctx).unwrap_or_default().intersects(perm);
+    } else if let Ok(member) = guild_id.member(ctx, user_id).await {
         return member.permissions(ctx).unwrap_or_default().intersects(perm);
     }
 

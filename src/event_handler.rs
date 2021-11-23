@@ -84,6 +84,15 @@ impl EventHandler for Handler {
                 .map(|u| u.tag())
                 .unwrap_or_else(|_| "Unknown user".to_string());
 
+            if let Err(e) =
+                crate::database::admin_data::add_admin(&ctx, guild.id, guild.owner_id, false).await
+            {
+                println!(
+                    "=== ERROR ===\nCould not add Guild owner as admin: {}\n=== END ===",
+                    e
+                );
+            }
+
             OWNER_ID
                 .to_user(&ctx)
                 .await
