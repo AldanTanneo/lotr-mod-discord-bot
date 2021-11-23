@@ -19,6 +19,7 @@ pub mod role_cache;
 pub mod utils;
 
 use mysql_async::OptsBuilder;
+use serenity::client::bridge::gateway::GatewayIntents;
 use serenity::client::ClientBuilder;
 use serenity::framework::standard::{macros::group, StandardFramework};
 use serenity::http::client::Http;
@@ -189,6 +190,7 @@ async fn main() {
     let mut client = ClientBuilder::new_with_http(http)
         .event_handler(Handler)
         .framework_arc(framework.as_arc())
+        .intents(GatewayIntents::non_privileged() | GatewayIntents::GUILD_MEMBERS)
         .type_map_insert::<DatabasePool>(pool)
         .type_map_insert::<ReqwestClient>(reqwest_client)
         .type_map_insert::<RoleCache>(role_cache)
