@@ -55,12 +55,12 @@ pub async fn curseforge(ctx: &Context, msg: &Message, mut args: Args) -> Command
     };
     let project = curseforge::get_project_info(ctx, id).await?;
 
-    if project.id != id {
+    if project.data.id != id {
         println!("=== ERROR ===\nCurseforge API call returned the wrong project\n=== END ===");
         return Ok(());
     }
 
-    let file = if let Some(file) = project.latest_files.get(0) {
+    let file = if let Some(file) = project.data.latest_files.get(0) {
         file
     } else {
         println!("=== ERROR ===\nNo Curseforge latest file\n=== END ===");
@@ -69,7 +69,7 @@ pub async fn curseforge(ctx: &Context, msg: &Message, mut args: Args) -> Command
 
     let url = format!(
         "{}/files/{}",
-        project.website_url.trim_end_matches('/'),
+        project.data.links.website_url.trim_end_matches('/'),
         file.id
     );
 
@@ -89,17 +89,15 @@ pub async fn curseforge(ctx: &Context, msg: &Message, mut args: Args) -> Command
     msg.channel_id
         .send_message(ctx, |m| {
             m.embed(|e| {
-                if let Some(icon) = project.attachments.iter().find(|img| img.is_default) {
-                    e.thumbnail(&icon.thumbnail_url);
-                }
+                e.thumbnail(&project.data.logo.thumbnail_url);
                 e.author(|a| {
                     a.name("Curseforge")
                         .icon_url(crate::constants::CURSEFORGE_ICON)
                 })
                 .colour(Colour(0xf16436))
-                .title(&project.name)
-                .url(&project.website_url)
-                .description(&project.summary)
+                .title(&project.data.name)
+                .url(&project.data.links.website_url)
+                .description(&project.data.summary)
                 .field(
                     "Latest Version",
                     format!(
@@ -113,10 +111,10 @@ pub async fn curseforge(ctx: &Context, msg: &Message, mut args: Args) -> Command
                 .footer(|f| {
                     f.text(format!(
                         "Total download count: {}",
-                        pretty_large_int(project.download_count as u64)
+                        pretty_large_int(project.data.download_count as u64)
                     ))
                 })
-                .timestamp(&file.file_date)
+                .timestamp(file.file_date)
             })
             .components(|c| {
                 c.create_action_row(|a| {
