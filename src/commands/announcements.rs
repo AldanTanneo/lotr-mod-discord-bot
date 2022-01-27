@@ -116,7 +116,7 @@ Content: {}
                             .guild_field(guild_id, |g| g.name.clone())
                             .unwrap_or_else(|| "Unknown Guild".to_string()),
                         guild_id,
-                        value.to_string()
+                        value
                     );
                     success!(ctx, msg);
                 }
@@ -181,7 +181,7 @@ Content: {}
                                 .guild_field(guild_id, |g| g.name.clone())
                                 .unwrap_or_else(|| "Unknown guild".to_string()),
                             guild_id,
-                            value.to_string()
+                            value
                         );
                         success!(ctx, msg);
                     }
