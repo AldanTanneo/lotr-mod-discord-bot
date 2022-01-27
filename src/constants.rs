@@ -19,11 +19,9 @@ pub const BIT_FILTER_24BITS: u32 = !(!0 << 24);
 /// Set of [permissions][Permissions] needed to manage the bot (bot admins and owner excepted).
 ///
 /// Equivalent to `ADMINISTRATOR | MANAGE_GUILD | MANAGE_CHANNELS`
-pub const MANAGE_BOT_PERMS: Permissions = Permissions {
-    bits: Permissions::ADMINISTRATOR.bits
-        | Permissions::MANAGE_GUILD.bits
-        | Permissions::MANAGE_CHANNELS.bits,
-};
+pub const MANAGE_BOT_PERMS: Permissions = Permissions::ADMINISTRATOR
+    .union(Permissions::MANAGE_GUILD)
+    .union(Permissions::MANAGE_CHANNELS);
 
 /// Bot icon
 pub const BOT_ICON: &str =
@@ -70,7 +68,7 @@ pub const PAYPAL_LINK_EUROS: &str =
 
 /// The [Curseforge API](https://www.curseforge.com/) for the
 /// [`!curseforge`][crate::commands::general::curseforge] command
-pub const CURSE_API: &str = "https://addons-ecs.forgesvc.net/api/v2/addon/";
+pub const CURSE_API: &str = "https://api.curseforge.com/v1/mods/";
 /// A Minecraft server [public API](https://api.mcsrvstat.us/) for the [`!online`][crate::commands::servers::online] command
 pub const MINECRAFT_API: &str = "https://api.mcsrvstat.us/2/";
 /// Google API for custom google search

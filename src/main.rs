@@ -19,10 +19,10 @@ pub mod role_cache;
 pub mod utils;
 
 use mysql_async::OptsBuilder;
-use serenity::client::bridge::gateway::GatewayIntents;
 use serenity::client::ClientBuilder;
 use serenity::framework::standard::{macros::group, StandardFramework};
 use serenity::http::client::Http;
+use serenity::model::gateway::GatewayIntents;
 use serenity::prelude::*;
 use std::env;
 use std::sync::Arc;
@@ -230,6 +230,6 @@ async fn main() {
     // start listening for events by starting a single shard
     if let Err(why) = client.start().await {
         // basic error logging
-        println!("An error occurred while running the client: {:?}", why);
+        println!("An error occurred while running the client: {}", why);
     }
 }

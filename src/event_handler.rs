@@ -23,7 +23,7 @@ impl EventHandler for Handler {
             .dm(&ctx, |m| {
                 m.embed(|e| {
                     e.title("Bot started and ready!")
-                        .description(format!("Guilds: {}", ready.guilds.len().to_string()))
+                        .description(format!("Guilds: {}", ready.guilds.len()))
                         .footer(|f| f.text("Use !guilds to see all guilds"))
                         .colour(colours::branding::GREEN)
                 })
@@ -36,7 +36,7 @@ impl EventHandler for Handler {
         }
     }
 
-    async fn guild_delete(&self, ctx: Context, incomplete: GuildUnavailable, guild: Option<Guild>) {
+    async fn guild_delete(&self, ctx: Context, incomplete: UnavailableGuild, guild: Option<Guild>) {
         if !incomplete.unavailable {
             let guild_name: String = if let Some(guild) = guild {
                 guild.name

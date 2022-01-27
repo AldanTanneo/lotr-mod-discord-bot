@@ -487,7 +487,7 @@ pub async fn bug(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult 
                         false,
                     );
                 }
-                e.timestamp(&$bug.timestamp);
+                e.timestamp($bug.timestamp);
                 e
             }
         };

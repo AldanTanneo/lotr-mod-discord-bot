@@ -133,7 +133,7 @@ macro_rules! embed_parser {
                 // embed timestamp, displays the date right after the
                 // footer
                 if timestamp.trim().to_lowercase() == "now" {
-                    e.timestamp(&Utc::now());
+                    e.timestamp(Utc::now());
                 } else {
                     e.timestamp(timestamp);
                 }

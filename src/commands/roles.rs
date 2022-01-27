@@ -76,7 +76,7 @@ async fn can_have_role<'a>(
     if let Some(duration) = &role.properties.time_requirement.map(Duration::from_std) {
         if let Ok(time_requirement) = duration {
             if let Some(time) = member.joined_at {
-                let time_since_join = Utc::now().signed_duration_since(time);
+                let time_since_join = Utc::now().signed_duration_since(*time);
                 if &time_since_join < time_requirement {
                     return Err(NotEnoughTime(
                         Utc::now() + *time_requirement - time_since_join,
