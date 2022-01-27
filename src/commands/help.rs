@@ -415,7 +415,7 @@ itself.
                 );
 
                 e.field(
-                    "**Annoucements & Custom commands**",
+                    "**Announcements & Custom commands**",
                     format!(
 "`{prefix}announce <channel mention> <json message content>`  Make the bot send a \
 message to the mentioned channel.  For the JSON argument documentation, type `{prefix}help json`
