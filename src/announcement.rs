@@ -1,6 +1,6 @@
 //! Announcement function [`announce`] that posts a JSON message
 
-use chrono::Utc;
+use chrono::{DateTime, Utc};
 use serde_json::Value;
 use serenity::client::Context;
 use serenity::framework::standard::CommandResult;
@@ -9,6 +9,19 @@ use serenity::model::interactions::message_component::ButtonStyle;
 use serenity::model::prelude::*;
 use serenity::utils::Colour;
 use std::convert::TryFrom;
+
+#[derive(Debug, Clone)]
+pub enum AnnouncementError {
+    TimestampParsingFailed(String),
+}
+
+impl std::fmt::Display for AnnouncementError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
+impl std::error::Error for AnnouncementError {}
 
 /// Macro that builds an embed. Used in [`announce`] and [`edit_message`].
 macro_rules! embed_parser {
@@ -135,7 +148,16 @@ macro_rules! embed_parser {
                 if timestamp.trim().to_lowercase() == "now" {
                     e.timestamp(Utc::now());
                 } else {
-                    e.timestamp(timestamp);
+                    if let Ok(ts) = DateTime::parse_from_rfc3339(timestamp) {
+                        e.timestamp(ts);
+                    } else if let Ok(ts) = DateTime::parse_from_str(timestamp, "%FT%R%:z") {
+                        e.timestamp(ts);
+                    } else {
+                        println!(
+                            "=== WARNING ===\nIncorrect timestamp formatting: `{}`\n=== END ===",
+                            timestamp
+                        );
+                    }
                 }
             }
             e
