@@ -1,4 +1,4 @@
-use crate::constants::{discord_colours, OWNER_ID};
+use crate::constants::OWNER_ID;
 use crate::mysql;
 use crate::serenity;
 
@@ -63,7 +63,7 @@ impl Data {
 
         framework.options().commands.iter().for_each(|cmd| {
             println!("|{: ^20}|", cmd.name);
-            if cmd.name == "online" {
+            if cmd.identifying_name == "minecraft_online" {
                 if let Some(slash_command) = cmd.create_as_slash_command() {
                     online_command_builder.add_application_command(slash_command);
                 }
@@ -71,10 +71,9 @@ impl Data {
                 if let Some(slash_command) = cmd.create_as_slash_command() {
                     commands_builder.add_application_command(slash_command);
                 }
-                /*if let Some(context_menu_command) = cmd.create_as_context_menu_command() {
+                if let Some(context_menu_command) = cmd.create_as_context_menu_command() {
                     commands_builder.add_application_command(context_menu_command);
                 }
-                */
             }
         });
 
@@ -88,7 +87,7 @@ impl Data {
             ctx.http
                 .create_guild_application_commands(test_guild_id, &commands_json)
                 .await?;
-            println!("Created all commands");
+            println!("Created commands");
         } else {
             let commands_json = serde_json::Value::Array(commands_builder.0);
             let online_command_json = serde_json::Value::Array(online_command_builder.0);
@@ -121,7 +120,7 @@ impl Data {
                         "Bot started and ready!\n\tGuilds: {}\n\t_Do `!guilds` to see all guilds_",
                         ready.guilds.len(),
                     ))
-                    .colour(discord_colours::GREEN)
+                    .colour(crate::serenity::colours::branding::GREEN)
                 })
             })
             .await?;

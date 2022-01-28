@@ -23,8 +23,9 @@ async fn main() -> Result {
         allowed_mentions: None,
         commands: vec![
             commands::discord(),
+            commands::invite(),
             commands::minecraft::online(),
-            commands::download(),
+            commands::curseforge::download(),
             poise::Command {
                 subcommands: vec![
                     commands::minecraft::set(),

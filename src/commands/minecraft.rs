@@ -2,6 +2,7 @@ use poise::serenity::utils::Colour;
 
 use crate::api;
 use crate::database;
+use crate::utils;
 use crate::{Context, Result};
 
 fn parse_motd<T: ToString>(motd: T) -> String {
@@ -63,7 +64,7 @@ pub async fn online(
         match database::minecraft::get_minecraft_ip(&ctx).await {
             Ok(ip) => ip,
             Err(e) => {
-                crate::error_printer!(e.as_ref());
+                utils::error_printer!(e.as_ref());
                 ctx.defer_ephemeral().await?;
                 ctx.say("There is no registered IP on this server. Set one using  `!ip set <server ip>`.")
             .await?;
@@ -86,26 +87,24 @@ pub async fn online(
                             "".into()
                         };
                         e.description(format!("{}**IP:**  `{}`", desc, &ip,));
-                        e.field(
-                            format!(
-                                "Players: {}/{}",
-                                &server.players.online, &server.players.max
-                            ),
-                            &server
-                                .players
-                                .list
-                                .as_ref()
-                                .map(|s| {
-                                    let res = s.join(", ").replace("_", "\\_");
-                                    if res.len() > 1024 {
-                                        "Too many usernames to display!".into()
-                                    } else {
-                                        res
-                                    }
-                                })
-                                .unwrap_or_else(|| "[]()".into()),
-                            false,
-                        );
+                        if let Some(players) = &server.players {
+                            e.field(
+                                format!("Players: {}/{}", players.online, players.max),
+                                players
+                                    .list
+                                    .as_ref()
+                                    .map(|s| {
+                                        let res = s.join(", ").replace("_", "\\_");
+                                        if res.len() > 1024 {
+                                            "Too many usernames to display!".into()
+                                        } else {
+                                            res
+                                        }
+                                    })
+                                    .unwrap_or_else(|| "[]()".into()),
+                                false,
+                            );
+                        }
                         e
                     });
                     m
@@ -134,7 +133,7 @@ pub async fn online(
                 })
             })
             .await?;
-            crate::error_printer!(e.as_ref())
+            utils::error_printer!(e.as_ref())
         }
     }
     Ok(())
@@ -162,7 +161,7 @@ pub async fn display(ctx: Context<'_>) -> Result {
             .await?;
         }
         Err(e) => {
-            crate::error_printer!(e.as_ref());
+            utils::error_printer!(e.as_ref());
             ctx.defer_ephemeral().await?;
             ctx.say(
                 "There is no registered IP on this server. Set one using  `!ip set <server ip>`.",
@@ -182,7 +181,7 @@ pub async fn display(ctx: Context<'_>) -> Result {
 )]
 pub async fn set(ctx: Context<'_>, #[description = "The IP address to set"] ip: String) -> Result {
     if let Err(e) = database::minecraft::set_minecraft_ip(&ctx, &ip).await {
-        crate::error_printer!(e.as_ref());
+        utils::error_printer!(e.as_ref());
         ctx.say("Oops, the bot failed to set the IP address of the server...")
             .await?;
     } else {
@@ -214,5 +213,7 @@ pub async fn delete(ctx: Context<'_>) -> Result {
         ctx.say("No registered Minecraft IP for this server.")
             .await?;
     }
+
+    // let commands = ctx.guild_id().ok_or("Not in a guild")?;
     Ok(())
 }

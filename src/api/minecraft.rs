@@ -20,13 +20,13 @@ pub struct PlayerList {
 pub struct MinecraftServer {
     pub online: bool,
     pub motd: Option<Description>,
-    pub players: PlayerList,
+    pub players: Option<PlayerList>,
 }
 
 pub async fn get_server_status(ctx: &Context<'_>, ip: &str) -> Result<MinecraftServer> {
     let rclient = ctx.data().reqwest_client();
 
-    let req = format!("{}{}", MINECRAFT_API, ip);
+    let req = format!("{}{}", MINECRAFT_API, ip.trim());
     let res = rclient
         .get(&req)
         .send()

@@ -1,10 +1,11 @@
-#[macro_export]
 macro_rules! error_printer {
     ($e:expr) => {{
         println!("=== ERROR ===");
         dbg!($e);
     }};
 }
+
+pub(crate) use error_printer;
 
 pub fn pretty_large_int(x: impl Into<u128>) -> String {
     let mut num: u128 = x.into();

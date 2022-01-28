@@ -1,6 +1,11 @@
+pub mod curseforge;
 pub mod minecraft;
 
-use crate::{serenity::model::interactions::message_component::ButtonStyle, Context, Result};
+use crate::constants;
+use crate::serenity::model::interactions::message_component::ButtonStyle;
+use crate::serenity::CreateBotAuthParameters;
+use crate::serenity::OAuth2Scope;
+use crate::{Context, Result};
 
 /// Display the invite link to the LOTR Mod Community discord
 #[poise::command(slash_command)]
@@ -13,96 +18,44 @@ https://discord.gg/QXkZzKU",
     Ok(())
 }
 
-#[derive(Debug, poise::SlashChoiceParameter)]
-pub enum VersionChoice {
-    Legacy,
-    Renewed,
-}
-
-impl VersionChoice {
-    /// Curseforge project ID for the LOTR Mod Renewed
-    const CURSEFORGE_ID_RENEWED: u64 = 406893;
-    /// Curseforge project ID for the LOTR Mod Legacy
-    const CURSEFORGE_ID_LEGACY: u64 = 423748;
-
-    pub const fn id(&self) -> u64 {
-        match self {
-            VersionChoice::Legacy => Self::CURSEFORGE_ID_LEGACY,
-            VersionChoice::Renewed => Self::CURSEFORGE_ID_RENEWED,
-        }
-    }
-}
-
+/// Display the bot's invite link
 #[poise::command(slash_command)]
-pub async fn download(
-    ctx: Context<'_>,
-    #[description = "The version to get a link for"] version: VersionChoice,
-) -> Result {
-    let project = crate::api::curseforge::get_project_info(&ctx, version.id()).await?;
+pub async fn invite(ctx: Context<'_>) -> Result {
+    let user_icon = ctx.discord().cache.current_user_field(|u| u.face());
 
-    if project.id != version.id() {
-        println!("=== ERROR ===\nCurseforge API call returned the wrong project\n=== END ===");
-        return Ok(());
-    }
-
-    let file = if let Some(file) = project.latest_files.get(0) {
-        file
-    } else {
-        println!("=== ERROR ===\nNo Curseforge latest file\n=== END ===");
-        return Ok(());
+    let invite_url = {
+        let mut builder = CreateBotAuthParameters::default();
+        builder
+            .permissions(constants::INVITE_PERMISSIONS)
+            .auto_client_id(ctx.discord())
+            .await?
+            .scopes(&[OAuth2Scope::Bot, OAuth2Scope::ApplicationsCommands]);
+        builder.build()
     };
-
-    let url = format!(
-        "{}/files/{}",
-        project.links.website_url.trim_end_matches('/'),
-        file.id
-    );
-
-    let mod_version = format!(
-        "Download {:?} {}",
-        version,
-        file.file_name
-            .rfind(&[' ', '-', '_', '+', 'v'][..])
-            .map(|i| file.file_name[i + 1..].trim_end_matches(".jar"))
-            .unwrap_or_default()
-    );
 
     ctx.send(|m| {
         m.embed(|e| {
-            e.thumbnail(&project.logo.thumbnail_url);
-            e.author(|a| {
-                a.name("Curseforge")
-                    .icon_url(crate::constants::curseforge::ICON)
-            })
-            .colour(crate::constants::curseforge::COLOUR)
-            .title(&project.name)
-            .url(&project.links.website_url)
-            .description(&project.summary)
-            .field(
-                "Latest Version",
-                format!(
-                    "[{}]({}) ({})",
-                    file.file_name,
-                    url,
-                    crate::utils::pretty_bytesize(file.file_length)
-                ),
-                false,
-            )
-            .footer(|f| {
-                f.text(format!(
-                    "Total download count: {}",
-                    crate::utils::pretty_large_int(project.download_count as u64)
-                ))
-            })
-            .timestamp(file.file_date)
+            e.colour(crate::serenity::colours::branding::BLURPLE)
+                .author(|a| {
+                    a.name("LOTR Mod Bot");
+                    a.icon_url(user_icon)
+                })
+                .field(
+                    "Invite me to your server!",
+                    format!("My invite link is available [here]({}).", invite_url),
+                    false,
+                )
         })
         .components(|c| {
             c.create_action_row(|a| {
-                a.create_button(|b| b.style(ButtonStyle::Link).label(mod_version).url(&url))
+                a.create_button(|b| {
+                    b.style(ButtonStyle::Link)
+                        .label("Invite me")
+                        .url(invite_url)
+                })
             })
         })
     })
-    .await
-    .unwrap();
+    .await?;
     Ok(())
 }
