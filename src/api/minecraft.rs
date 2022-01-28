@@ -24,10 +24,16 @@ pub struct MinecraftServer {
 }
 
 pub async fn get_server_status(ctx: &Context<'_>, ip: &str) -> Result<MinecraftServer> {
-    let rclient = &ctx.data().reqwest_client;
+    let rclient = ctx.data().reqwest_client();
 
     let req = format!("{}{}", MINECRAFT_API, ip);
-    let res = rclient.get(&req).send().await?.text().await?;
+    let res = rclient
+        .get(&req)
+        .send()
+        .await?
+        .error_for_status()?
+        .text()
+        .await?;
 
     Ok(serde_json::from_str::<MinecraftServer>(&res)?)
 }

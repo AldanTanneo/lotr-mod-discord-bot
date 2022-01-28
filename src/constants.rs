@@ -13,11 +13,19 @@ pub const LOTR_DISCORD: GuildId = GuildId(405091134327619587);
 /// Set of [permissions][Permissions] needed to manage the bot (bot admins and owner excepted).
 ///
 /// Equivalent to `ADMINISTRATOR | MANAGE_GUILD | MANAGE_CHANNELS`
-pub const MANAGE_BOT_PERMS: Permissions = Permissions {
-    bits: Permissions::ADMINISTRATOR.bits
-        | Permissions::MANAGE_GUILD.bits
-        | Permissions::MANAGE_CHANNELS.bits,
-};
+pub const MANAGE_BOT_PERMS: Permissions = Permissions::ADMINISTRATOR
+    .union(Permissions::MANAGE_GUILD)
+    .union(Permissions::MANAGE_CHANNELS);
+
+pub mod curseforge {
+    use poise::serenity::utils::Colour;
+
+    /// Curseforge logo
+    pub const ICON: &str = "https://tinyimg.io/i/SVsK1qC.png";
+
+    /// Curseforge orange accent colour
+    pub const COLOUR: Colour = Colour(0xf16436);
+}
 
 pub mod discord_colours {
     use poise::serenity::utils::Colour;

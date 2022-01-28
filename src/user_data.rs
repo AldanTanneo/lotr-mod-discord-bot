@@ -1,16 +1,36 @@
-use poise::{ApplicationCommandTree, SlashCommand, SlashCommandMeta};
-
 use crate::constants::{discord_colours, OWNER_ID};
 use crate::mysql;
 use crate::serenity;
 
+struct ApiKeys {
+    curseforge: String,
+    google: String,
+}
+
+impl ApiKeys {
+    fn new() -> Result<Self, std::env::VarError> {
+        Ok(Self {
+            curseforge: std::env::var("CURSEFORGE_API_KEY")?,
+            google: std::env::var("GOOGLE_API_KEY")?,
+        })
+    }
+
+    fn curseforge(&self) -> &str {
+        &self.curseforge
+    }
+    fn google(&self) -> &str {
+        &self.google
+    }
+}
+
 pub struct Data {
-    pub db_pool: mysql::MySqlPool,
-    pub reqwest_client: reqwest::Client,
+    db_pool: mysql::MySqlPool,
+    reqwest_client: reqwest::Client,
+    api_keys: ApiKeys,
 }
 
 pub type Error = Box<dyn std::error::Error + Send + Sync>;
-pub type Result<T = ()> = std::result::Result<T, Error>;
+pub type Result<T = (), E = Error> = std::result::Result<T, E>;
 pub type Context<'a> = poise::Context<'a, Data, Error>;
 
 impl Data {
@@ -20,6 +40,8 @@ impl Data {
         framework: &poise::Framework<Data, Error>,
         db_uri: String,
     ) -> Result<Self> {
+        let api_keys = ApiKeys::new()?;
+
         ctx.set_activity(serenity::Activity::playing(
             "The Lord of the Rings Mod: Bringing Middle-earth to Minecraft",
         ))
@@ -38,36 +60,39 @@ impl Data {
 
         let mut commands_builder = serenity::CreateApplicationCommands::default();
         let mut online_command_builder = serenity::CreateApplicationCommands::default();
-        framework
-            .options()
-            .application_options
-            .commands
-            .iter()
-            .for_each(|cmd| match cmd {
-                ApplicationCommandTree::Slash(SlashCommandMeta::Command(SlashCommand {
-                    name: "online",
-                    ..
-                })) => {
-                    online_command_builder.create_application_command(|f| cmd.create(f));
-                }
-                _ => {
-                    commands_builder.create_application_command(|f| cmd.create(f));
-                }
-            });
 
-        let commands_json = serde_json::Value::Array(commands_builder.0);
-        let online_command_json = serde_json::Value::Array(online_command_builder.0);
+        framework.options().commands.iter().for_each(|cmd| {
+            println!("|{: ^20}|", cmd.name);
+            if cmd.name == "online" {
+                if let Some(slash_command) = cmd.create_as_slash_command() {
+                    online_command_builder.add_application_command(slash_command);
+                }
+            } else {
+                if let Some(slash_command) = cmd.create_as_slash_command() {
+                    commands_builder.add_application_command(slash_command);
+                }
+                /*if let Some(context_menu_command) = cmd.create_as_context_menu_command() {
+                    commands_builder.add_application_command(context_menu_command);
+                }
+                */
+            }
+        });
 
         if let Ok(Ok(test_guild_id)) =
             std::env::var("TEST_SLASH_COMMANDS").map(|s| s.parse::<u64>())
         {
+            let mut merged_commands = commands_builder.0;
+            merged_commands.append(&mut online_command_builder.0);
+            let commands_json = serde_json::Value::Array(merged_commands);
+            println!("Testing environment...");
             ctx.http
                 .create_guild_application_commands(test_guild_id, &commands_json)
                 .await?;
-            ctx.http
-                .create_guild_application_commands(test_guild_id, &online_command_json)
-                .await?;
+            println!("Created all commands");
         } else {
+            let commands_json = serde_json::Value::Array(commands_builder.0);
+            let online_command_json = serde_json::Value::Array(online_command_builder.0);
+
             ctx.http
                 .create_global_application_commands(&commands_json)
                 .await?;
@@ -104,6 +129,23 @@ impl Data {
         Ok(Self {
             db_pool,
             reqwest_client,
+            api_keys,
         })
+    }
+
+    pub fn db_pool(&self) -> &mysql::MySqlPool {
+        &self.db_pool
+    }
+
+    pub fn reqwest_client(&self) -> &reqwest::Client {
+        &self.reqwest_client
+    }
+
+    pub fn curseforge_api_key(&self) -> &str {
+        self.api_keys.curseforge()
+    }
+
+    pub fn google_api_key(&self) -> &str {
+        self.api_keys.google()
     }
 }

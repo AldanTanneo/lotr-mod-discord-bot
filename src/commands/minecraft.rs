@@ -52,7 +52,7 @@ fn parse_motd<T: ToString>(motd: T) -> String {
 }
 
 /// Display the server status and a list of online players
-#[poise::command(slash_command)]
+#[poise::command(slash_command, category = "Minecraft Server Commands")]
 pub async fn online(
     ctx: Context<'_>,
     #[description = "An ip to query"] ip: Option<String>,
@@ -141,13 +141,13 @@ pub async fn online(
 }
 
 /// Display the server's ip address
-#[poise::command(slash_command)]
+#[poise::command(slash_command, category = "Minecraft Server Commands")]
 pub async fn ip(_ctx: Context<'_>) -> Result {
     Ok(())
 }
 
 /// Display the server's ip address
-#[poise::command(slash_command)]
+#[poise::command(slash_command, category = "Minecraft Server Commands")]
 pub async fn display(ctx: Context<'_>) -> Result {
     match database::minecraft::get_minecraft_ip(&ctx).await {
         Ok(ip) => {
@@ -174,7 +174,12 @@ pub async fn display(ctx: Context<'_>) -> Result {
 }
 
 /// Set the server's IP address
-#[poise::command(slash_command, ephemeral, check = "crate::checks::is_admin")]
+#[poise::command(
+    slash_command,
+    ephemeral,
+    check = "crate::checks::is_admin",
+    category = "Minecraft Server Commands"
+)]
 pub async fn set(ctx: Context<'_>, #[description = "The IP address to set"] ip: String) -> Result {
     if let Err(e) = database::minecraft::set_minecraft_ip(&ctx, &ip).await {
         crate::error_printer!(e.as_ref());
@@ -191,7 +196,12 @@ pub async fn set(ctx: Context<'_>, #[description = "The IP address to set"] ip: 
 }
 
 /// Delete the server's IP address
-#[poise::command(slash_command, ephemeral, check = "crate::checks::is_admin")]
+#[poise::command(
+    slash_command,
+    ephemeral,
+    check = "crate::checks::is_admin",
+    category = "Minecraft Server Commands"
+)]
 pub async fn delete(ctx: Context<'_>) -> Result {
     if let Ok(ip) = database::minecraft::get_minecraft_ip(&ctx).await {
         database::minecraft::delete_minecraft_ip(&ctx).await?;

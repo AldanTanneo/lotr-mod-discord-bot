@@ -21,22 +21,26 @@ async fn main() -> Result {
     let framework_options = poise::FrameworkOptions {
         owners: [constants::OWNER_ID].into(),
         allowed_mentions: None,
+        commands: vec![
+            commands::discord(),
+            commands::minecraft::online(),
+            commands::download(),
+            poise::Command {
+                subcommands: vec![
+                    commands::minecraft::set(),
+                    commands::minecraft::display(),
+                    commands::minecraft::delete(),
+                ],
+                ..commands::minecraft::ip()
+            },
+        ],
         ..Default::default()
     };
 
-    let (framework, client) = poise::Framework::<Data, Error>::build()
+    let framework = poise::Framework::<Data, Error>::build()
         .token(token)
         .user_data_setup(|ctx, ready, framework| Box::pin(Data::new(ctx, ready, framework, db_uri)))
         .options(framework_options)
-        .command(commands::discord(), |f| f)
-        .command(commands::minecraft::online(), |f| {
-            f.category("Minecraft Server Commands")
-        })
-        .command(commands::minecraft::ip(), |f| {
-            f.category("Minecraft Server Commands")
-                .subcommand(commands::minecraft::set(), |f| f)
-                .subcommand(commands::minecraft::display(), |f| f)
-        })
         .build()
         .await?;
 
@@ -65,7 +69,7 @@ async fn main() -> Result {
         });
     }
 
-    framework.start(client).await?;
+    framework.start().await?;
 
     Ok(())
 }
