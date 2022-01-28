@@ -10,7 +10,7 @@
 **/*.rs.bk
 
 # Declares environment variables for local run
-/env.sh
+/env.ps1
 
 # Just in case
 /database_backup/
