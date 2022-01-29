@@ -27,6 +27,7 @@ impl Default for VersionChoice {
     }
 }
 
+/// Get a link to download the mod's latest version on Curseforge
 #[poise::command(slash_command)]
 pub async fn download(
     ctx: Context<'_>,

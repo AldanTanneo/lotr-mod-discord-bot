@@ -190,6 +190,23 @@ pub async fn set(ctx: Context<'_>, #[description = "The IP address to set"] ip: 
             ip
         ))
         .await?;
+
+        let guild_id = ctx.guild_id().ok_or("Not in a guild")?;
+
+        guild_id
+            .create_application_command(ctx.discord(), |b| {
+                *b = ctx
+                    .framework()
+                    .options()
+                    .commands
+                    .iter()
+                    .find(|c| c.name == "online")
+                    .map(|c| c.create_as_slash_command())
+                    .flatten()
+                    .expect("No /online command found!");
+                b
+            })
+            .await?;
     }
     Ok(())
 }
@@ -214,6 +231,17 @@ pub async fn delete(ctx: Context<'_>) -> Result {
             .await?;
     }
 
-    // let commands = ctx.guild_id().ok_or("Not in a guild")?;
+    let guild_id = ctx.guild_id().ok_or("Not in a guild")?;
+
+    if let Some(command) = guild_id
+        .get_application_commands(ctx.discord())
+        .await?
+        .iter()
+        .find(|&c| c.name == "online")
+    {
+        guild_id
+            .delete_application_command(ctx.discord(), command.id)
+            .await?;
+    }
     Ok(())
 }

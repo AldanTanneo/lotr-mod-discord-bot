@@ -63,7 +63,7 @@ impl Data {
 
         framework.options().commands.iter().for_each(|cmd| {
             println!("|{: ^20}|", cmd.name);
-            if cmd.identifying_name == "minecraft_online" {
+            if cmd.name == "online" {
                 if let Some(slash_command) = cmd.create_as_slash_command() {
                     online_command_builder.add_application_command(slash_command);
                 }

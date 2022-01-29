@@ -1,23 +1,23 @@
 use chrono::{DateTime, Utc};
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 
 use crate::{Context, Result};
 
 pub const CURSE_API: &str = "https://api.curseforge.com/v1/mods/";
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct CurseModLinks {
     pub website_url: String,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct CurseModAsset {
     pub thumbnail_url: String,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct CurseFile {
     pub id: u64,
@@ -26,7 +26,7 @@ pub struct CurseFile {
     pub file_date: DateTime<Utc>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct CurseMod {
     pub id: u64,
@@ -39,9 +39,8 @@ pub struct CurseMod {
     pub download_count: f64,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-pub struct CurseProject {
+#[derive(Deserialize, Debug)]
+struct CurseProject {
     pub data: CurseMod,
 }
 
