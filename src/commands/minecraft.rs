@@ -53,7 +53,11 @@ fn parse_motd<T: ToString>(motd: T) -> String {
 }
 
 /// Display the server status and a list of online players
-#[poise::command(slash_command, category = "Minecraft Server Commands")]
+#[poise::command(
+    slash_command,
+    check = "crate::checks::is_guild",
+    category = "Minecraft Server Commands"
+)]
 pub async fn online(
     ctx: Context<'_>,
     #[description = "An ip to query"] ip: Option<String>,
@@ -140,13 +144,21 @@ pub async fn online(
 }
 
 /// Display the server's ip address
-#[poise::command(slash_command, category = "Minecraft Server Commands")]
+#[poise::command(
+    slash_command,
+    check = "crate::checks::is_guild",
+    category = "Minecraft Server Commands"
+)]
 pub async fn ip(_ctx: Context<'_>) -> Result {
     Ok(())
 }
 
 /// Display the server's ip address
-#[poise::command(slash_command, category = "Minecraft Server Commands")]
+#[poise::command(
+    slash_command,
+    check = "crate::checks::is_guild",
+    category = "Minecraft Server Commands"
+)]
 pub async fn display(ctx: Context<'_>) -> Result {
     match database::minecraft::get_minecraft_ip(&ctx).await {
         Ok(ip) => {

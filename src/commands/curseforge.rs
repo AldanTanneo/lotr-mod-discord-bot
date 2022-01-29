@@ -35,7 +35,12 @@ pub async fn download(
 ) -> Result {
     let version = version.unwrap_or_default();
 
-    let project = crate::api::curseforge::get_project_info(&ctx, version.id()).await?;
+    let project = {
+        let mut p = crate::api::curseforge::get_project_info(&ctx, version.id()).await?;
+        p.latest_files
+            .sort_unstable_by_key(|f| std::cmp::Reverse(f.file_date));
+        p
+    };
 
     if project.id != version.id() {
         println!("=== ERROR ===\nCurseforge API call returned the wrong project\n=== END ===");

@@ -24,6 +24,10 @@ async fn main() -> Result {
         commands: vec![
             commands::discord(),
             commands::invite(),
+            commands::facebook(),
+            commands::instagram(),
+            commands::donate(),
+            commands::user(),
             commands::minecraft::online(),
             commands::curseforge::download(),
             poise::Command {

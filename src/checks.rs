@@ -43,3 +43,14 @@ pub async fn is_admin(ctx: Context<'_>) -> Result<bool> {
 
     Ok(is_admin)
 }
+
+pub async fn is_guild(ctx: Context<'_>) -> Result<bool> {
+    let is_guild = ctx.guild_id().is_some();
+
+    if !is_guild {
+        ctx.defer_ephemeral().await?;
+        ctx.say(":x: You can only use this in a guild!").await?;
+    }
+
+    Ok(is_guild)
+}
