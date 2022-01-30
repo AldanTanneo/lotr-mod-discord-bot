@@ -264,13 +264,22 @@ pub async fn facebook(ctx: &Context, msg: &Message) -> CommandResult {
             m.embed(|e| {
                 e.colour(Colour::new(0x1877F2));
                 e.description(
-                    "Check the mod’s Facebook page for
+                    "Check the mod's Facebook page for
 updates and teasers [here](https://www.facebook.com/LOTRMC)!",
                 );
                 e.thumbnail(crate::constants::FACEBOOK_ICON);
                 e.title("Link to the Facebook page");
                 e.url("https://www.facebook.com/LOTRMC");
                 e
+            })
+            .components(|c| {
+                c.create_action_row(|a| {
+                    a.create_button(|b| {
+                        b.style(ButtonStyle::Link)
+                            .label("Facebook page")
+                            .url("https://www.facebook.com/LOTRMC")
+                    })
+                })
             })
         })
         .await?;
@@ -285,13 +294,22 @@ pub async fn instagram(ctx: &Context, msg: &Message) -> CommandResult {
             m.embed(|e| {
                 e.colour(Colour::new(0xC13584));
                 e.description(
-                    "Check the mod’s Instagram page for
+                    "Check the mod's Instagram page for
 updates and teasers [here](https://www.instagram.com/lotrmcmod/)!",
                 );
                 e.thumbnail(crate::constants::INSTAGRAM_ICON);
                 e.title("Link to the Instagram page");
                 e.url("https://www.instagram.com/lotrmcmod/");
                 e
+            })
+            .components(|c| {
+                c.create_action_row(|a| {
+                    a.create_button(|b| {
+                        b.style(ButtonStyle::Link)
+                            .label("Instagram page")
+                            .url("https://www.instagram.com/lotrmcmod/")
+                    })
+                })
             })
         })
         .await?;
@@ -311,12 +329,29 @@ pub async fn donate(ctx: &Context, msg: &Message) -> CommandResult {
 [Title](https://lotrminecraftmod.fandom.com/wiki/Title) in the next released update if you write \
 your Minecraft username in the donation message.",
                 );
-                e.field("Donate in $", crate::constants::PAYPAL_LINK_DOLLARS, true);
-                e.field("Donate in £", crate::constants::PAYPAL_LINK_POUNDS, true);
-                e.field("Donate in €", crate::constants::PAYPAL_LINK_EUROS, true);
                 e.thumbnail(crate::constants::DONATE_THUMBNAIL);
                 e.title("Donate to the mod!");
                 e
+            })
+            .components(|c| {
+                c.create_action_row(|a| {
+                    use crate::constants::*;
+                    a.create_button(|b| {
+                        b.style(ButtonStyle::Link)
+                            .label("Donate in $")
+                            .url(PAYPAL_LINK_DOLLARS)
+                    })
+                    .create_button(|b| {
+                        b.style(ButtonStyle::Link)
+                            .label("Donate in £")
+                            .url(PAYPAL_LINK_POUNDS)
+                    })
+                    .create_button(|b| {
+                        b.style(ButtonStyle::Link)
+                            .label("Donate in €")
+                            .url(PAYPAL_LINK_EUROS)
+                    })
+                })
             })
         })
         .await?;

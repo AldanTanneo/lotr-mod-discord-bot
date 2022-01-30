@@ -58,13 +58,13 @@ pub const FORGE_LINK: &str =
 pub const WIKI_DOMAIN: &str = "lotrminecraftmod.fandom.com";
 /// Paypal donation link in dollars
 pub const PAYPAL_LINK_DOLLARS: &str =
-    "[Paypal](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=YZ97X6UBJJD7Y)";
+    "https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=YZ97X6UBJJD7Y";
 /// Paypal donation link in pounds
 pub const PAYPAL_LINK_POUNDS: &str =
-    "[Paypal](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=8BXR2F4FYYEK2)";
+    "https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=8BXR2F4FYYEK2";
 /// Paypal donation link in euros
 pub const PAYPAL_LINK_EUROS: &str =
-    "[Paypal](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=5Q4NK7C5N2FB4)";
+    "https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=5Q4NK7C5N2FB4";
 
 /// The [Curseforge API](https://www.curseforge.com/) for the
 /// [`!curseforge`][crate::commands::general::curseforge] command

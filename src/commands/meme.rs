@@ -30,7 +30,7 @@ async fn floppa(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
 async fn aeugh(ctx: &Context, msg: &Message) -> CommandResult {
     msg.channel_id
         .send_message(ctx, |m| {
-            m.add_file("https://cdn.discordapp.com/attachments/405122337139064834/782087543046668319/aeugh.mp4");
+            m.content("https://cdn.discordapp.com/attachments/405122337139064834/782087543046668319/aeugh.mp4");
             m.reference_message(msg);
             m.allowed_mentions(|a| a.empty_parse())
         })
@@ -45,7 +45,7 @@ async fn aeugh(ctx: &Context, msg: &Message) -> CommandResult {
 async fn dagohon(ctx: &Context, msg: &Message) -> CommandResult {
     msg.channel_id
         .send_message(ctx, |m| {
-            m.add_file("https://cdn.discordapp.com/attachments/405097997970702337/782656209987043358/dagohon.mp4");
+            m.content("https://cdn.discordapp.com/attachments/405097997970702337/782656209987043358/dagohon.mp4");
             m.reference_message(msg);
             m.allowed_mentions(|a| a.empty_parse())
         })
