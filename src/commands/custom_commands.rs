@@ -7,7 +7,7 @@ use serenity::futures::future::join;
 use serenity::model::channel::Message;
 use serenity::prelude::Mentionable;
 
-use crate::announcement::announce;
+use crate::announcement::{announce, Announcement};
 use crate::constants::{MANAGE_BOT_PERMS, OWNER_ID, RESERVED_NAMES};
 use crate::database::{
     blacklist::check_blacklist,
@@ -95,11 +95,12 @@ pub async fn custom_command(ctx: &Context, msg: &Message, mut args: Args) -> Com
     if let Some(command_data) = get_command_data(ctx, server_id, &name, false).await {
         println!("Custom command execution: {}", msg.content);
 
-        let mut message: Value = serde_json::from_str(&command_data.body.replace("\\$", "$"))?;
-        let mut delete = message["self_delete"].as_bool().unwrap_or_default();
+        let mut message: Announcement =
+            serde_json::from_str(&command_data.body.replace("\\$", "$"))?;
+        let mut delete = message.extra["self_delete"].as_bool().unwrap_or_default();
 
-        let default_command_type = message["type"].as_str();
-        let subcommands_object = &message["subcommands"];
+        let default_command_type = message.extra["type"].as_str();
+        let subcommands_object = &message.extra["subcommands"];
         // early interrupt in case of blacklist / admin command
         let command_type = if let Some(subcommand) = subcommand {
             // optionnally overriding the command type
@@ -169,13 +170,13 @@ Channel: {:?}\nMessage: {}\n=== END ===",
         let mut command_body = command_data.body;
         if let Some(subcommand) = subcommand {
             if subcommands_object[subcommand].is_object() {
-                message = subcommands_object[subcommand].clone();
-                command_body = serde_json::to_string(&message)?;
+                command_body = serde_json::to_string(&subcommands_object[subcommand])?;
+                message = serde_json::from_str(&command_body)?;
                 args.advance();
             } else if let Some(subcommand_alias) = subcommands_object[subcommand].as_str() {
                 if subcommands_object[subcommand_alias].is_object() {
-                    message = subcommands_object[subcommand_alias].clone();
-                    command_body = serde_json::to_string(&message)?;
+                    command_body = serde_json::to_string(&subcommands_object[subcommand_alias])?;
+                    message = serde_json::from_str(&command_body)?;
                     args.advance();
                 }
             }
@@ -227,7 +228,7 @@ Channel: {:?}\nMessage: {}\n=== END ===",
                 message = serde_json::from_str(&b.replace("\\$", "$"))?;
             }
             changed = false;
-            if let Value::Array(a) = &message["default_args"] {
+            if let Value::Array(a) = &message.extra["default_args"] {
                 for (i, arg) in a[argc.min(a.len())..]
                     .iter()
                     .filter_map(Value::as_str)
@@ -246,13 +247,13 @@ Channel: {:?}\nMessage: {}\n=== END ===",
             }
         }
 
-        if let Some(b) = message["self_delete"].as_bool() {
+        if let Some(b) = message.extra["self_delete"].as_bool() {
             // optionally overriding the self delete behavior
             delete = b;
         }
 
         if is_alias {
-            if let Some(command) = message["command"].as_str() {
+            if let Some(command) = message.extra["command"].as_str() {
                 manual_dispatch(ctx.clone(), msg, command).await?;
                 return Ok(());
             }

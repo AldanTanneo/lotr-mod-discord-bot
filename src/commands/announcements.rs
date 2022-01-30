@@ -4,7 +4,7 @@ use serenity::http::error::{DiscordJsonError, DiscordJsonSingleError, ErrorRespo
 use serenity::model::prelude::*;
 use serenity::prelude::{HttpError, SerenityError};
 
-use crate::announcement;
+use crate::announcement::{self, Announcement, AnnouncementError};
 use crate::check::*;
 use crate::constants::OWNER_ID;
 use crate::utils::get_json_from_message;
@@ -61,6 +61,18 @@ async fn announcement_error_handler(
             );
             }
         }
+    } else if let Some(err) = error.downcast_ref::<AnnouncementError>() {
+        msg.channel_id
+            .send_message(ctx, |m| {
+                m.embed(|e| {
+                    e.author(|a| a.name("Error sending announcement"));
+                    e.colour(serenity::utils::Colour::RED);
+                    e.description(err);
+                    e
+                })
+            })
+            .await?;
+        failure!(ctx, msg);
     } else {
         failure!(
                 ctx,
@@ -92,10 +104,10 @@ pub async fn announce(ctx: &Context, msg: &Message, args: Args) -> CommandResult
             );
             return Ok(());
         };
-        let message = get_json_from_message(msg).await;
+        let message = get_json_from_message::<Announcement>(msg).await;
         match message {
-            Ok(value) => {
-                if let Err(error) = announcement::announce(ctx, channel_id, &value).await {
+            Ok(json) => {
+                if let Err(error) = announcement::announce(ctx, channel_id, &json).await {
                     announcement_error_handler(ctx, msg, &error).await?;
                     return Err(error);
                 } else {
@@ -104,7 +116,7 @@ pub async fn announce(ctx: &Context, msg: &Message, args: Args) -> CommandResult
 Author: {}, {:?}
 Channel: #{}, {:?}
 Guild: {:?}, {:?}
-Content: {}
+Content: {:?}
 === END ===",
                         msg.author.tag(),
                         msg.author.id,
@@ -116,7 +128,7 @@ Content: {}
                             .guild_field(guild_id, |g| g.name.clone())
                             .unwrap_or_else(|| "Unknown Guild".to_string()),
                         guild_id,
-                        value
+                        json
                     );
                     success!(ctx, msg);
                 }
@@ -155,11 +167,11 @@ pub async fn edit(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
             return Ok(());
         };
         if channel_id.message(ctx, msg_id).await.is_ok() {
-            let message = get_json_from_message(msg).await;
+            let message = get_json_from_message::<Announcement>(msg).await;
             match message {
-                Ok(value) => {
+                Ok(json) => {
                     if let Err(error) =
-                        announcement::edit_message(ctx, channel_id, MessageId(msg_id), &value).await
+                        announcement::edit_message(ctx, channel_id, MessageId(msg_id), &json).await
                     {
                         announcement_error_handler(ctx, msg, &error).await?;
                         return Err(error);
@@ -169,7 +181,7 @@ pub async fn edit(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
 Edit author: {}, {:?}
 Channel: #{}, {:?}
 Guild: {:?}, {:?}
-Content: {}
+Content: {:?}
 === END ===",
                             msg.author.tag(),
                             msg.author.id,
@@ -181,7 +193,7 @@ Content: {}
                                 .guild_field(guild_id, |g| g.name.clone())
                                 .unwrap_or_else(|| "Unknown guild".to_string()),
                             guild_id,
-                            value
+                            json
                         );
                         success!(ctx, msg);
                     }

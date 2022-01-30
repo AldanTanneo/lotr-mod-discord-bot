@@ -1,7 +1,8 @@
 //! Announcement function [`announce`] that posts a JSON message
 
 use chrono::{DateTime, Utc};
-use serde_json::Value;
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use serenity::builder::{CreateEmbed, CreateMessage, EditMessage};
 use serenity::client::Context;
 use serenity::framework::standard::CommandResult;
 use serenity::futures::future::join_all;
@@ -10,289 +11,380 @@ use serenity::model::prelude::*;
 use serenity::utils::Colour;
 use std::convert::TryFrom;
 
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "snake_case")]
+pub enum AnnouncementEmbedAuthorPreset {
+    LotrFacebook,
+    LotrInstagram,
+    Mevans,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(untagged)]
+pub enum AnnouncementEmbedAuthor {
+    Object {
+        name: String,
+        url: Option<String>,
+        #[serde(alias = "icon_url")]
+        icon: Option<String>,
+    },
+    Preset(AnnouncementEmbedAuthorPreset),
+}
+
+fn deserialize_embed_colour<'de, D>(d: D) -> Result<Colour, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    use AnnouncementError::InvalidColour;
+
+    let colour = String::deserialize(d)?;
+
+    if let Ok(c) = u32::from_str_radix(&colour.trim().trim_start_matches('#'), 16) {
+        Ok(Colour(c))
+    } else {
+        if let Some(web_colour) =
+            crate::utils::parse_web_colour(&colour.trim().to_ascii_lowercase())
+        {
+            Ok(web_colour)
+        } else {
+            Err(serde::de::Error::custom(InvalidColour(colour)))
+        }
+    }
+}
+
+fn serialize_embed_colour<S>(
+    colour: &Option<AnnouncementEmbedColour>,
+    s: S,
+) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    if let Some(colour) = colour {
+        s.serialize_str(format!("{:x}", colour.0 .0).as_str())
+    } else {
+        panic!("Never serialize None!");
+    }
+}
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct AnnouncementEmbedColour(
+    #[serde(deserialize_with = "deserialize_embed_colour")] pub Colour,
+);
+
+#[derive(Debug, serde_tuple::Serialize_tuple, serde_tuple::Deserialize_tuple, Clone)]
+pub struct AnnouncementEmbedField {
+    pub title: String,
+    pub content: String,
+    #[serde(default)]
+    pub inlined: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct AnnouncementEmbedFooter {
+    pub text: String,
+    #[serde(alias = "icon_url")]
+    pub icon: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct AnnouncementEmbed {
+    pub author: Option<AnnouncementEmbedAuthor>,
+    #[serde(
+        alias = "color",
+        skip_serializing_if = "Option::is_none",
+        serialize_with = "serialize_embed_colour"
+    )]
+    pub colour: Option<AnnouncementEmbedColour>,
+    pub title: Option<String>,
+    pub url: Option<String>,
+    pub description: Option<String>,
+    pub image: Option<String>,
+    pub thumbnail: Option<String>,
+
+    pub field: Option<AnnouncementEmbedField>,
+    pub fields: Option<Vec<AnnouncementEmbedField>>,
+
+    pub footer: Option<AnnouncementEmbedFooter>,
+    pub timestamp: Option<DateTime<Utc>>,
+}
+
+fn deserialize_announcement_reaction<'de, D>(d: D) -> Result<ReactionType, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    use AnnouncementError::InvalidReaction;
+
+    let reaction = String::deserialize(d)?;
+
+    ReactionType::try_from(reaction.as_str())
+        .map_err(|_| serde::de::Error::custom(InvalidReaction(reaction)))
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(into = "String")]
+pub struct AnnouncementReaction(
+    #[serde(deserialize_with = "deserialize_announcement_reaction")] pub ReactionType,
+);
+
+impl From<AnnouncementReaction> for String {
+    fn from(AnnouncementReaction(reaction): AnnouncementReaction) -> Self {
+        reaction.to_string()
+    }
+}
+
+impl From<&AnnouncementReaction> for ReactionType {
+    fn from(r: &AnnouncementReaction) -> Self {
+        r.0.clone()
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct AnnouncementButton {
+    pub url: String,
+    pub label: Option<String>,
+    pub emoji: Option<AnnouncementReaction>,
+    #[serde(default)]
+    pub disabled: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct Announcement {
+    pub content: Option<String>,
+    #[serde(alias = "image")]
+    pub file: Option<String>,
+    #[serde(alias = "image")]
+    pub files: Option<Vec<String>>,
+
+    pub embed: Option<AnnouncementEmbed>,
+    pub embeds: Option<Vec<AnnouncementEmbed>>,
+    pub delete_embeds: Option<bool>,
+
+    pub reactions: Option<Vec<AnnouncementReaction>>,
+    pub link_buttons: Option<Vec<AnnouncementButton>>,
+
+    #[serde(flatten)]
+    pub extra: serde_json::Value,
+}
+
 #[derive(Debug, Clone)]
 pub enum AnnouncementError {
-    TimestampParsingFailed(String),
+    InvalidColour(String),
+    InvalidReaction(String),
 }
 
 impl std::fmt::Display for AnnouncementError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{:?}", self)
+        use AnnouncementError::*;
+
+        match self {
+            InvalidColour(c) => write!(
+                f,
+                "invalid colour, not a valid hexadecimal value or web colour name: `{}`",
+                c
+            ),
+            InvalidReaction(e) => {
+                write!(
+                    f,
+                    "reaction conversion failed on invalid reaction string: `{}`",
+                    e
+                )
+            }
+        }
     }
 }
 
 impl std::error::Error for AnnouncementError {}
 
-/// Macro that builds an embed. Used in [`announce`] and [`edit_message`].
-macro_rules! embed_parser {
-    ($embed:expr) => {
-        |e| {
-            let author = &$embed["author"];
-            if author.is_object() {
-                // embed author
-                e.author(|a| {
-                    if let Some(name) = author["name"].as_str() {
-                        // author name
-                        a.name(name);
-                    }
-                    if let Some(icon) = author["icon"].as_str() {
-                        // author icon url
-                        a.icon_url(icon);
-                    }
-                    if let Some(url) = author["url"].as_str() {
-                        // author clickable link
-                        a.url(url);
-                    }
-                    a
-                });
-            } else if author.as_str() == Some("lotr_facebook") {
-                e.author(|a| {
-                    a.name("LOTR Mod Official Facebook");
-                    a.url("https://www.facebook.com/LOTRMC");
-                    a.icon_url(crate::constants::FACEBOOK_ICON);
-                    a
-                });
-                e.colour(crate::constants::FACEBOOK_COLOUR);
-            } else if author.as_str() == Some("lotr_instagram") {
-                e.author(|a| {
-                    a.name("LOTR Mod Official Instagram");
-                    a.url("https://www.instagram.com/lotrmcmod");
-                    a.icon_url(crate::constants::INSTAGRAM_ICON);
-                    a
-                });
-                e.colour(crate::constants::INSTAGRAM_COLOUR);
-            } else if author.as_str() == Some("mevans") {
-                e.author(|a| {
-                    a.name("Mevans");
-                    a.icon_url("https://cdn.discordapp.com/emojis/405159804127150090.png");
-                    a
-                });
-            }
+fn parse_embed(embed: &AnnouncementEmbed) -> CreateEmbed {
+    let mut builder = CreateEmbed::default();
 
-            // Set the colour after the author for a potential override
-            if let Some(colour) = $embed["colour"].as_str() {
-                // embed side bar colour
-                // (hexadecimal color encoding)
-                if let Ok(c) = u32::from_str_radix(&colour.to_uppercase(), 16) {
-                    e.colour(Colour::new(c));
-                }
-            } else if let Some(color) = $embed["color"].as_str() {
-                // supports english and american spelling
-                if let Ok(c) = u32::from_str_radix(&color.to_uppercase(), 16) {
-                    e.colour(Colour::new(c));
-                }
-            }
+    use AnnouncementEmbedAuthor::*;
 
-            if let Some(title) = $embed["title"].as_str() {
-                // embed title
-                e.title(title);
-            }
-            if let Some(url) = $embed["url"].as_str() {
-                // title clickable link
-                e.url(url);
-            }
-            if let Some(description) = $embed["description"].as_str() {
-                // embed description, displays smaller than fields,
-                // but allows for longer text
-                e.description(description);
-            }
-            if let Some(image) = $embed["image"].as_str() {
-                // embed image url
-                e.image(image);
-            }
-            if let Some(fields) = $embed["fields"].as_array() {
-                // fields array, filters out invalid fields
-                for field in fields {
-                    let title = field[0].as_str();
-                    let content = field[1].as_str();
-                    // defaults to not inlined field
-                    let inlined = field[2].as_bool().unwrap_or_default();
-                    if let (Some(title), Some(content)) = (title, content) {
-                        e.field(title, content, inlined);
-                    }
+    match &embed.author {
+        Some(Object { name, url, icon }) => {
+            builder.author(|a| {
+                if let Some(url) = url {
+                    a.url(url);
                 }
-            }
-            if $embed["field"].is_array() {
-                let field = &$embed["field"];
-                // single field, when multiple are not needed
-                let title = field[0].as_str();
-                let content = field[1].as_str();
-                // still defaults to not inlined field
-                let inlined = field[2].as_bool().unwrap_or_default();
-                if let (Some(title), Some(content)) = (title, content) {
-                    e.field(title, content, inlined);
+                if let Some(icon) = icon {
+                    a.icon_url(icon);
                 }
-            }
-            if let Some(thumb) = $embed["thumbnail"].as_str() {
-                // embed thumbnail url
-                e.thumbnail(thumb);
-            }
-            if $embed["footer"].is_object() {
-                // embed footer
-                let footer = &$embed["footer"];
-                e.footer(|f| {
-                    if let Some(icon) = footer["icon"].as_str() {
-                        // footer icon url
-                        f.icon_url(icon);
-                    }
-                    if let Some(text) = footer["text"].as_str() {
-                        // footer text
-                        f.text(text);
-                    }
-                    f
-                });
-            }
-            if let Some(timestamp) = $embed["timestamp"].as_str() {
-                // embed timestamp, displays the date right after the
-                // footer
-                if timestamp.trim().to_lowercase() == "now" {
-                    e.timestamp(Utc::now());
-                } else {
-                    if let Ok(ts) = DateTime::parse_from_rfc3339(timestamp) {
-                        e.timestamp(ts);
-                    } else if let Ok(ts) = DateTime::parse_from_str(timestamp, "%FT%R%:z") {
-                        e.timestamp(ts);
-                    } else {
-                        println!(
-                            "=== WARNING ===\nIncorrect timestamp formatting: `{}`\n=== END ===",
-                            timestamp
-                        );
-                    }
-                }
-            }
-            e
+                a.name(name)
+            });
         }
-    };
+        Some(Preset(preset)) => {
+            use AnnouncementEmbedAuthorPreset::*;
+            match preset {
+                LotrFacebook => {
+                    builder.author(|a| {
+                        a.name("LOTR Mod Official Facebook");
+                        a.url("https://www.facebook.com/LOTRMC");
+                        a.icon_url(crate::constants::FACEBOOK_ICON);
+                        a
+                    });
+                    builder.colour(crate::constants::FACEBOOK_COLOUR);
+                }
+                LotrInstagram => {
+                    builder.author(|a| {
+                        a.name("LOTR Mod Official Instagram");
+                        a.url("https://www.instagram.com/lotrmcmod");
+                        a.icon_url(crate::constants::INSTAGRAM_ICON);
+                        a
+                    });
+                    builder.colour(crate::constants::INSTAGRAM_COLOUR);
+                }
+                Mevans => {
+                    builder.author(|a| {
+                        a.name("Mevans");
+                        a.icon_url("https://cdn.discordapp.com/emojis/405159804127150090.png");
+                        a
+                    });
+                }
+            }
+        }
+        _ => (),
+    }
+
+    if let Some(AnnouncementEmbedColour(colour)) = embed.colour {
+        builder.colour(colour);
+    }
+
+    if let Some(title) = &embed.title {
+        // embed title
+        builder.title(title);
+    }
+    if let Some(url) = &embed.url {
+        // title clickable link
+        builder.url(url);
+    }
+    if let Some(description) = &embed.description {
+        // embed description, displays smaller than fields,
+        // but allows for longer text
+        builder.description(description);
+    }
+
+    if let Some(image) = &embed.image {
+        // embed image url
+        builder.image(image);
+    }
+    if let Some(fields) = &embed.fields {
+        // fields array, filters out invalid fields
+        for AnnouncementEmbedField {
+            title,
+            content,
+            inlined,
+        } in fields
+        {
+            builder.field(title, content, *inlined);
+        }
+    }
+    if let Some(AnnouncementEmbedField {
+        title,
+        content,
+        inlined,
+    }) = &embed.field
+    {
+        builder.field(title, content, *inlined);
+    }
+
+    if let Some(thumbnail) = &embed.thumbnail {
+        // embed thumbnail url
+        builder.thumbnail(thumbnail);
+    }
+
+    if let Some(AnnouncementEmbedFooter { text, icon }) = &embed.footer {
+        builder.footer(|f| {
+            if let Some(icon) = icon {
+                f.icon_url(icon);
+            }
+            // footer text
+            f.text(text)
+        });
+    }
+
+    if let Some(timestamp) = &embed.timestamp {
+        builder.timestamp(timestamp.clone());
+    }
+
+    builder
 }
 
-/// Parser function that will post a JSON `message` in the right `channel`.
-///
-/// # Example
-///
-/// ```
-/// use serenity::model::id::ChannelId;
-///
-/// let channel = ChannelId(7);
-/// let data = r#"
-///     {
-///        "content": "Some content",
-///        "reactions": ['❌', '️️️️️️️️❤️']
-///     }"#;
-/// let message: Value = serde_json::from_str(&data).unwrap();
-///
-/// announce(ctx, channel, message).await;
-/// ```
-///
-/// # JSON Documentation
-///
-/// The JSON message supports a lot of fields, that you can find here:
-/// ```json
-/// {
-///     "content": "the message content",
-///     "image": "a valid image url",
-///     "reactions": [
-///         "🍎", // unicode emojis
-///         "<:name:0000000000000000>" // custom emojis
-///     ],
-///     "embed": {
-///         "colour": "RRGGBB", // hexadecimal color code
-///         "author": {
-///             "name": "the embed author name",
-///             "icon": "a valid author icon url",
-///             "url": "a valid url that will open when clicking on the author name"
-///         },
-///         "title": "the embed title",
-///         "url": "a valid url that will open when clicking on the title",
-///         "description": "the embed description",
-///         "image": "an embed image",
-///         "thumbnail": "a valid thumbnail image url",
-///         "fields": [ // a list of fields to display in the embed; an element looks like:
-///             [
-///                 "a field title",
-///                 "some field content",
-///                 true // or false: wether the field is inlined or not
-///                      // (if not, displays as a block)
-///                      // [defaults to false]
-///             ]
-///         ],
-///         "field": [ // single field, when multiple are not needed
-///             "a field title",
-///             "some field content",
-///             true // or false: wether the field is inlined or not
-///                  // (if not, displays as a block)
-///                  // [defaults to false]
-///         ],
-///         "footer" : {
-///             "icon": "a valid footer icon url",
-///             "text": "some footer text"
-///         },
-///         "timestamp": "a valid timestamp in the format [YYYY]-[MM]-[DD]T[HH]:[mm]:[ss]"
-///                     // example: "2020-12-02T13:07:00"
-///     }
-/// }
-/// ```
-pub async fn announce(ctx: &Context, channel: ChannelId, message: &Value) -> CommandResult {
-    channel
-        .send_message(ctx, |m| {
-            if let Some(content) = message["content"].as_str() {
-                // main message content
-                m.content(content);
-            }
-            if let Some(image) = message["image"].as_str() {
-                // message attachment url (doesn't have to be an image)
-                m.add_file(image);
-            }
-            if let Some(reactions) = message["reactions"].as_array() {
-                // reactions array, filters out invalid reactions
-                m.reactions(
-                    reactions
-                        .iter()
-                        .filter_map(|s| s.as_str())
-                        .filter_map(|s| ReactionType::try_from(s.trim()).ok()),
-                );
-            }
-            if let Some(embeds) = message["embeds"].as_array() {
-                for embed in embeds {
-                    m.add_embed(embed_parser!(embed));
-                }
-            }
-            if message["embed"].is_object() {
-                // message embed content
-                m.embed(embed_parser!(message["embed"]));
-            }
-            if let Some(buttons) = message["link_buttons"].as_array() {
-                m.components(|c| {
-                    if !buttons.is_empty() {
-                        c.create_action_row(|a| {
-                            for button in buttons {
-                                if let Some(url) = button["url"].as_str() {
-                                    a.create_button(|b| {
-                                        b.style(ButtonStyle::Link).url(url);
-                                        if let Some(label) = button["label"].as_str() {
-                                            b.label(label);
-                                        }
-                                        if let Some(Some(emoji)) = button["emoji"]
-                                            .as_str()
-                                            .map(|s| ReactionType::try_from(s.trim()).ok())
-                                        {
-                                            b.emoji(emoji);
-                                        }
-                                        if let Some(disabled) = button["disabled"].as_bool() {
-                                            b.disabled(disabled);
-                                        }
-                                        b
-                                    });
-                                }
+pub async fn announce<'a>(
+    ctx: &Context,
+    channel: ChannelId,
+    message: &'a Announcement,
+) -> CommandResult {
+    let mut builder = CreateMessage::default();
+
+    // message content
+    if let Some(content) = &message.content {
+        builder.content(content);
+    }
+
+    // attachements
+    if let Some(file) = &message.file {
+        builder.add_file(file.as_str());
+    }
+    if let Some(files) = &message.files {
+        for file in files {
+            builder.add_file(file.as_str());
+        }
+    }
+
+    // reactions
+    if let Some(reactions) = &message.reactions {
+        // reactions array, filters out invalid reactions
+        builder.reactions(reactions);
+    }
+
+    // embeds
+    if let Some(embeds) = &message.embeds {
+        for embed in embeds {
+            builder.add_embed(|e| {
+                *e = parse_embed(embed);
+                e
+            });
+        }
+    }
+    if let Some(embed) = &message.embed {
+        // message embed content
+        builder.set_embed(parse_embed(embed));
+    }
+
+    // components
+    if let Some(buttons) = &message.link_buttons {
+        builder.components(|c| {
+            if !buttons.is_empty() {
+                c.create_action_row(|a| {
+                    for button in buttons {
+                        a.create_button(|b| {
+                            b.style(ButtonStyle::Link)
+                                .url(&button.url)
+                                .disabled(button.disabled);
+                            if let Some(label) = &button.label {
+                                b.label(label);
                             }
-                            a
+                            if let Some(emoji) = &button.emoji {
+                                b.emoji(emoji.0.clone());
+                            }
+                            b
                         });
                     }
-                    c
+
+                    a
                 });
             }
+            c
+        });
+    }
+
+    channel
+        .send_message(ctx, |m| {
+            *m = builder;
             m
         })
         .await?;
+
     Ok(())
 }
 
@@ -305,68 +397,67 @@ pub async fn edit_message(
     ctx: &Context,
     channel: ChannelId,
     msg_id: MessageId,
-    message: &Value,
+    message: &Announcement,
 ) -> CommandResult {
-    let msg = channel
-        .edit_message(ctx, msg_id, |m| {
-            if let Some(content) = message["content"].as_str() {
-                // main message content
-                m.content(content);
-            }
-            if let Some(supress) = message["delete_embeds"].as_bool() {
-                m.suppress_embeds(supress);
-            }
-            if let Some(embeds) = message["embeds"].as_array() {
-                for embed in embeds {
-                    m.add_embed(embed_parser!(embed));
-                }
-            }
-            if message["embed"].is_object() {
-                // message embed content
-                let embed = &message["embed"];
-                m.embed(embed_parser!(embed));
-            }
-            if let Some(buttons) = message["link_buttons"].as_array() {
-                m.components(|c| {
-                    if !buttons.is_empty() {
-                        c.create_action_row(|a| {
-                            for button in buttons {
-                                if let Some(url) = button["url"].as_str() {
-                                    a.create_button(|b| {
-                                        b.style(ButtonStyle::Link).url(url);
-                                        if let Some(label) = button["label"].as_str() {
-                                            b.label(label);
-                                        }
-                                        if let Some(Some(emoji)) = button["emoji"]
-                                            .as_str()
-                                            .map(|s| ReactionType::try_from(s.trim()).ok())
-                                        {
-                                            b.emoji(emoji);
-                                        }
-                                        if let Some(disabled) = button["disabled"].as_bool() {
-                                            b.disabled(disabled);
-                                        }
-                                        b
-                                    });
-                                }
+    let mut builder = EditMessage::default();
+
+    if let Some(content) = &message.content {
+        // main message content
+        builder.content(content);
+    }
+    if let Some(supress) = message.delete_embeds {
+        builder.suppress_embeds(supress);
+    }
+
+    if let Some(embeds) = &message.embeds {
+        for embed in embeds {
+            builder.add_embed(|e| {
+                *e = parse_embed(embed);
+                e
+            });
+        }
+    }
+    if let Some(embed) = &message.embed {
+        // message embed content
+        builder.set_embed(parse_embed(embed));
+    }
+
+    if let Some(buttons) = &message.link_buttons {
+        builder.components(|c| {
+            if !buttons.is_empty() {
+                c.create_action_row(|a| {
+                    for button in buttons {
+                        a.create_button(|b| {
+                            b.style(ButtonStyle::Link)
+                                .url(&button.url)
+                                .disabled(button.disabled);
+                            if let Some(label) = &button.label {
+                                b.label(label);
                             }
-                            a
+                            if let Some(emoji) = &button.emoji {
+                                b.emoji(emoji.0.clone());
+                            }
+                            b
                         });
                     }
-                    c
+
+                    a
                 });
             }
+            c
+        });
+    }
+
+    let msg = channel
+        .edit_message(ctx, msg_id, |m| {
+            *m = builder;
             m
         })
         .await?;
-    if let Some(reactions) = message["reactions"].as_array() {
-        join_all(
-            reactions
-                .iter()
-                .filter_map(|s| s.as_str())
-                .filter_map(|s| ReactionType::try_from(s).map(|r| msg.react(ctx, r)).ok()),
-        )
-        .await;
+
+    if let Some(reactions) = &message.reactions {
+        join_all(reactions.iter().map(|r| msg.react(ctx, r))).await;
     }
+
     Ok(())
 }
