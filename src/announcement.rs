@@ -39,16 +39,14 @@ where
 
     let colour = String::deserialize(d)?;
 
-    if let Ok(c) = u32::from_str_radix(&colour.trim().trim_start_matches('#'), 16) {
+    if let Ok(c) = u32::from_str_radix(colour.trim().trim_start_matches('#'), 16) {
         Ok(Colour(c))
+    } else if let Some(web_colour) =
+        crate::utils::parse_web_colour(colour.trim().to_ascii_lowercase().as_str())
+    {
+        Ok(web_colour)
     } else {
-        if let Some(web_colour) =
-            crate::utils::parse_web_colour(&colour.trim().to_ascii_lowercase())
-        {
-            Ok(web_colour)
-        } else {
-            Err(serde::de::Error::custom(InvalidColour(colour)))
-        }
+        Err(serde::de::Error::custom(InvalidColour(colour)))
     }
 }
 
@@ -303,7 +301,7 @@ fn parse_embed(embed: &AnnouncementEmbed) -> CreateEmbed {
     }
 
     if let Some(timestamp) = &embed.timestamp {
-        builder.timestamp(timestamp.clone());
+        builder.timestamp(*timestamp);
     }
 
     builder
