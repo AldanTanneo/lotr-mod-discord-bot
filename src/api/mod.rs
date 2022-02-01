@@ -38,7 +38,7 @@ impl ReqwestClient {
         )
     }
 
-    pub fn as_arc(&self) -> std::sync::Arc<reqwest::Client> {
-        std::sync::Arc::new(self.0.clone())
+    pub fn inner(&self) -> reqwest::Client {
+        self.0.clone()
     }
 }

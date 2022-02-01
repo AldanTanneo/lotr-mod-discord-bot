@@ -181,7 +181,7 @@ async fn main() {
         .bucket("basic", |b| b.delay(2).time_span(10).limit(3))
         .await;
 
-    let mut http = Http::new(reqwest_client.as_arc(), &format!("Bot {}", &token));
+    let mut http = Http::new(reqwest_client.inner(), &format!("Bot {}", &token));
     http.application_id = application_id;
 
     let framework = FrameworkKey::new(framework);
