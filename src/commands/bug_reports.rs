@@ -700,7 +700,7 @@ pub async fn bug(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult 
                 let new_status = match interaction.data.custom_id.as_str() {
                     "resolve_bug" => BugStatus::Resolved,
                     "close_bug" => BugStatus::Closed,
-                    _ => unreachable!(),
+                    _ => continue,
                 };
 
                 change_bug_status(ctx, bug_id, new_status).await?;
