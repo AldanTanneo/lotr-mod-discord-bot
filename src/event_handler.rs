@@ -180,8 +180,8 @@ impl EventHandler for Handler {
                 .map(|s| s.parse::<u64>().ok())
                 .flatten()
             {
-                if let Some(false) =
-                    crate::database::bug_reports::is_notified_user(&ctx, bug_id, user.id).await
+                if crate::database::bug_reports::is_notified_user(&ctx, bug_id, user.id).await
+                    != Some(true)
                 {
                     component_interaction
                         .say_ephemeral(
@@ -223,8 +223,8 @@ To see all your active notifications type  `!bug notifications`",
                 .map(|s| s.parse::<u64>().ok())
                 .flatten()
             {
-                if let Some(true) =
-                    crate::database::bug_reports::is_notified_user(&ctx, bug_id, user.id).await
+                if crate::database::bug_reports::is_notified_user(&ctx, bug_id, user.id).await
+                    != Some(false)
                 {
                     component_interaction
                         .say_ephemeral(
