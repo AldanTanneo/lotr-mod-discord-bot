@@ -13,8 +13,8 @@ use crate::constants::{LOTR_DISCORD, MANAGE_BOT_PERMS, OWNER_ID};
 use crate::database::admin_data::is_admin_function;
 use crate::database::bug_reports::{
     add_bug_report, add_link, add_notified_user, change_bug_status, change_title, get_bug_from_id,
-    get_bug_list, get_bug_statistics, get_notifications_for_user, get_notified_users, remove_link,
-    switch_edition, BugOrder, BugStatus,
+    get_bug_list, get_bug_statistics, get_notifications_for_user, get_notified_users,
+    is_notified_user, remove_link, switch_edition, BugOrder, BugStatus,
 };
 use crate::failure;
 
@@ -97,6 +97,9 @@ macro_rules! create_bug_embed {
 
 pub async fn notify_users(ctx: &Context, bug_id: u64, message: impl ToString) -> CommandResult {
     let notified_users = get_notified_users(ctx, bug_id).await?;
+    if notified_users.is_empty() {
+        return Ok(());
+    }
 
     let bug = get_bug_from_id(ctx, bug_id).await?;
 
@@ -564,7 +567,9 @@ pub async fn buglist(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
     stats,
     bug_toggle_edition,
     bugtracker_help,
-    notifications
+    notifications,
+    unsubscribe,
+    subscribe
 )]
 pub async fn bug(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let bug_id = if let Ok(bug_id) = args.single::<String>() {
@@ -1117,7 +1122,7 @@ pub async fn bugtracker_help(ctx: &Context, msg: &Message) -> CommandResult {
 pub async fn notifications(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let closed = args
         .single::<String>()
-        .map(|s| &s.to_ascii_lowercase() == "closed")
+        .map(|s| s.eq_ignore_ascii_case("closed") || s.eq_ignore_ascii_case("all"))
         .unwrap_or_default();
 
     let list = get_notifications_for_user(ctx, msg.author.id, closed).await?;
@@ -1130,7 +1135,7 @@ pub async fn notifications(ctx: &Context, msg: &Message, mut args: Args) -> Comm
 Subscribe to a bug report to receive notifications."
             } else {
                 "You have no active notifications for now.
-Type  `!bug notifications closed` to see all your notifications, \
+Type  `!bug notifications all` to see all your notifications, \
 including those from closed or resolved bugs."
             },
         )
@@ -1151,14 +1156,85 @@ including those from closed or resolved bugs."
                             .map(|id| format!("LOTR-{id}"))
                             .collect::<Vec<_>>()
                             .join(", "),
-                    ));
-                    if closed {
-                        e.footer(|f| f.text("Including closed and resolved bugs"));
-                    }
+                    ))
+                    .footer(|f| {
+                        f.text(if closed {
+                            "Including closed and resolved bugs"
+                        } else {
+                            "To see closed and resolved bugs, use  !bug notifications all"
+                        })
+                    });
+
                     e
                 })
             })
             .await?;
     }
+    Ok(())
+}
+
+#[command]
+pub async fn unsubscribe(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+    let bug_id = match args.single::<u64>() {
+        Ok(bug_id) => bug_id,
+        _ => {
+            failure!(ctx, msg, "The first argument must be a bug id!");
+            return Ok(());
+        }
+    };
+
+    if is_notified_user(ctx, bug_id, msg.author.id).await != Some(true) {
+        failure!(ctx, msg, "You are not subscribed to this bug!");
+        return Ok(());
+    }
+
+    if let Err(e) =
+        crate::database::bug_reports::remove_notified_user(ctx, bug_id, msg.author.id).await
+    {
+        failure!(ctx, msg, "Could not unsubscribe from LOTR-{}", bug_id);
+        return Err(e);
+    }
+
+    crate::success!(
+        ctx,
+        msg,
+        "Successfully unsubscribed from LOTR-{}.
+You will no longer be notified if this bug is edited, closed or resolved.",
+        bug_id
+    );
+
+    Ok(())
+}
+
+#[command]
+pub async fn subscribe(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+    let bug_id = match args.single::<u64>() {
+        Ok(bug_id) => bug_id,
+        _ => {
+            failure!(ctx, msg, "The first argument must be a bug id!");
+            return Ok(());
+        }
+    };
+
+    if is_notified_user(ctx, bug_id, msg.author.id).await != Some(false) {
+        failure!(ctx, msg, "You are already subscribed to this bug!");
+        return Ok(());
+    }
+
+    if let Err(e) =
+        crate::database::bug_reports::add_notified_user(ctx, bug_id, msg.author.id).await
+    {
+        failure!(ctx, msg, "Could not subscribe to LOTR-{}", bug_id);
+        return Err(e);
+    }
+
+    crate::success!(
+        ctx,
+        msg,
+        "Successfully subscribed to LOTR-{}.
+You will be notified if this bug is edited, closed or resolved.",
+        bug_id
+    );
+
     Ok(())
 }
