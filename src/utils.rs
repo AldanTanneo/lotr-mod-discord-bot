@@ -414,6 +414,68 @@ pub fn parse_web_colour(name: &str) -> Option<Colour> {
     }))
 }
 
+use serenity::async_trait;
+use serenity::builder::CreateInteractionResponse;
+use serenity::http::Http;
+use serenity::model::interactions::{
+    message_component::MessageComponentInteraction, InteractionApplicationCommandCallbackDataFlags,
+};
+
+#[async_trait]
+pub trait InteractionEasyResponse {
+    async fn say_ephemeral(
+        &self,
+        ctx: impl AsRef<Http> + Send + Sync + 'async_trait,
+        msg: impl ToString + Send + Sync + 'async_trait,
+    ) -> () {
+        self.respond_no_failure(ctx, |r| {
+            r.interaction_response_data(|d| {
+                d.content(msg)
+                    .flags(InteractionApplicationCommandCallbackDataFlags::EPHEMERAL)
+            })
+        })
+        .await
+    }
+
+    async fn respond_no_failure<F>(
+        &self,
+        ctx: impl AsRef<Http> + Send + Sync + 'async_trait,
+        f: F,
+    ) -> ()
+    where
+        F: 'async_trait
+            + Send
+            + Sync
+            + FnOnce(&mut CreateInteractionResponse) -> &mut CreateInteractionResponse;
+}
+
+#[async_trait]
+impl InteractionEasyResponse for MessageComponentInteraction {
+    async fn respond_no_failure<F>(
+        &self,
+        ctx: impl AsRef<Http> + Send + Sync + 'async_trait,
+        f: F,
+    ) -> ()
+    where
+        F: 'async_trait
+            + Send
+            + Sync
+            + FnOnce(&mut CreateInteractionResponse) -> &mut CreateInteractionResponse,
+    {
+        if let Err(e) = self.create_interaction_response(ctx, f).await {
+            println!(
+                "=== ERROR ===
+Error sending component interaction response to {} {:?}
+Error: {}
+=== END ===",
+                self.user.tag(),
+                self.user.id,
+                e
+            );
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::to_json_safe_string;

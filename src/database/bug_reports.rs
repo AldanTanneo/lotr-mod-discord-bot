@@ -1,11 +1,14 @@
 use chrono::{DateTime, NaiveDateTime, Utc};
+use const_format::formatcp;
 use mysql_async::prelude::*;
 use serenity::client::Context;
 use serenity::framework::standard::{CommandError, CommandResult};
 use serenity::model::prelude::*;
 use serenity::utils::Colour;
 
-use crate::constants::{TABLE_BUG_REPORTS, TABLE_BUG_REPORTS_LINKS};
+use crate::constants::{
+    TABLE_BUG_REPORTS, TABLE_BUG_REPORTS_LINKS, TABLE_BUG_REPORTS_NOTIFICATIONS,
+};
 use crate::get_database_conn;
 
 #[derive(Debug, Clone, Copy)]
@@ -195,15 +198,22 @@ pub async fn get_bug_from_id(ctx: &Context, bug_id: u64) -> Result<BugReport, Co
         NaiveDateTime,
         bool,
     ) = conn
-        .query_first(format!(
-            "SELECT channel_id, message_id, title, status, timestamp, legacy FROM {} WHERE bug_id={}",
-            TABLE_BUG_REPORTS, bug_id
-        ))
-        .await?.ok_or_else(|| CommandError::from("Bug report does not exist!"))?;
+        .exec_first(
+            formatcp!(
+                "SELECT channel_id, message_id, title, status, timestamp, legacy \
+FROM {} WHERE bug_id = :bug_id",
+                TABLE_BUG_REPORTS
+            ),
+            params! {
+                "bug_id" => bug_id
+            },
+        )
+        .await?
+        .ok_or_else(|| CommandError::from("Bug report does not exist!"))?;
 
     let links: Vec<BugLink> = conn
         .exec_map(
-            format!(
+            formatcp!(
                 "SELECT link_id, link_url, link_title FROM {} WHERE bug_id = :bug_id",
                 TABLE_BUG_REPORTS_LINKS
             ),
@@ -239,8 +249,9 @@ pub async fn add_bug_report(
     let mut conn = get_database_conn!(ctx);
 
     conn.exec_drop(
-        format!(
-            "INSERT INTO {} (channel_id, message_id, title, status, legacy) VALUES (:channel_id, :message_id, :title, :status, :legacy)",
+        formatcp!(
+            "INSERT INTO {} (channel_id, message_id, title, status, legacy) \
+VALUES (:channel_id, :message_id, :title, :status, :legacy)",
             TABLE_BUG_REPORTS
         ),
         params! {
@@ -249,14 +260,15 @@ pub async fn add_bug_report(
             "title" => title,
             "status" => status.as_str(),
             "legacy" => legacy,
-        }
-    ).await?;
+        },
+    )
+    .await?;
 
     if let Err(e) = msg.react(ctx, status.reaction()).await {
         println!("Could not add reaction to bug report: {}", e);
     }
 
-    conn.query_first(format!("SELECT MAX(bug_id) FROM {}", TABLE_BUG_REPORTS))
+    conn.query_first(formatcp!("SELECT MAX(bug_id) FROM {}", TABLE_BUG_REPORTS))
         .await?
         .ok_or_else(|| CommandError::from("Could not get newest bug id!"))
 }
@@ -291,7 +303,8 @@ pub async fn get_bug_list(
 
     conn.exec_map(
         format!(
-            "SELECT bug_id, title, status, timestamp, legacy FROM {} WHERE {} {legacy} ORDER BY {ordering} LIMIT :limit OFFSET :offset",
+            "SELECT bug_id, title, status, timestamp, legacy FROM {} \
+WHERE {} {legacy} ORDER BY {ordering} LIMIT :limit OFFSET :offset",
             TABLE_BUG_REPORTS,
             if let Some(status) = status {
                 format!("status = '{}'", status.as_str())
@@ -307,7 +320,7 @@ pub async fn get_bug_list(
                 BugOrder::Chronological(false) | BugOrder::None => "timestamp DESC",
                 BugOrder::Chronological(true) => "timestamp ASC",
                 BugOrder::Priority(false) => "status DESC, timestamp DESC",
-                BugOrder::Priority(true) => "status ASC, timestamp DESC"
+                BugOrder::Priority(true) => "status ASC, timestamp DESC",
             },
         ),
         params! {
@@ -318,15 +331,18 @@ pub async fn get_bug_list(
             PartialBugReport::new(
                 bug_id,
                 title,
-                status.parse().expect("Expected a valid bug status from the database"),
+                status
+                    .parse()
+                    .expect("Expected a valid bug status from the database"),
                 timestamp,
-                legacy
+                legacy,
             )
         },
     )
     .await
     .ok()
-    .map(|v| v.iter().filter_map(|x| x.clone()).collect()).map(|v| (v, total))
+    .map(|v| v.iter().filter_map(|x| x.clone()).collect())
+    .map(|v| (v, total))
 }
 
 pub async fn change_bug_status(
@@ -337,10 +353,15 @@ pub async fn change_bug_status(
     let mut conn = get_database_conn!(ctx);
 
     let (old_status_string, channel_id, msg_id): (String, u64, u64) = conn
-        .query_first(format!(
-            "SELECT status, channel_id, message_id FROM {} WHERE bug_id = {} LIMIT 1",
-            TABLE_BUG_REPORTS, bug_id
-        ))
+        .exec_first(
+            formatcp!(
+                "SELECT status, channel_id, message_id FROM {} WHERE bug_id = :bug_id LIMIT 1",
+                TABLE_BUG_REPORTS
+            ),
+            params! {
+                "bug_id" => bug_id
+            },
+        )
         .await?
         .ok_or_else(|| CommandError::from("Could not find bug in database"))?;
 
@@ -349,7 +370,7 @@ pub async fn change_bug_status(
         .expect("Expected a valid bug status from database!");
 
     conn.exec_drop(
-        format!(
+        formatcp!(
             "UPDATE {} SET status = :status WHERE bug_id = :bug_id",
             TABLE_BUG_REPORTS
         ),
@@ -378,7 +399,7 @@ pub async fn add_link(ctx: &Context, bug_id: u64, link_url: &str, link_title: &s
     let mut conn = get_database_conn!(ctx);
 
     conn.exec_drop(
-        format!(
+        formatcp!(
             "INSERT INTO {} (bug_id, link_url, link_title) VALUES (:bug_id, :link_url, :link_title)",
             TABLE_BUG_REPORTS_LINKS
         ),
@@ -390,10 +411,15 @@ pub async fn add_link(ctx: &Context, bug_id: u64, link_url: &str, link_title: &s
     )
     .await.ok()?;
 
-    conn.query_first(format!(
-        "SELECT MAX(link_id) FROM {} WHERE bug_id = {}",
-        TABLE_BUG_REPORTS_LINKS, bug_id
-    ))
+    conn.exec_first(
+        formatcp!(
+            "SELECT MAX(link_id) FROM {} WHERE bug_id = :bug_id",
+            TABLE_BUG_REPORTS_LINKS
+        ),
+        params! {
+            "bug_id" => bug_id
+        },
+    )
     .await
     .ok()?
 }
@@ -402,7 +428,7 @@ pub async fn remove_link(ctx: &Context, bug_id: u64, link_num: u64) -> CommandRe
     let mut conn = get_database_conn!(ctx);
 
     conn.exec_drop(
-        format!(
+        formatcp!(
             "DELETE FROM {} WHERE bug_id = :bug_id AND link_id = :link_id",
             TABLE_BUG_REPORTS_LINKS
         ),
@@ -420,7 +446,7 @@ pub async fn change_title(ctx: &Context, bug_id: u64, new_title: &str) -> Comman
     let mut conn = get_database_conn!(ctx);
 
     conn.exec_drop(
-        format!(
+        formatcp!(
             "UPDATE {} SET title = :new_title WHERE bug_id = :bug_id",
             TABLE_BUG_REPORTS
         ),
@@ -451,10 +477,15 @@ pub async fn get_bug_statistics(ctx: &Context) -> Option<[u32; 9]> {
 
     for (i, s) in statuses.iter().enumerate() {
         let x = conn
-            .query_first(format!(
-                "SELECT COUNT(bug_id) FROM {} WHERE status = '{}'",
-                TABLE_BUG_REPORTS, s
-            ))
+            .exec_first(
+                formatcp!(
+                    "SELECT COUNT(bug_id) FROM {} WHERE status = :status",
+                    TABLE_BUG_REPORTS
+                ),
+                params! {
+                    "status" => s
+                },
+            )
             .await
             .ok()??;
         counts[i] = x;
@@ -463,7 +494,7 @@ pub async fn get_bug_statistics(ctx: &Context) -> Option<[u32; 9]> {
     counts[7] = counts.iter().sum();
 
     counts[8] = conn
-        .query_first(format!(
+        .query_first(formatcp!(
             "SELECT COUNT(bug_id) FROM {} WHERE legacy = 1",
             TABLE_BUG_REPORTS
         ))
@@ -477,7 +508,7 @@ pub async fn switch_edition(ctx: &Context, bug_id: u64) -> Option<bool> {
     let mut conn = get_database_conn!(ctx);
 
     conn.exec_drop(
-        format!(
+        formatcp!(
             "UPDATE {} SET legacy = NOT legacy WHERE bug_id = :bug_id",
             TABLE_BUG_REPORTS
         ),
@@ -489,7 +520,7 @@ pub async fn switch_edition(ctx: &Context, bug_id: u64) -> Option<bool> {
     .ok()?;
 
     conn.exec_first(
-        format!(
+        formatcp!(
             "SELECT legacy FROM {} WHERE bug_id = :bug_id",
             TABLE_BUG_REPORTS
         ),
@@ -499,4 +530,108 @@ pub async fn switch_edition(ctx: &Context, bug_id: u64) -> Option<bool> {
     )
     .await
     .ok()?
+}
+
+pub async fn is_notified_user(ctx: &Context, bug_id: u64, user_id: UserId) -> Option<bool> {
+    let mut conn = get_database_conn!(ctx);
+
+    conn.exec_first(
+        formatcp!(
+            "SELECT EXISTS(SELECT notification_id \
+FROM {} WHERE bug_id = :bug_id AND user_id = :user_id)",
+            TABLE_BUG_REPORTS_NOTIFICATIONS
+        ),
+        params! {
+                "bug_id" => bug_id,
+                "user_id" => user_id.0
+        },
+    )
+    .await
+    .ok()?
+}
+
+pub async fn get_notifications_for_user(
+    ctx: &Context,
+    user_id: UserId,
+    closed: bool,
+) -> CommandResult<Vec<u64>> {
+    let mut conn = get_database_conn!(ctx);
+
+    Ok(if closed {
+        conn.exec(
+            formatcp!(
+                "SELECT bug_id FROM {} WHERE user_id = :user_id",
+                TABLE_BUG_REPORTS_NOTIFICATIONS,
+            ),
+            params! {
+                "user_id" => user_id.0
+            },
+        )
+        .await?
+    } else {
+        conn.exec(
+            formatcp!(
+                "SELECT t1.bug_id FROM {TABLE_BUG_REPORTS_NOTIFICATIONS} AS t1 \
+JOIN {TABLE_BUG_REPORTS} AS t2 \
+ON t1.bug_id = t2.bug_id \
+AND t2.status != 'closed' \
+AND t2.status != 'resolved' \
+AND t2.status != 'forgevanilla' \
+WHERE t1.user_id = :user_id"
+            ),
+            params! {"user_id" => user_id.0},
+        )
+        .await?
+    })
+}
+
+pub async fn get_notified_users(ctx: &Context, bug_id: u64) -> CommandResult<Vec<UserId>> {
+    let mut conn = get_database_conn!(ctx);
+
+    Ok(conn
+        .exec_map(
+            formatcp!(
+                "SELECT user_id FROM {} WHERE bug_id = :bug_id",
+                TABLE_BUG_REPORTS_NOTIFICATIONS
+            ),
+            params! {
+                "bug_id" => bug_id
+            },
+            UserId,
+        )
+        .await?)
+}
+
+pub async fn add_notified_user(ctx: &Context, bug_id: u64, user_id: UserId) -> CommandResult {
+    let mut conn = get_database_conn!(ctx);
+
+    Ok(conn
+        .exec_drop(
+            formatcp!(
+                "INSERT INTO {} (bug_id, user_id) VALUES (:bug_id, :user_id)",
+                TABLE_BUG_REPORTS_NOTIFICATIONS
+            ),
+            params! {
+                "bug_id" => bug_id,
+                "user_id" => user_id.0
+            },
+        )
+        .await?)
+}
+
+pub async fn remove_notified_user(ctx: &Context, bug_id: u64, user_id: UserId) -> CommandResult {
+    let mut conn = get_database_conn!(ctx);
+
+    Ok(conn
+        .exec_drop(
+            formatcp!(
+                "DELETE FROM {} WHERE bug_id = :bug_id AND user_id = :user_id LIMIT 1",
+                TABLE_BUG_REPORTS_NOTIFICATIONS
+            ),
+            params! {
+                "bug_id" => bug_id,
+                "user_id" => user_id.0
+            },
+        )
+        .await?)
 }

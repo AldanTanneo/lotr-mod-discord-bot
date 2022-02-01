@@ -3,8 +3,13 @@ use crate::constants::*;
 use mysql_async::prelude::*;
 use serenity::async_trait;
 use serenity::client::{Context, EventHandler};
+use serenity::model::interactions::message_component::{
+    ComponentType, MessageComponentInteraction, MessageComponentInteractionData,
+};
 use serenity::model::prelude::*;
 use serenity::utils::colours;
+
+use crate::utils::InteractionEasyResponse;
 
 pub struct Handler;
 
@@ -154,5 +159,109 @@ impl EventHandler for Handler {
         }
 
         crate::qa_answers::handle_message(&ctx, &message, guild_id).await;
+    }
+
+    async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
+        if let Interaction::MessageComponent(
+            component_interaction @ MessageComponentInteraction {
+                user,
+                data:
+                    MessageComponentInteractionData {
+                        component_type: ComponentType::Button,
+                        custom_id,
+                        ..
+                    },
+                ..
+            },
+        ) = &interaction
+        {
+            if let Some(bug_id) = custom_id
+                .strip_prefix("bug_unsubscribe__")
+                .map(|s| s.parse::<u64>().ok())
+                .flatten()
+            {
+                if let Some(false) =
+                    crate::database::bug_reports::is_notified_user(&ctx, bug_id, user.id).await
+                {
+                    component_interaction
+                        .say_ephemeral(
+                            &ctx,
+                            format!(
+                                ":x: You are not subscribed to bug LOTR-{}.
+
+To see all your active notifications type  `!bug notifications`",
+                                bug_id
+                            ),
+                        )
+                        .await
+                } else if let Err(e) =
+                    crate::database::bug_reports::remove_notified_user(&ctx, bug_id, user.id).await
+                {
+                    println!(
+                        "=== ERROR ===\nCould not remove {} {:?} \
+from LOTR-{} notifications\nError: {}\n=== END ===",
+                        user.tag(),
+                        user.id,
+                        bug_id,
+                        e
+                    );
+                } else {
+                    component_interaction
+                        .say_ephemeral(
+                            &ctx,
+                            format!(
+                                "You have successfully been unsubscribed from bug LOTR-{}.
+
+To see all your active notifications type  `!bug notifications`",
+                                bug_id
+                            ),
+                        )
+                        .await;
+                }
+            } else if let Some(bug_id) = custom_id
+                .strip_prefix("bug_subscribe__")
+                .map(|s| s.parse::<u64>().ok())
+                .flatten()
+            {
+                if let Some(true) =
+                    crate::database::bug_reports::is_notified_user(&ctx, bug_id, user.id).await
+                {
+                    component_interaction
+                        .say_ephemeral(
+                            &ctx,
+                            format!(
+                                ":x: You are already subscribed to bug LOTR-{}.
+
+To see all your active notifications type  `!bug notifications`",
+                                bug_id
+                            ),
+                        )
+                        .await
+                } else if let Err(e) =
+                    crate::database::bug_reports::add_notified_user(&ctx, bug_id, user.id).await
+                {
+                    println!(
+                        "=== ERROR ===\nCould not add {} {:?} \
+to LOTR-{} notifications\nError: {}\n=== END ===",
+                        user.tag(),
+                        user.id,
+                        bug_id,
+                        e
+                    );
+                } else {
+                    component_interaction
+                        .say_ephemeral(
+                            &ctx,
+                            format!(
+                                "You have successfully been subscribed to bug LOTR-{}.
+
+To see all your active notifications type  `!bug notifications`",
+                                bug_id
+                            ),
+                        )
+                        .await;
+                }
+            }
+        }
     }
 }

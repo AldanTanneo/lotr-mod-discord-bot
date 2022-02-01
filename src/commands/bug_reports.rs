@@ -12,12 +12,13 @@ use crate::check::*;
 use crate::constants::{LOTR_DISCORD, MANAGE_BOT_PERMS, OWNER_ID};
 use crate::database::admin_data::is_admin_function;
 use crate::database::bug_reports::{
-    add_bug_report, add_link, change_bug_status, change_title, get_bug_from_id, get_bug_list,
-    get_bug_statistics, remove_link, switch_edition, BugOrder, BugStatus,
+    add_bug_report, add_link, add_notified_user, change_bug_status, change_title, get_bug_from_id,
+    get_bug_list, get_bug_statistics, get_notifications_for_user, get_notified_users, remove_link,
+    switch_edition, BugOrder, BugStatus,
 };
 use crate::failure;
 
-pub const TERMITE_EMOJI: EmojiId = EmojiId(839479605467152384);
+pub const TERMITE_EMOJI: EmojiId = EmojiId(938135367486410792);
 
 macro_rules! termite {
     ($ctx:ident, $msg:ident) => {{
@@ -42,9 +43,123 @@ macro_rules! termite_success {
         termite!($ctx, $msg);
     }};
     ($ctx:ident, $msg:ident, $($success:tt)*) => {{
-        $msg.reply($ctx, format!($($success)*)).await?;
-        termite!($ctx, $msg);
+        termite_success!($ctx, $msg, format!($($success)*));
     }};
+}
+
+macro_rules! create_bug_embed {
+    ($bug:expr, $linked_message:expr) => {
+        |e| {
+            e.author(|a| {
+                a.name("LOTR Mod Bugtracker");
+                a.icon_url(crate::constants::TERMITE_IMAGE);
+                a
+            });
+            e.colour($bug.status.colour());
+            e.title(format!(
+                "{} LOTR-{}: {}{}",
+                $bug.status.marker(),
+                $bug.bug_id,
+                $bug.title,
+                if $bug.legacy { " [legacy]" } else { "" }
+            ));
+            if let Ok(ref message) = $linked_message {
+                e.description(&message.content);
+                if let Some(image) = message.attachments.get(0) {
+                    e.image(&image.url);
+                }
+                e.footer(|f| {
+                    f.text(format!(
+                        "Status: {} • Submitted by {}",
+                        $bug.status, &message.author.name
+                    ))
+                });
+            } else {
+                e.footer(|f| f.text(format!("Status: {}", $bug.status)));
+            }
+            if !$bug.links.is_empty() {
+                e.field(
+                    "Additional information",
+                    &$bug
+                        .links
+                        .iter()
+                        .map(|link| link.to_string())
+                        .collect::<Vec<_>>()
+                        .join("\n"),
+                    false,
+                );
+            }
+            e.timestamp($bug.timestamp);
+            e
+        }
+    };
+}
+
+pub async fn notify_users(ctx: &Context, bug_id: u64, message: impl ToString) -> CommandResult {
+    let notified_users = get_notified_users(ctx, bug_id).await?;
+
+    let bug = get_bug_from_id(ctx, bug_id).await?;
+
+    let mut res = Ok(());
+    let linked_message = bug
+        .channel_id
+        .message(ctx, bug.message_id)
+        .await
+        .map(|mut m| {
+            m.guild_id = Some(LOTR_DISCORD);
+            m
+        });
+    let message_link = linked_message.as_ref().map(|m| m.link()).ok();
+
+    for user in notified_users {
+        let channel = match user.create_dm_channel(ctx).await {
+            Ok(channel) => channel,
+            Err(e) => {
+                if res.is_ok() {
+                    res = Err(e.into());
+                }
+                continue;
+            }
+        };
+
+        if let Err(e) = channel
+            .send_message(ctx, |m| {
+                m.content(format!(
+                    "**LOTR Mod Bugtracker notification {}**\n\n{}\n ",
+                    ReactionType::from(EmojiIdentifier {
+                        animated: false,
+                        id: TERMITE_EMOJI,
+                        name: "bug".into(),
+                    }),
+                    message.to_string(),
+                ))
+                .embed(create_bug_embed!(bug, linked_message))
+                .components(|c| {
+                    c.create_action_row(|a| {
+                        if let Some(link) = message_link.as_ref() {
+                            a.create_button(|b| {
+                                b.style(ButtonStyle::Link)
+                                    .label("Jump to message")
+                                    .url(link)
+                            });
+                        }
+                        a.create_button(|b| {
+                            b.style(ButtonStyle::Danger)
+                                .label("Unsubscribe")
+                                .custom_id(format!("bug_unsubscribe__{}", bug.bug_id))
+                        })
+                    })
+                })
+            })
+            .await
+        {
+            if res.is_ok() {
+                res = Err(e.into());
+            }
+        }
+    }
+
+    res
 }
 
 #[command]
@@ -64,27 +179,58 @@ pub async fn track(ctx: &Context, msg: &Message, mut args: Args) -> CommandResul
     }
 
     let referenced_message = if let Some(message) = &msg.referenced_message {
-        message
+        message.as_ref()
     } else {
         failure!(ctx, msg, "You must reference a message in your bug report!");
         return Ok(());
     };
 
-    match add_bug_report(ctx, referenced_message, title.to_string(), status, legacy).await {
-        Ok(bug_id) => termite_success!(
-            ctx,
-            msg,
-            "Tracking bug LOTR-{} (priority: `{}`)",
-            bug_id,
-            status
-        ),
-        Err(e) => {
-            failure!(ctx, msg, "Could not submit the bug report!");
-            return Err(e);
-        }
+    let bug_id =
+        match add_bug_report(ctx, referenced_message, title.to_string(), status, legacy).await {
+            Ok(bug_id) => bug_id,
+            Err(e) => {
+                failure!(ctx, msg, "Could not submit the bug report!");
+                return Err(e);
+            }
+        };
+
+    msg.channel_id
+        .send_message(ctx, |m| {
+            m.content(format!(
+                "Tracking bug LOTR-{} (priority: `{}`)",
+                bug_id, status
+            ))
+            .reference_message(referenced_message)
+            .allowed_mentions(|f| f.empty_parse())
+            .components(|c| {
+                c.create_action_row(|a| {
+                    a.create_button(|b| {
+                        b.style(ButtonStyle::Primary)
+                            .label("Subscribe")
+                            .custom_id(format!("bug_subscribe__{bug_id}"))
+                    })
+                })
+            })
+        })
+        .await?;
+
+    if let Err(e) = add_notified_user(ctx, bug_id, referenced_message.author.id).await {
+        println!(
+            "=== ERROR ===
+Could not subscribe bug author to bug LOTR-{bug_id}
+Error: {e}
+=== END ==="
+        );
+        return Err(e);
     }
 
-    Ok(())
+    notify_users(
+        ctx,
+        bug_id,
+        "A bug report you submitted is being tracked in the LOTR Mod bugtracker.
+You will receive notifications when its status is changed or further information is added.",
+    )
+    .await
 }
 
 enum Either<'a> {
@@ -408,7 +554,6 @@ pub async fn buglist(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
 }
 
 #[command]
-#[checks(is_lotr_discord)]
 #[sub_commands(
     track,
     bug_status,
@@ -418,7 +563,8 @@ pub async fn buglist(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
     bug_rename,
     stats,
     bug_toggle_edition,
-    bugtracker_help
+    bugtracker_help,
+    notifications
 )]
 pub async fn bug(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let bug_id = if let Ok(bug_id) = args.single::<String>() {
@@ -445,94 +591,56 @@ pub async fn bug(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult 
         }
     };
 
-    macro_rules! create_bug_embed {
-        ($bug:expr, $linked_message:expr) => {
-            |e| {
-                e.author(|a| {
-                    a.name("LOTR Mod Bugtracker");
-                    a.icon_url(crate::constants::TERMITE_IMAGE);
-                    a
-                });
-                e.colour($bug.status.colour());
-                e.title(format!(
-                    "{} LOTR-{}: {}{}",
-                    $bug.status.marker(),
-                    $bug.bug_id,
-                    $bug.title,
-                    if $bug.legacy { " [legacy]" } else { "" }
-                ));
-                if let Ok(ref message) = $linked_message {
-                    e.description(&message.content);
-                    if let Some(image) = message.attachments.get(0) {
-                        e.image(&image.url);
-                    }
-                    e.footer(|f| {
-                        f.text(format!(
-                            "Status: {} • Submitted by {}",
-                            $bug.status, &message.author.name
-                        ))
-                    });
-                } else {
-                    e.footer(|f| f.text(format!("Status: {}", $bug.status)));
-                }
-                if !$bug.links.is_empty() {
-                    e.field(
-                        "Additional information",
-                        &$bug
-                            .links
-                            .iter()
-                            .map(|link| link.to_string())
-                            .collect::<Vec<_>>()
-                            .join("\n"),
-                        false,
-                    );
-                }
-                e.timestamp($bug.timestamp);
-                e
-            }
-        };
-    }
-
     macro_rules! create_bug_buttons {
         ($message_link:expr) => {
             |c| {
-                if let Some(ref link) = $message_link {
-                    c.create_action_row(|a| {
+                c.create_action_row(|a| {
+                    a.create_button(|b| {
+                        b.style(ButtonStyle::Primary)
+                            .label("Subscribe")
+                            .custom_id(format!("bug_subscribe__{bug_id}"))
+                    });
+                    if let Some(ref link) = $message_link {
                         a.create_button(|b| {
                             b.style(ButtonStyle::Link).label("Message link").url(link)
-                        })
-                    });
-                }
+                        });
+                    }
+                    a
+                });
+
                 c
             }
         };
         ($message_link:expr, $create_buttons:expr, $disabled:expr) => {
             |c| {
-                if $message_link.is_some() || $create_buttons {
-                    c.create_action_row(|a| {
-                        if let Some(link) = $message_link.as_ref() {
-                            a.create_button(|b| {
-                                b.style(ButtonStyle::Link).label("Message link").url(link)
-                            });
-                        }
-                        if $create_buttons {
-                            a.create_button(|b| {
-                                b.style(ButtonStyle::Success)
-                                    .label("Resolve")
-                                    .custom_id("resolve_bug")
-                                    .disabled($disabled)
-                            });
-
-                            a.create_button(|b| {
-                                b.style(ButtonStyle::Danger)
-                                    .label("Close")
-                                    .custom_id("close_bug")
-                                    .disabled($disabled)
-                            });
-                        }
-                        a
+                c.create_action_row(|a| {
+                    a.create_button(|b| {
+                        b.style(ButtonStyle::Primary)
+                            .label("Subscribe")
+                            .custom_id(format!("bug_subscribe__{bug_id}"))
                     });
-                }
+                    if let Some(link) = $message_link.as_ref() {
+                        a.create_button(|b| {
+                            b.style(ButtonStyle::Link).label("Message link").url(link)
+                        });
+                    }
+                    if $create_buttons {
+                        a.create_button(|b| {
+                            b.style(ButtonStyle::Success)
+                                .label("Resolve")
+                                .custom_id("resolve_bug")
+                                .disabled($disabled)
+                        });
+
+                        a.create_button(|b| {
+                            b.style(ButtonStyle::Danger)
+                                .label("Close")
+                                .custom_id("close_bug")
+                                .disabled($disabled)
+                        });
+                    }
+                    a
+                });
                 c
             }
         };
@@ -597,6 +705,7 @@ pub async fn bug(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult 
 
                 change_bug_status(ctx, bug_id, new_status).await?;
 
+                let old_status = bug.status;
                 bug.status = new_status;
 
                 interaction
@@ -609,6 +718,16 @@ pub async fn bug(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult 
                             })
                     })
                     .await?;
+
+                notify_users(
+                    ctx,
+                    bug_id,
+                    format!(
+                        "A bug you are subscribed to has been changed from `{}` to `{}`",
+                        old_status, new_status
+                    ),
+                )
+                .await?;
 
                 create_buttons = false;
 
@@ -640,19 +759,34 @@ pub async fn bug_status(ctx: &Context, msg: &Message, mut args: Args) -> Command
             .parse::<u64>()
         {
             if let Ok(new_status) = args.single::<BugStatus>() {
-                match change_bug_status(ctx, bug_id, new_status).await {
-                    Ok(old_status) => termite_success!(
-                        ctx,
-                        msg,
-                        "Status changed for LOTR-{} from `{}` to `{}`!",
-                        bug_id,
-                        old_status,
-                        new_status
-                    ),
+                let old_status = match change_bug_status(ctx, bug_id, new_status).await {
+                    Ok(old_status) => {
+                        termite_success!(
+                            ctx,
+                            msg,
+                            "Status changed for LOTR-{} from `{}` to `{}`!",
+                            bug_id,
+                            old_status,
+                            new_status
+                        );
+                        old_status
+                    }
                     Err(e) => {
                         failure!(ctx, msg, "The bug LOTR-{} does not exist!", bug_id);
                         return Err(e);
                     }
+                };
+
+                if old_status != new_status {
+                    notify_users(
+                        ctx,
+                        bug_id,
+                        format!(
+                            "A bug you are subscribed to has been changed from `{}` to `{}`",
+                            old_status, new_status
+                        ),
+                    )
+                    .await?;
                 }
             } else {
                 failure!(ctx, msg, "The second argument must be a bug status.")
@@ -679,7 +813,13 @@ pub async fn resolve(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
                 failure!(ctx, msg, "The bug LOTR-{} does not exist!", bug_id);
                 return Err(e);
             } else {
-                termite_success!(ctx, msg, "LOTR-{} has been marked as resolved.", bug_id)
+                termite_success!(ctx, msg, "LOTR-{} has been marked as resolved.", bug_id);
+                notify_users(
+                    ctx,
+                    bug_id,
+                    format!("A bug you are subscribed to has been marked as resolved."),
+                )
+                .await?;
             }
         } else {
             failure!(ctx, msg, "`{}` is not a valid bug id!", bug_id)
@@ -704,7 +844,13 @@ pub async fn bug_close(ctx: &Context, msg: &Message, mut args: Args) -> CommandR
                 failure!(ctx, msg, "The bug LOTR-{} does not exist!", bug_id);
                 return Err(e);
             } else {
-                termite_success!(ctx, msg, "LOTR-{} has been marked as closed.", bug_id)
+                termite_success!(ctx, msg, "LOTR-{} has been marked as closed.", bug_id);
+                notify_users(
+                    ctx,
+                    bug_id,
+                    format!("A bug you are subscribed to has been marked as closed."),
+                )
+                .await?;
             }
         } else {
             failure!(ctx, msg, "`{}` is not a valid bug id!", bug_id)
@@ -734,10 +880,20 @@ pub async fn bug_link(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
                 }
                 if let Some(link_id) = add_link(ctx, bug_id, &message.link(), title).await {
                     termite_success!(ctx, msg, "Added link #{} to LOTR-{}", link_id, bug_id);
+                    notify_users(
+                        ctx,
+                        bug_id,
+                        format!("Link #{link_id} has been added to a bug you are subscribed to"),
+                    )
+                    .await?;
                 } else {
                     failure!(ctx, msg, "LOTR-{} does not exist!", bug_id);
                 }
-            } else if let Ok(link) = args.single::<String>() {
+            } else if let Some(link) = args
+                .single::<String>()
+                .ok()
+                .filter(|s| s.starts_with("http"))
+            {
                 let title = args.rest();
                 if title.is_empty() {
                     failure!(ctx, msg, "Specify a title for your message link!");
@@ -745,6 +901,12 @@ pub async fn bug_link(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
                 }
                 if let Some(link_id) = add_link(ctx, bug_id, &link, title).await {
                     termite_success!(ctx, msg, "Added link #{} to LOTR-{}", link_id, bug_id);
+                    notify_users(
+                        ctx,
+                        bug_id,
+                        format!("Link #{link_id} has been added to a bug you are subscribed to"),
+                    )
+                    .await?;
                 } else {
                     failure!(ctx, msg, "LOTR-{} does not exist!", bug_id);
                 }
@@ -827,6 +989,19 @@ pub async fn bug_toggle_edition(ctx: &Context, msg: &Message, mut args: Args) ->
                         "legacy to renewed"
                     }
                 );
+                notify_users(
+                    ctx,
+                    bug_id,
+                    format!(
+                        "A bug you are subscribed to has been changed from {}",
+                        if legacy {
+                            "renewed to legacy"
+                        } else {
+                            "legacy to renewed"
+                        }
+                    ),
+                )
+                .await?;
             } else {
                 failure!(ctx, msg, "The bug LOTR-{} does not exist!", bug_id);
             }
@@ -859,6 +1034,12 @@ pub async fn bug_rename(ctx: &Context, msg: &Message, mut args: Args) -> Command
                     "Successfully changed the title of LOTR-{}",
                     bug_id
                 );
+                notify_users(
+                    ctx,
+                    bug_id,
+                    format!("The title of a bug you are subscribed to has been changed"),
+                )
+                .await?
             } else {
                 failure!(ctx, msg, "LOTR-{} does not exist!", bug_id);
             }
@@ -872,7 +1053,6 @@ pub async fn bug_rename(ctx: &Context, msg: &Message, mut args: Args) -> Command
 }
 
 #[command]
-#[checks(is_lotr_discord)]
 #[aliases(statistics)]
 pub async fn stats(ctx: &Context, msg: &Message) -> CommandResult {
     if let Some([resolved, low, medium, high, critical, closed, forgevanilla, total, legacy]) =
@@ -931,4 +1111,54 @@ _Open bugs: {}_
 #[aliases("help")]
 pub async fn bugtracker_help(ctx: &Context, msg: &Message) -> CommandResult {
     crate::commands::help::display_bugtracker_help(ctx, msg).await
+}
+
+#[command]
+pub async fn notifications(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+    let closed = args
+        .single::<String>()
+        .map(|s| &s.to_ascii_lowercase() == "closed")
+        .unwrap_or_default();
+
+    let list = get_notifications_for_user(ctx, msg.author.id, closed).await?;
+
+    if list.is_empty() {
+        msg.reply(
+            ctx,
+            if closed {
+                "You have no notifications for now.
+Subscribe to a bug report to receive notifications."
+            } else {
+                "You have no active notifications for now.
+Type  `!bug notifications closed` to see all your notifications, \
+including those from closed or resolved bugs."
+            },
+        )
+        .await?;
+    } else {
+        msg.channel_id
+            .send_message(ctx, |m| {
+                m.embed(|e| {
+                    e.author(|a| {
+                        a.name("LOTR Mod Bugtracker")
+                            .icon_url(crate::constants::TERMITE_IMAGE)
+                    })
+                    .colour(serenity::utils::Colour::TEAL)
+                    .title("Bug notifications")
+                    .description(format!(
+                        "_List of bugs you are subscribed to_\n\n{}",
+                        list.iter()
+                            .map(|id| format!("LOTR-{id}"))
+                            .collect::<Vec<_>>()
+                            .join(", "),
+                    ));
+                    if closed {
+                        e.footer(|f| f.text("Including closed and resolved bugs"));
+                    }
+                    e
+                })
+            })
+            .await?;
+    }
+    Ok(())
 }
