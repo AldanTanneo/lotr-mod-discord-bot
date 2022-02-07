@@ -95,7 +95,11 @@ macro_rules! create_bug_embed {
     };
 }
 
-pub async fn notify_users(ctx: &Context, bug_id: u64, message: impl ToString) -> CommandResult {
+pub async fn notify_users(
+    ctx: &Context,
+    bug_id: u64,
+    message: impl std::fmt::Display,
+) -> CommandResult {
     let notified_users = get_notified_users(ctx, bug_id).await?;
     if notified_users.is_empty() {
         return Ok(());
@@ -134,7 +138,7 @@ pub async fn notify_users(ctx: &Context, bug_id: u64, message: impl ToString) ->
                         id: TERMITE_EMOJI,
                         name: "bug".into(),
                     }),
-                    message.to_string(),
+                    message,
                 ))
                 .embed(create_bug_embed!(bug, linked_message))
                 .components(|c| {
@@ -822,7 +826,7 @@ pub async fn resolve(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
                 notify_users(
                     ctx,
                     bug_id,
-                    format!("A bug you are subscribed to has been marked as resolved."),
+                    "A bug you are subscribed to has been marked as resolved.",
                 )
                 .await?;
             }
@@ -853,7 +857,7 @@ pub async fn bug_close(ctx: &Context, msg: &Message, mut args: Args) -> CommandR
                 notify_users(
                     ctx,
                     bug_id,
-                    format!("A bug you are subscribed to has been marked as closed."),
+                    "A bug you are subscribed to has been marked as closed.",
                 )
                 .await?;
             }
@@ -1042,7 +1046,7 @@ pub async fn bug_rename(ctx: &Context, msg: &Message, mut args: Args) -> Command
                 notify_users(
                     ctx,
                     bug_id,
-                    format!("The title of a bug you are subscribed to has been changed"),
+                    "The title of a bug you are subscribed to has been changed",
                 )
                 .await?
             } else {
