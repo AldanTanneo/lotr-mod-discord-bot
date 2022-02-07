@@ -81,13 +81,13 @@ fn deserialize_iso8601<'de, D>(de: D) -> Result<Option<DateTime<Utc>>, D::Error>
 where
     D: Deserializer<'de>,
 {
-    use iso_8601::{Date, GlobalTime};
+    use iso_8601::{ApproxDate, ApproxGlobalTime};
     use std::str::FromStr;
 
     let s = Option::<&str>::deserialize(de)?;
 
     if let Some(s) = s {
-        iso_8601::DateTime::<Date, GlobalTime>::from_str(s)
+        iso_8601::DateTime::<ApproxDate, ApproxGlobalTime>::from_str(s)
             .map_err(serde::de::Error::custom)
             .map(chrono::DateTime::<Utc>::from)
             .map(Some)
