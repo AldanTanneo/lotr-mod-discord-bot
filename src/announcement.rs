@@ -1,7 +1,7 @@
 //! Announcement function [`announce`] that posts a JSON message
 
 use chrono::{DateTime, Utc};
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use serde::{Deserialize, Deserializer, Serialize};
 use serenity::builder::{CreateEmbed, CreateMessage, EditMessage};
 use serenity::client::Context;
 use serenity::framework::standard::CommandResult;
@@ -50,24 +50,17 @@ where
     }
 }
 
-fn serialize_embed_colour<S>(
-    colour: &Option<AnnouncementEmbedColour>,
-    s: S,
-) -> Result<S::Ok, S::Error>
-where
-    S: Serializer,
-{
-    if let Some(colour) = colour {
-        s.serialize_str(format!("{:x}", colour.0 .0).as_str())
-    } else {
-        panic!("Never serialize None!");
-    }
-}
-
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(into = "Colour")]
 pub struct AnnouncementEmbedColour(
     #[serde(deserialize_with = "deserialize_embed_colour")] pub Colour,
 );
+
+impl From<AnnouncementEmbedColour> for Colour {
+    fn from(c: AnnouncementEmbedColour) -> Colour {
+        c.0
+    }
+}
 
 #[derive(Debug, serde_tuple::Serialize_tuple, serde_tuple::Deserialize_tuple, Clone)]
 pub struct AnnouncementEmbedField {
@@ -84,14 +77,29 @@ pub struct AnnouncementEmbedFooter {
     pub icon: Option<String>,
 }
 
+fn deserialize_iso8601<'de, D>(de: D) -> Result<Option<DateTime<Utc>>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    use iso_8601::{Date, GlobalTime};
+    use std::str::FromStr;
+
+    let s = Option::<&str>::deserialize(de)?;
+
+    if let Some(s) = s {
+        iso_8601::DateTime::<Date, GlobalTime>::from_str(s)
+            .map_err(serde::de::Error::custom)
+            .map(chrono::DateTime::<Utc>::from)
+            .map(Some)
+    } else {
+        Ok(None)
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct AnnouncementEmbed {
     pub author: Option<AnnouncementEmbedAuthor>,
-    #[serde(
-        alias = "color",
-        skip_serializing_if = "Option::is_none",
-        serialize_with = "serialize_embed_colour"
-    )]
+    #[serde(alias = "color", skip_serializing_if = "Option::is_none")]
     pub colour: Option<AnnouncementEmbedColour>,
     pub title: Option<String>,
     pub url: Option<String>,
@@ -103,6 +111,7 @@ pub struct AnnouncementEmbed {
     pub fields: Option<Vec<AnnouncementEmbedField>>,
 
     pub footer: Option<AnnouncementEmbedFooter>,
+    #[serde(deserialize_with = "deserialize_iso8601")]
     pub timestamp: Option<DateTime<Utc>>,
 }
 
