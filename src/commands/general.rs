@@ -1,4 +1,5 @@
 use bytesize::ByteSize;
+use serenity::builder::CreateBotAuthParameters;
 use serenity::client::Context;
 use serenity::framework::standard::{macros::command, Args, CommandResult};
 use serenity::model::interactions::message_component::ButtonStyle;
@@ -194,27 +195,16 @@ To fix this, go to your `/.minecraft/mods` folder and change the file extension!
 #[checks(allowed_blacklist)]
 pub async fn invite(ctx: &Context, msg: &Message) -> CommandResult {
     let user_icon = ctx.cache.current_user_field(|user| user.face());
-    // TODO: Change to a dynamically generated link when serenity fixes their bitflags
-    /*
-    let invite_link = ctx
-    .cache
-    .current_user()
-    .await
-    .invite_url_with_oauth2_scopes(
-        ctx,
-        Permissions::SEND_MESSAGES
-            | Permissions::USE_PUBLIC_THREADS
-            | Permissions::USE_PRIVATE_THREADS
-            | Permissions::MANAGE_THREADS
-            | Permissions::EMBED_LINKS
-            | Permissions::ADD_REACTIONS
-            | Permissions::MANAGE_MESSAGES
-            | Permissions::MANAGE_ROLES,
-        &[OAuth2Scope::Bot, OAuth2Scope::ApplicationsCommands],
-    )
-    .await?;
-    */
-    let invite_link = "https://discord.com/api/oauth2/authorize?client_id=780858391383638057&permissions=189784255552&scope=bot%20applications.commands";
+    let invite_url = {
+        let mut builder = CreateBotAuthParameters::default();
+        builder
+            .permissions(crate::constants::INVITE_PERMISSIONS)
+            .auto_client_id(ctx)
+            .await?
+            .scopes(&[OAuth2Scope::Bot, OAuth2Scope::ApplicationsCommands]);
+        builder.build()
+    };
+
     msg.channel_id
         .send_message(ctx, |m| {
             m.embed(|e| {
@@ -225,7 +215,7 @@ pub async fn invite(ctx: &Context, msg: &Message) -> CommandResult {
                     })
                     .field(
                         "Invite me to your server!",
-                        format!("My invite link is available [here]({}).", invite_link),
+                        format!("My invite link is available [here]({}).", invite_url),
                         false,
                     )
             })
@@ -234,7 +224,7 @@ pub async fn invite(ctx: &Context, msg: &Message) -> CommandResult {
                     a.create_button(|b| {
                         b.style(ButtonStyle::Link)
                             .label("Invite me")
-                            .url(invite_link)
+                            .url(invite_url)
                     })
                 })
             })

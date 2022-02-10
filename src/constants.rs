@@ -17,11 +17,30 @@ pub const MAX_JSON_FILE_SIZE: u64 = 10240;
 pub const BIT_FILTER_24BITS: u32 = !(!0 << 24);
 
 /// Set of [permissions][Permissions] needed to manage the bot (bot admins and owner excepted).
-///
-/// Equivalent to `ADMINISTRATOR | MANAGE_GUILD | MANAGE_CHANNELS`
 pub const MANAGE_BOT_PERMS: Permissions = Permissions::ADMINISTRATOR
     .union(Permissions::MANAGE_GUILD)
-    .union(Permissions::MANAGE_CHANNELS);
+    .union(Permissions::MANAGE_CHANNELS)
+    .union(Permissions::MANAGE_ROLES)
+    .union(Permissions::MANAGE_WEBHOOKS)
+    .union(Permissions::MODERATE_MEMBERS);
+
+/// Set of [permissions][Permissions] needed for the bot when inviting it to a server
+pub const INVITE_PERMISSIONS: Permissions = Permissions::MANAGE_ROLES
+    .union(Permissions::CHANGE_NICKNAME)
+    .union(Permissions::READ_MESSAGES)
+    .union(Permissions::SEND_MESSAGES)
+    .union(Permissions::CREATE_PUBLIC_THREADS)
+    .union(Permissions::CREATE_PRIVATE_THREADS)
+    .union(Permissions::SEND_MESSAGES_IN_THREADS)
+    .union(Permissions::MANAGE_MESSAGES)
+    .union(Permissions::MANAGE_THREADS)
+    .union(Permissions::EMBED_LINKS)
+    .union(Permissions::ATTACH_FILES)
+    .union(Permissions::READ_MESSAGE_HISTORY)
+    .union(Permissions::MENTION_EVERYONE)
+    .union(Permissions::USE_EXTERNAL_EMOJIS)
+    .union(Permissions::USE_EXTERNAL_STICKERS)
+    .union(Permissions::ADD_REACTIONS);
 
 /// Bot icon
 pub const BOT_ICON: &str =
