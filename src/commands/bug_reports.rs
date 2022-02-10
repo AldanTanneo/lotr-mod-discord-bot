@@ -12,9 +12,9 @@ use crate::check::*;
 use crate::constants::{LOTR_DISCORD, MANAGE_BOT_PERMS, OWNER_ID};
 use crate::database::admin_data::is_admin_function;
 use crate::database::bug_reports::{
-    add_bug_report, add_link, add_notified_user, change_bug_status, change_title, get_bug_from_id,
-    get_bug_list, get_bug_statistics, get_notifications_for_user, get_notified_users,
-    is_notified_user, remove_link, switch_edition, BugOrder, BugStatus,
+    add_bug_report, add_link, add_notified_user, change_bug_status, change_category, change_title,
+    get_bug_from_id, get_bug_list, get_bug_statistics, get_notifications_for_user,
+    get_notified_users, is_notified_user, remove_link, BugCategory, BugOrder, BugStatus,
 };
 use crate::failure;
 
@@ -57,11 +57,11 @@ macro_rules! create_bug_embed {
             });
             e.colour($bug.status.colour());
             e.title(format!(
-                "{} LOTR-{}: {}{}",
+                "{} LOTR-{}: {} [{}]",
                 $bug.status.marker(),
                 $bug.bug_id,
                 $bug.title,
-                if $bug.legacy { " [legacy]" } else { "" }
+                $bug.category
             ));
             if let Ok(ref message) = $linked_message {
                 e.description(&message.content);
@@ -173,10 +173,7 @@ pub async fn notify_users(
 #[checks(is_admin, is_lotr_discord)]
 #[aliases(report)]
 pub async fn track(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    let legacy = args.current().map(|s| s == "legacy").unwrap_or_default();
-    if legacy {
-        args.advance();
-    }
+    let category = args.single::<BugCategory>().unwrap_or_default();
     let status = args.single::<BugStatus>().unwrap_or_default();
 
     let title = args.rest();
@@ -193,7 +190,7 @@ pub async fn track(ctx: &Context, msg: &Message, mut args: Args) -> CommandResul
     };
 
     let bug_id =
-        match add_bug_report(ctx, referenced_message, title.to_string(), status, legacy).await {
+        match add_bug_report(ctx, referenced_message, title.to_string(), status, category).await {
             Ok(bug_id) => bug_id,
             Err(e) => {
                 failure!(ctx, msg, "Could not submit the bug report!");
@@ -204,8 +201,8 @@ pub async fn track(ctx: &Context, msg: &Message, mut args: Args) -> CommandResul
     msg.channel_id
         .send_message(ctx, |m| {
             m.content(format!(
-                "Tracking bug LOTR-{} (priority: `{}`)",
-                bug_id, status
+                "Tracking bug LOTR-{} (priority: `{}`, edition: {})",
+                bug_id, status, category
             ))
             .reference_message(referenced_message)
             .allowed_mentions(|f| f.empty_parse())
@@ -297,16 +294,16 @@ async fn display_bugs(
     status: Option<BugStatus>,
     limit: u32,
     display_order: BugOrder,
-    legacy: Option<bool>,
+    category: Option<BugCategory>,
     page: u32,
     reply_to: Either<'_>,
 ) -> Result<Option<Message>, SerenityError> {
     assert_ne!(page, 0);
 
     if let Some((bugs, total_bugs)) =
-        get_bug_list(ctx, status, limit, display_order, legacy, page - 1).await
+        get_bug_list(ctx, status, limit, display_order, category, page - 1).await
     {
-        if ((page - 1) * limit) >= total_bugs {
+        if total_bugs != 0 && (page - 1) * limit >= total_bugs {
             reply_to.failure(ctx, "Page number too high, consider calling `!bugs` and using the navigation arrows.").await?;
             return Err(SerenityError::Other("page_too_high"));
         }
@@ -320,28 +317,24 @@ async fn display_bugs(
                 "{} Bug reports (Status: {}){} (Total: {})",
                 status.marker(),
                 status,
-                if let Some(b) = legacy {
-                    if b {
-                        " [legacy]"
-                    } else {
-                        " [renewed]"
-                    }
+                if let Some(c) = category {
+                    format!(" [{c}]")
                 } else {
-                    ""
+                    "".into()
                 },
                 total_bugs
             );
-            content_alt = "_No open bugs!_";
+            content_alt = "_No bugs with this status!_";
             content = bugs
                 .iter()
                 .map(|b| {
                     format!(
                         "{}{}",
                         b,
-                        if legacy.is_none() && b.legacy {
-                            " [legacy]"
+                        if category.is_none() {
+                            format!(" [{}]", b.category)
                         } else {
-                            ""
+                            "".into()
                         }
                     )
                 })
@@ -351,18 +344,14 @@ async fn display_bugs(
         } else {
             title = format!(
                 "Open bug reports{} (Total: {})",
-                if let Some(b) = legacy {
-                    if b {
-                        " [legacy]"
-                    } else {
-                        " [renewed]"
-                    }
+                if let Some(c) = category {
+                    format!(" [{c}]")
                 } else {
-                    ""
+                    "".into()
                 },
                 total_bugs
             );
-            content_alt = "_No bugs with this status!_";
+            content_alt = "_No open bugs!_";
             content = bugs
                 .iter()
                 .map(|b| {
@@ -370,10 +359,10 @@ async fn display_bugs(
                         "{} {}{}",
                         b.status.marker(),
                         b,
-                        if legacy.is_none() && b.legacy {
-                            " [legacy]"
+                        if category.is_none() {
+                            format!(" [{}]", b.category)
                         } else {
-                            ""
+                            "".into()
                         }
                     )
                 })
@@ -459,17 +448,7 @@ async fn display_bugs(
 #[aliases(bugs)]
 #[sub_commands(bugtracker_help)]
 pub async fn buglist(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    let legacy = args
-        .current()
-        .map(|s| match s {
-            "legacy" => Some(true),
-            "renewed" => Some(false),
-            _ => None,
-        })
-        .flatten();
-    if legacy.is_some() {
-        args.advance();
-    }
+    let category = args.single::<BugCategory>().ok();
     let status = args.single::<BugStatus>().ok();
 
     let mut display_order = match args.current() {
@@ -500,7 +479,7 @@ pub async fn buglist(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
         status,
         limit,
         display_order,
-        legacy,
+        category,
         page,
         Either::Message(msg),
     )
@@ -546,7 +525,7 @@ pub async fn buglist(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
             status,
             limit,
             display_order,
-            legacy,
+            category,
             page,
             Either::Interaction(interaction.as_ref()),
         )
@@ -986,33 +965,36 @@ pub async fn bug_toggle_edition(ctx: &Context, msg: &Message, mut args: Args) ->
             .trim_start_matches("LOTR-")
             .parse::<u64>()
         {
-            if let Some(legacy) = switch_edition(ctx, bug_id).await {
-                termite_success!(
+            if let Ok(category) = args.single::<BugCategory>() {
+                if let Some(old_category) = change_category(ctx, bug_id, category).await {
+                    if category != old_category {
+                        termite_success!(
+                            ctx,
+                            msg,
+                            "LOTR-{} has been changed from {} to {}",
+                            bug_id,
+                            old_category,
+                            category
+                        );
+                        notify_users(
+                            ctx,
+                            bug_id,
+                            format!(
+                                "A bug you are subscribed to has been changed from {} to {}",
+                                old_category, category
+                            ),
+                        )
+                        .await?;
+                    }
+                } else {
+                    failure!(ctx, msg, "The bug LOTR-{} does not exist!", bug_id);
+                }
+            } else {
+                failure!(
                     ctx,
                     msg,
-                    "LOTR-{} has been changed from {}",
-                    bug_id,
-                    if legacy {
-                        "renewed to legacy"
-                    } else {
-                        "legacy to renewed"
-                    }
+                    "The second argument must be either `renewed` or `legacy`."
                 );
-                notify_users(
-                    ctx,
-                    bug_id,
-                    format!(
-                        "A bug you are subscribed to has been changed from {}",
-                        if legacy {
-                            "renewed to legacy"
-                        } else {
-                            "legacy to renewed"
-                        }
-                    ),
-                )
-                .await?;
-            } else {
-                failure!(ctx, msg, "The bug LOTR-{} does not exist!", bug_id);
             }
         } else {
             failure!(ctx, msg, "`{}` is not a valid bug id!", bug_id);
@@ -1064,9 +1046,7 @@ pub async fn bug_rename(ctx: &Context, msg: &Message, mut args: Args) -> Command
 #[command]
 #[aliases(statistics)]
 pub async fn stats(ctx: &Context, msg: &Message) -> CommandResult {
-    if let Some([resolved, low, medium, high, critical, closed, forgevanilla, total, legacy]) =
-        get_bug_statistics(ctx).await
-    {
+    if let Some(counts) = get_bug_statistics(ctx).await {
         msg.channel_id
             .send_message(ctx, |m| {
                 m.embed(|e| {
@@ -1092,16 +1072,16 @@ _Open bugs: {}_
 **Total: {} tracked bugs**
 \t_including {} legacy bugs_
 ",
-                            resolved,
-                            closed,
-                            forgevanilla,
-                            total - resolved - closed - forgevanilla,
-                            low,
-                            medium,
-                            high,
-                            critical,
-                            total,
-                            legacy,
+                            counts.resolved,
+                            counts.closed,
+                            counts.forgevanilla,
+                            counts.total - counts.resolved - counts.closed - counts.forgevanilla,
+                            counts.low,
+                            counts.medium,
+                            counts.high,
+                            counts.critical,
+                            counts.total,
+                            counts.legacy,
                         ),
                         false,
                     );
