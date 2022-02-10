@@ -77,22 +77,29 @@ pub struct AnnouncementEmbedFooter {
     pub icon: Option<String>,
 }
 
-fn deserialize_iso8601<'de, D>(de: D) -> Result<Option<DateTime<Utc>>, D::Error>
+fn deserialize_iso8601<'de, D>(de: D) -> Result<DateTime<Utc>, D::Error>
 where
     D: Deserializer<'de>,
 {
     use iso_8601::{ApproxDate, ApproxGlobalTime};
     use std::str::FromStr;
 
-    let s = Option::<&str>::deserialize(de)?;
+    let s = <&str>::deserialize(de)?;
 
-    if let Some(s) = s {
-        iso_8601::DateTime::<ApproxDate, ApproxGlobalTime>::from_str(s)
-            .map_err(serde::de::Error::custom)
-            .map(chrono::DateTime::<Utc>::from)
-            .map(Some)
-    } else {
-        Ok(None)
+    iso_8601::DateTime::<ApproxDate, ApproxGlobalTime>::from_str(s)
+        .map_err(serde::de::Error::custom)
+        .map(chrono::DateTime::<Utc>::from)
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(into = "DateTime<Utc>")]
+pub struct AnnouncementEmbedTimestamp(
+    #[serde(deserialize_with = "deserialize_iso8601")] pub DateTime<Utc>,
+);
+
+impl From<AnnouncementEmbedTimestamp> for DateTime<Utc> {
+    fn from(ts: AnnouncementEmbedTimestamp) -> DateTime<Utc> {
+        ts.0
     }
 }
 
@@ -111,8 +118,7 @@ pub struct AnnouncementEmbed {
     pub fields: Option<Vec<AnnouncementEmbedField>>,
 
     pub footer: Option<AnnouncementEmbedFooter>,
-    #[serde(deserialize_with = "deserialize_iso8601")]
-    pub timestamp: Option<DateTime<Utc>>,
+    pub timestamp: Option<AnnouncementEmbedTimestamp>,
 }
 
 fn deserialize_announcement_reaction<'de, D>(d: D) -> Result<ReactionType, D::Error>
@@ -310,7 +316,7 @@ fn parse_embed(embed: &AnnouncementEmbed) -> CreateEmbed {
     }
 
     if let Some(timestamp) = &embed.timestamp {
-        builder.timestamp(*timestamp);
+        builder.timestamp(timestamp.0);
     }
 
     builder
