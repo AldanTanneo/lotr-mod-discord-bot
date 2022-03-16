@@ -132,7 +132,7 @@ pub async fn notify_users(
         if let Err(e) = channel
             .send_message(ctx, |m| {
                 m.content(format!(
-                    "**LOTR Mod Bugtracker notification {}**\n\n{}\n ",
+                    "**LOTR Mod Bugtracker notification {}**\n{}\n\u{00a0}",
                     ReactionType::from(EmojiIdentifier {
                         animated: false,
                         id: TERMITE_EMOJI,
@@ -583,17 +583,16 @@ pub async fn bug(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult 
         ($message_link:expr) => {
             |c| {
                 c.create_action_row(|a| {
-                    a.create_button(|b| {
-                        b.style(ButtonStyle::Primary)
-                            .label("Subscribe")
-                            .custom_id(format!("bug_subscribe__{bug_id}"))
-                    });
                     if let Some(ref link) = $message_link {
                         a.create_button(|b| {
                             b.style(ButtonStyle::Link).label("Message link").url(link)
                         });
                     }
-                    a
+                    a.create_button(|b| {
+                        b.style(ButtonStyle::Primary)
+                            .label("Subscribe")
+                            .custom_id(format!("bug_subscribe__{bug_id}"))
+                    })
                 });
 
                 c
@@ -602,16 +601,18 @@ pub async fn bug(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult 
         ($message_link:expr, $create_buttons:expr, $disabled:expr) => {
             |c| {
                 c.create_action_row(|a| {
+                    if let Some(link) = $message_link.as_ref() {
+                        a.create_button(|b| {
+                            b.style(ButtonStyle::Link)
+                                .label("Jump to message")
+                                .url(link)
+                        });
+                    }
                     a.create_button(|b| {
                         b.style(ButtonStyle::Primary)
                             .label("Subscribe")
                             .custom_id(format!("bug_subscribe__{bug_id}"))
                     });
-                    if let Some(link) = $message_link.as_ref() {
-                        a.create_button(|b| {
-                            b.style(ButtonStyle::Link).label("Message link").url(link)
-                        });
-                    }
                     if $create_buttons {
                         a.create_button(|b| {
                             b.style(ButtonStyle::Success)
@@ -619,7 +620,6 @@ pub async fn bug(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult 
                                 .custom_id("resolve_bug")
                                 .disabled($disabled)
                         });
-
                         a.create_button(|b| {
                             b.style(ButtonStyle::Danger)
                                 .label("Close")

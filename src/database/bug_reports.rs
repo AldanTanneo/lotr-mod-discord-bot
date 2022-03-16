@@ -47,16 +47,16 @@ impl std::str::FromStr for BugStatus {
     type Err = ParseStatusError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s.to_lowercase().as_str() {
-            "resolved" => Ok(Resolved),
-            "low" => Ok(Low),
-            "medium" => Ok(Medium),
-            "high" => Ok(High),
-            "critical" => Ok(Critical),
-            "closed" => Ok(Closed),
-            "forgevanilla" | "forge" | "vanilla" => Ok(ForgeVanilla),
-            _ => Err(Self::Err {}),
-        }
+        Ok(match s.to_lowercase().as_str() {
+            "resolved" => Resolved,
+            "low" => Low,
+            "medium" => Medium,
+            "high" => High,
+            "critical" => Critical,
+            "closed" => Closed,
+            "forgevanilla" | "forge" | "vanilla" => ForgeVanilla,
+            _ => return Err(Self::Err {}),
+        })
     }
 }
 
@@ -149,7 +149,7 @@ impl std::str::FromStr for BugCategory {
         Ok(match s.to_ascii_lowercase().as_str() {
             "renewed" => Renewed,
             "legacy" => Legacy,
-            _ => Err(ParseCategoryError)?,
+            _ => return Err(ParseCategoryError),
         })
     }
 }
