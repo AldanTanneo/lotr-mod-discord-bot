@@ -414,12 +414,9 @@ async fn display_bugs(
                     .create_interaction_response(ctx, |r| {
                         r.kind(InteractionResponseType::UpdateMessage)
                             .interaction_response_data(|m| {
-                                m.embeds([])
-                                    .create_embed(create_embed_reponse!())
-                                    .components(create_buttons!(
-                                        page <= 1,
-                                        (page * limit) >= total_bugs
-                                    ))
+                                m.set_embeds([]).embed(create_embed_reponse!()).components(
+                                    create_buttons!(page <= 1, (page * limit) >= total_bugs),
+                                )
                             })
                     })
                     .await?;
@@ -700,8 +697,8 @@ pub async fn bug(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult 
                     .create_interaction_response(ctx, |r| {
                         r.kind(InteractionResponseType::UpdateMessage)
                             .interaction_response_data(|m| {
-                                m.embeds([])
-                                    .create_embed(create_bug_embed!(bug, linked_message))
+                                m.set_embeds([])
+                                    .embed(create_bug_embed!(bug, linked_message))
                                     .components(create_bug_buttons!(message_link))
                             })
                     })
