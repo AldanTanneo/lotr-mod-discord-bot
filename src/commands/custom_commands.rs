@@ -200,6 +200,11 @@ Channel: {:?}\nMessage: {}\n=== END ===",
                     .replace("\u{200B}$channel", &msg.channel_id.mention().to_string());
             }
 
+            if b.contains("\u{200B}$as_url") {
+                changed = true;
+                b = b.replace("\u{200B}$as_url", &urlencoding::encode(args.rest()));
+            }
+
             if b.contains("\u{200B}$args") {
                 changed = true;
                 b = b.replace("\u{200B}$args", &to_json_safe_string(&args.rest()));
@@ -221,11 +226,6 @@ Channel: {:?}\nMessage: {}\n=== END ===",
                             );
                         }
                     });
-            }
-
-            if b.contains("\u{200B}$as_url") {
-                changed = true;
-                b = b.replace("\u{200B}$as_url", &urlencoding::encode(args.rest()));
             }
 
             let argc = args.len() - 1;

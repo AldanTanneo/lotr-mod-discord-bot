@@ -250,9 +250,9 @@ pub fn parse_motd(motd: impl ToString) -> String {
     res
 }
 
-pub fn to_json_safe_string(s: impl ToString) -> String {
+pub fn to_json_safe_string(s: impl AsRef<str>) -> String {
     // serialize as string to get string escapes
-    let s = serde_json::ser::to_string(&serde_json::Value::String(s.to_string())).unwrap();
+    let s = serde_json::ser::to_string(s.as_ref()).unwrap();
     // remove the surrounding quotes
     s[1..s.len() - 1].to_string()
 }
