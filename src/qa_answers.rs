@@ -5,20 +5,17 @@ use serenity::prelude::*;
 use crate::database::qa_data::*;
 
 fn extract_image_attachment(msg: &Message) -> Option<&Attachment> {
-    msg.attachments
-        .get(0)
-        .map(|a| {
-            if a.content_type
-                .as_ref()
-                .map(|s| s.starts_with("image"))
-                .unwrap_or_default()
-            {
-                Some(a)
-            } else {
-                None
-            }
-        })
-        .flatten()
+    msg.attachments.get(0).and_then(|a| {
+        if a.content_type
+            .as_ref()
+            .map(|s| s.starts_with("image"))
+            .unwrap_or_default()
+        {
+            Some(a)
+        } else {
+            None
+        }
+    })
 }
 
 pub async fn handle_reaction(ctx: &Context, reaction: Reaction, guild_id: GuildId) {

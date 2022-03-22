@@ -49,7 +49,7 @@ pub async fn allowed_blacklist(ctx: &Context, msg: &Message) -> Result<(), Reaso
         .await
         .map_err(|e| Reason::Log(format!("Could not retrieve channel: {:?}", e)))?
         .guild()
-        .map(|g| g.thread_metadata.map(|_| g.parent_id).flatten())
+        .map(|g| g.thread_metadata.and(g.parent_id))
         .ok_or_else(|| Reason::Log("Not in a guild".into()))?;
 
     let mut channel_id = msg.channel_id;

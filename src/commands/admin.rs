@@ -99,7 +99,7 @@ async fn cache(ctx: &Context) -> CommandResult {
 pub async fn admin(ctx: &Context, msg: &Message) -> CommandResult {
     let server_id = msg.guild_id.ok_or(NotInGuild)?;
 
-    let admins = get_admins(ctx, server_id).await.unwrap_or_else(Vec::new);
+    let admins = get_admins(ctx, server_id).await.unwrap_or_default();
 
     let mut user_names: Vec<String> = admins.iter().map(|&id| id.mention().to_string()).collect();
     user_names.push(OWNER_ID.mention().to_string());

@@ -27,7 +27,7 @@ pub async fn google_search(ctx: &Context, query: &str, wiki: &Wikis) -> Option<[
     let req: [(&str, &str); 5] = [
         ("key", &api_key),
         ("cx", &search_engine_id),
-        ("q", &query.replace(" ", "+")),
+        ("q", &query.replace(' ', "+")),
         ("num", "3"),
         ("siteSearch", &wiki.site()),
     ];

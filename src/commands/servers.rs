@@ -122,7 +122,7 @@ pub async fn online(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
                             .list
                             .as_ref()
                             .map(|s| {
-                                let res = s.join(", ").replace("_", "\\_");
+                                let res = s.join(", ").replace('_', "\\_");
                                 if res.len() > 1024 {
                                     "Too many usernames to display!".into()
                                 } else {

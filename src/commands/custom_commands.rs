@@ -223,6 +223,11 @@ Channel: {:?}\nMessage: {}\n=== END ===",
                     });
             }
 
+            if b.contains("\u{200B}$as_url") {
+                changed = true;
+                b = b.replace("\u{200B}$as_url", &urlencoding::encode(args.rest()));
+            }
+
             let argc = args.len() - 1;
             if changed {
                 message = serde_json::from_str(&b.replace("\\$", "$"))?;
@@ -309,12 +314,13 @@ pub async fn define(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
             if let Some(map) = message["subcommands"].as_object() {
                 // validate that all subcommands are well defined
                 if let Some((key, val)) = map.iter().find_map(|(key, val)| {
-                    val.as_str()
-                        .map(|v| {
-                            (!(map.contains_key(v) && map[v].is_object()) || v == key)
-                                .then(|| (key, v))
-                        })
-                        .flatten()
+                    val.as_str().and_then(|v| {
+                        if !(map.contains_key(v) && map[v].is_object()) || v == key {
+                            Some((key, v))
+                        } else {
+                            None
+                        }
+                    })
                 }) {
                     failure!(ctx, msg, "The alias `{:?}: {:?}` is not defined!", key, val);
                     return Ok(());

@@ -177,8 +177,7 @@ impl EventHandler for Handler {
         {
             if let Some(bug_id) = custom_id
                 .strip_prefix("bug_unsubscribe__")
-                .map(|s| s.parse::<u64>().ok())
-                .flatten()
+                .and_then(|s| s.parse::<u64>().ok())
             {
                 if crate::database::bug_reports::is_notified_user(&ctx, bug_id, user.id).await
                     != Some(true)
@@ -220,8 +219,7 @@ To see all your active notifications type  `!bug notifications`",
                 }
             } else if let Some(bug_id) = custom_id
                 .strip_prefix("bug_subscribe__")
-                .map(|s| s.parse::<u64>().ok())
-                .flatten()
+                .and_then(|s| s.parse::<u64>().ok())
             {
                 if crate::database::bug_reports::is_notified_user(&ctx, bug_id, user.id).await
                     != Some(false)

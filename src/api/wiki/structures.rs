@@ -35,7 +35,7 @@ impl From<RandomPage> for GenericPage {
             link: format!(
                 "{}/{}",
                 LotrMod(En).site(),
-                page.title.trim().replace(" ", "_")
+                page.title.trim().replace(' ', "_")
             ),
         }
     }

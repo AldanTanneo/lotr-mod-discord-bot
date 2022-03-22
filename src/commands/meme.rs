@@ -60,8 +60,7 @@ async fn dagohon(ctx: &Context, msg: &Message) -> CommandResult {
 async fn colour(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let colour_value = args
         .current()
-        .map(|s| u32::from_str_radix(s.trim_start_matches('#'), 16).ok())
-        .flatten()
+        .and_then(|s| u32::from_str_radix(s.trim_start_matches('#'), 16).ok())
         .unwrap_or_else(|| alea::u32() & BIT_FILTER_24BITS);
 
     msg.channel_id
