@@ -1,7 +1,7 @@
 use crate::serenity::model::interactions::message_component::ButtonStyle;
 use crate::{Context, Result};
 
-#[derive(Debug, poise::SlashChoiceParameter)]
+#[derive(Debug, poise::ChoiceParameter)]
 pub enum VersionChoice {
     Legacy,
     Renewed,

@@ -22,7 +22,7 @@ pub const MANAGE_BOT_PERMS: Permissions = Permissions::ADMINISTRATOR
 /// Set of [permissions][Permissions] needed for the bot when inviting it to a server
 pub const INVITE_PERMISSIONS: Permissions = Permissions::MANAGE_ROLES
     .union(Permissions::CHANGE_NICKNAME)
-    .union(Permissions::READ_MESSAGES)
+    .union(Permissions::VIEW_CHANNEL)
     .union(Permissions::SEND_MESSAGES)
     .union(Permissions::CREATE_PUBLIC_THREADS)
     .union(Permissions::CREATE_PRIVATE_THREADS)

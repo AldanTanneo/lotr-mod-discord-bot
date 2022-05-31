@@ -7,9 +7,10 @@ pub mod user_data;
 pub mod utils;
 
 pub use poise::serenity_prelude as serenity;
+use serenity::GatewayIntents;
 pub use sqlx::mysql;
 
-use std::env;
+use std::{env, sync::Arc};
 
 pub use user_data::{Context, Data, Error, Result};
 
@@ -43,6 +44,7 @@ async fn main() -> Result {
     };
 
     let framework = poise::Framework::<Data, Error>::build()
+        .intents(GatewayIntents::non_privileged() | GatewayIntents::MESSAGE_CONTENT)
         .token(token)
         .user_data_setup(|ctx, ready, framework| Box::pin(Data::new(ctx, ready, framework, db_uri)))
         .options(framework_options)
@@ -51,7 +53,7 @@ async fn main() -> Result {
 
     {
         // Ctrl+C listener
-        let shard_manager = framework.shard_manager();
+        let shard_manager = Arc::clone(framework.shard_manager());
         tokio::spawn(async move {
             tokio::signal::ctrl_c().await.unwrap();
             println!("Shutting down...");
@@ -62,7 +64,7 @@ async fn main() -> Result {
     #[cfg(unix)]
     {
         // Sigterm listener
-        let shard_manager = framework.shard_manager();
+        let shard_manager = Arc::clone(framework.shard_manager());
         tokio::spawn(async move {
             tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())
                 .unwrap()

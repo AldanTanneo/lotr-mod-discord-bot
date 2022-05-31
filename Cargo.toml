@@ -15,7 +15,7 @@ chrono = "0.4"
 const_format = "0.2"
 
 [dependencies.tokio]
-version = "1.15"
+version = "1.18"
 features = [
     "macros", 
     "rt-multi-thread",
