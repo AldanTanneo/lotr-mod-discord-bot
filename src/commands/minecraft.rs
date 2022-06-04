@@ -98,7 +98,7 @@ pub async fn online(
                                     .list
                                     .as_ref()
                                     .map(|s| {
-                                        let res = s.join(", ").replace("_", "\\_");
+                                        let res = s.join(", ").replace('_', "\\_");
                                         if res.len() > 1024 {
                                             "Too many usernames to display!".into()
                                         } else {
@@ -213,8 +213,7 @@ pub async fn set(ctx: Context<'_>, #[description = "The IP address to set"] ip: 
                     .commands
                     .iter()
                     .find(|c| c.name == "online")
-                    .map(|c| c.create_as_slash_command())
-                    .flatten()
+                    .and_then(|c| c.create_as_slash_command())
                     .expect("No /online command found!");
                 b
             })

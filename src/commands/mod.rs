@@ -30,7 +30,8 @@ pub async fn facebook(ctx: Context<'_>) -> Result {
             e.colour(COLOUR);
             e.description(formatcp!(
                 "Check the mod's Facebook page for
-updates and teasers [here]({URL})!"
+updates and teasers [here]({})!",
+                URL
             ));
             e.thumbnail(ICON);
             e.title("Link to the Facebook page");
@@ -171,7 +172,7 @@ pub async fn user(
         None
     };
 
-    let colour = member.as_ref().map(|m| m.colour(ctx.discord())).flatten();
+    let colour = member.as_ref().and_then(|m| m.colour(ctx.discord()));
 
     ctx.send(|m| {
         m.embed(|e| {
@@ -179,7 +180,7 @@ pub async fn user(
                 e.colour(colour);
             }
             e.thumbnail(user.face());
-            if let Some(nick) = member.as_ref().map(|mb| mb.nick.as_ref()).flatten() {
+            if let Some(nick) = member.as_ref().and_then(|mb| mb.nick.as_ref()) {
                 e.title(nick);
                 e.description(format!(
                     "Username: **{}**{}",
@@ -201,7 +202,7 @@ pub async fn user(
                 &user.id.created_at().format("%d %B %Y at %R"),
                 true,
             );
-            if let Some(joined_at) = member.as_ref().map(|mb| mb.joined_at.as_ref()).flatten() {
+            if let Some(joined_at) = member.as_ref().and_then(|mb| mb.joined_at.as_ref()) {
                 e.field(
                     "Account join date",
                     joined_at.format("%d %B %Y at %R"),
@@ -210,8 +211,7 @@ pub async fn user(
             }
             if let Some(roles) = member
                 .as_ref()
-                .map(|mb| (!mb.roles.is_empty()).then(|| &mb.roles))
-                .flatten()
+                .and_then(|mb| (!mb.roles.is_empty()).then(|| &mb.roles))
             {
                 e.field(
                     "Roles",

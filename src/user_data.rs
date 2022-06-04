@@ -80,9 +80,8 @@ impl Data {
         if let Ok(Ok(test_guild_id)) =
             std::env::var("TEST_SLASH_COMMANDS").map(|s| s.parse::<u64>())
         {
-            let mut merged_commands = commands_builder.0;
-            merged_commands.append(&mut online_command_builder.0);
-            let commands_json = serde_json::Value::Array(merged_commands);
+            commands_builder.0.append(&mut online_command_builder.0);
+            let commands_json = serde_json::Value::Array(commands_builder.0);
             println!("Testing environment...");
             ctx.http
                 .create_guild_application_commands(test_guild_id, &commands_json)
