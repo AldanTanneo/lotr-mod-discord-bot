@@ -51,11 +51,12 @@ fn lang(args: &mut Args) -> Option<Lang> {
 async fn lotr_wiki(ctx: &Context, msg: &Message, args: &mut Args, ns: Namespace) -> CommandResult {
     let language = lang(args).unwrap_or_default();
     let wiki = Wikis::LotrMod(language);
-    if !args.is_empty() {
-        wiki_search(ctx, msg, args, ns, &wiki).await?;
-    } else {
+    if args.is_empty() {
         wiki::display(ctx, msg, &ns.main_page(&wiki, &msg.author.name), &wiki).await?;
+    } else {
+        wiki_search(ctx, msg, args, ns, &wiki).await?;
     }
+
     Ok(())
 }
 
@@ -105,11 +106,12 @@ async fn random(ctx: &Context, msg: &Message) -> CommandResult {
 #[aliases("tolkiengateway")]
 pub async fn tolkien(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let wiki = Wikis::TolkienGateway;
-    if !args.is_empty() {
-        wiki_search(ctx, msg, &mut args, Page, &wiki).await?;
-    } else {
+    if args.is_empty() {
         wiki::display(ctx, msg, &wiki.default(&msg.author.name), &wiki).await?;
+    } else {
+        wiki_search(ctx, msg, &mut args, Page, &wiki).await?;
     }
+
     Ok(())
 }
 
@@ -117,10 +119,11 @@ pub async fn tolkien(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
 #[aliases("mc")]
 pub async fn minecraft(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let wiki = Wikis::Minecraft;
-    if !args.is_empty() {
-        wiki_search(ctx, msg, &mut args, Page, &wiki).await?;
-    } else {
+    if args.is_empty() {
         wiki::display(ctx, msg, &wiki.default(&msg.author.name), &wiki).await?;
+    } else {
+        wiki_search(ctx, msg, &mut args, Page, &wiki).await?;
     }
+
     Ok(())
 }

@@ -2,7 +2,7 @@ use bytesize::ByteSize;
 use serenity::builder::CreateBotAuthParameters;
 use serenity::client::Context;
 use serenity::framework::standard::{macros::command, Args, CommandResult};
-use serenity::model::interactions::message_component::ButtonStyle;
+use serenity::model::application::{component::ButtonStyle, oauth::Scope};
 use serenity::model::prelude::*;
 use serenity::utils::{colours, Colour};
 
@@ -141,7 +141,7 @@ pub async fn forge(ctx: &Context, msg: &Message, mut args: Args) -> CommandResul
     msg.channel_id
         .send_message(ctx, |m| {
             m.embed(|e| {
-                e.colour(Colour::DARK_BLUE)
+                e.colour(Colour::new(0x202c44))
                     .title("Have you checked your Forge version?")
                     .description(format!(
                         "To function properly, the mod needs to run with \
@@ -194,14 +194,14 @@ To fix this, go to your `/.minecraft/mods` folder and change the file extension!
 #[command]
 #[checks(allowed_blacklist)]
 pub async fn invite(ctx: &Context, msg: &Message) -> CommandResult {
-    let user_icon = ctx.cache.current_user_field(|user| user.face());
+    let user_icon = ctx.cache.current_user_field(CurrentUser::face);
     let invite_url = {
         let mut builder = CreateBotAuthParameters::default();
         builder
             .permissions(crate::constants::INVITE_PERMISSIONS)
             .auto_client_id(ctx)
             .await?
-            .scopes(&[OAuth2Scope::Bot, OAuth2Scope::ApplicationsCommands]);
+            .scopes(&[Scope::Bot, Scope::ApplicationsCommands]);
         builder.build()
     };
 

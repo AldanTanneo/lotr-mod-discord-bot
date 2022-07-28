@@ -26,9 +26,9 @@ pub struct MinecraftServer {
 pub async fn get_server_status(ctx: &Context, ip: &str) -> Option<MinecraftServer> {
     let rclient = get_reqwest_client!(ctx);
 
-    let req = format!("{}{}", MINECRAFT_API, ip);
-    let res = rclient.get(&req).send().await.ok()?.text().await.ok()?;
-    if let Ok(server) = serde_json::from_str::<MinecraftServer>(&res) {
+    let request = format!("{}{}", MINECRAFT_API, ip);
+    let response = rclient.get(&request).send().await.ok()?.text().await.ok()?;
+    if let Ok(server) = serde_json::from_str::<MinecraftServer>(&response) {
         if server.online {
             Some(server)
         } else {

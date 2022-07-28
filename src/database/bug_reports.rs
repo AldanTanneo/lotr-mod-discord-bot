@@ -218,14 +218,14 @@ impl PartialBugReport {
     pub fn new(
         bug_id: u64,
         title: String,
-        status: String,
+        status: BugStatus,
         timestamp: NaiveDateTime,
         category: BugCategory,
     ) -> Option<Self> {
         Some(Self {
             bug_id,
             title,
-            status: status.parse().unwrap_or_default(),
+            status,
             timestamp: DateTime::from_utc(timestamp, Utc),
             category,
         })
@@ -384,7 +384,7 @@ WHERE {} {category} ORDER BY {ordering} LIMIT :limit OFFSET :offset",
                 bug_id,
                 title,
                 status
-                    .parse()
+                    .parse::<BugStatus>()
                     .expect("Expected a valid bug status from the database"),
                 timestamp,
                 category
@@ -395,7 +395,7 @@ WHERE {} {category} ORDER BY {ordering} LIMIT :limit OFFSET :offset",
     )
     .await
     .ok()
-    .map(|v| v.iter().filter_map(|x| x.clone()).collect())
+    .map(|v| v.into_iter().flatten().collect())
     .map(|v| (v, total))
 }
 

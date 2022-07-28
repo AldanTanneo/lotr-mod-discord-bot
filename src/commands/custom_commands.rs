@@ -65,9 +65,8 @@ pub async fn manual_dispatch(
         if vec.contains(&previous_msg_hash) {
             println!("=== ABORT: POSSIBLE LOOP ===");
             return Ok(());
-        } else {
-            vec.push(previous_msg_hash);
         }
+        vec.push(previous_msg_hash);
     } else {
         custom_message.nonce = Value::Array(vec![previous_msg_hash]);
     }
@@ -140,8 +139,7 @@ Channel: {:?}\nMessage: {}\n=== END ===",
                         msg.author.tag(),
                         msg.author.id,
                         msg.guild_id
-                            .map(|id| format!("{:?}", id))
-                            .unwrap_or_else(|| "None".into()),
+                            .map_or_else(|| "None".into(), |id| format!("{:?}", id)),
                         msg.channel_id,
                         msg.content
                     );
@@ -156,8 +154,7 @@ Channel: {:?}\nMessage: {}\n=== END ===",
                     )
                     .await
                     {
-                        (Err(e), _) => Err(CommandError::from(e)),
-                        (_, Err(e)) => Err(CommandError::from(e)),
+                        (Err(e), _) | (_, Err(e)) => Err(CommandError::from(e)),
                         _ => Ok(()),
                     };
                 } else if s == "admin" {
@@ -467,8 +464,7 @@ async fn custom_command_display(ctx: &Context, msg: &Message, args: Args) -> Com
                                     }
                                 )
                             })
-                            .collect::<Vec<_>>()
-                            .join(""),
+                            .collect::<String>(),
                     )
                 })
             })

@@ -3,8 +3,12 @@ use crate::constants::*;
 use mysql_async::prelude::*;
 use serenity::async_trait;
 use serenity::client::{Context, EventHandler};
-use serenity::model::interactions::message_component::{
-    ComponentType, MessageComponentInteraction, MessageComponentInteractionData,
+use serenity::model::application::{
+    component::ComponentType,
+    interaction::message_component::{
+        MessageComponentInteraction, MessageComponentInteractionData,
+    },
+    interaction::Interaction,
 };
 use serenity::model::prelude::*;
 use serenity::utils::colours;
@@ -42,7 +46,9 @@ impl EventHandler for Handler {
     }
 
     async fn guild_delete(&self, ctx: Context, incomplete: UnavailableGuild, guild: Option<Guild>) {
-        if !incomplete.unavailable {
+        if incomplete.unavailable {
+            println!("Guild {} went offline", incomplete.id.0);
+        } else {
             let guild_name: String = if let Some(guild) = guild {
                 guild.name
             } else {
@@ -75,8 +81,6 @@ impl EventHandler for Handler {
                 })
                 .await
                 .unwrap();
-        } else {
-            println!("Guild {} went offline", incomplete.id.0);
         }
     }
 
@@ -86,8 +90,7 @@ impl EventHandler for Handler {
                 .owner_id
                 .to_user(&ctx)
                 .await
-                .map(|u| u.tag())
-                .unwrap_or_else(|_| "Unknown user".to_string());
+                .map_or_else(|_| "Unknown user".to_string(), |u| u.tag());
 
             if let Err(e) =
                 crate::database::admin_data::add_admin(&ctx, guild.id, guild.owner_id, false).await
@@ -192,7 +195,7 @@ To see all your active notifications type  `!bug notifications`",
                                 bug_id
                             ),
                         )
-                        .await
+                        .await;
                 } else if let Err(e) =
                     crate::database::bug_reports::remove_notified_user(&ctx, bug_id, user.id).await
                 {
@@ -234,7 +237,7 @@ To see all your active notifications type  `!bug notifications`",
                                 bug_id
                             ),
                         )
-                        .await
+                        .await;
                 } else if let Err(e) =
                     crate::database::bug_reports::add_notified_user(&ctx, bug_id, user.id).await
                 {

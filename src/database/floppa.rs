@@ -43,7 +43,15 @@ pub async fn add_floppa(ctx: &Context, floppa_url: String) -> CommandResult {
 
     println!("Retrieved floppa urls");
 
-    if !images.contains(&floppa_url) {
+    if images.contains(&floppa_url) {
+        OWNER_ID
+            .to_user(ctx)
+            .await?
+            .dm(ctx, |m| {
+                m.content("Tried to add floppa that already exists!")
+            })
+            .await?;
+    } else {
         conn.exec_drop(
             format!(
                 "INSERT INTO {} (image_url) VALUES (:image_url)",
@@ -56,14 +64,6 @@ pub async fn add_floppa(ctx: &Context, floppa_url: String) -> CommandResult {
         )
         .await?;
         println!("Successfully executed query!");
-    } else {
-        OWNER_ID
-            .to_user(ctx)
-            .await?
-            .dm(ctx, |m| {
-                m.content("Tried to add floppa that already exists!")
-            })
-            .await?;
     }
 
     drop(conn);

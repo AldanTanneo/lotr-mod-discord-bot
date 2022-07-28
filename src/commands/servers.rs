@@ -34,7 +34,7 @@ async fn server_ip(ctx: &Context, msg: &Message) -> CommandResult {
             ctx,
             msg,
             "No registered Minecraft IP for this server. Set one using  `!ip set <server ip>`."
-        )
+        );
     }
 
     Ok(())
@@ -50,9 +50,9 @@ pub async fn set_ip(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     if let Some(ip) = args.current() {
         println!("Setting up IP to {} on {}", ip, server_id);
         set_minecraft_ip(ctx, server_id, ip).await?;
-        success!(ctx, msg, "Set Minecraft server IP to  `{}`", ip)
+        success!(ctx, msg, "Set Minecraft server IP to  `{}`", ip);
     } else {
-        failure!(ctx, msg, "You must provide an IP address to set.")
+        failure!(ctx, msg, "You must provide an IP address to set.");
     }
 
     Ok(())
@@ -73,9 +73,9 @@ pub async fn remove_ip(ctx: &Context, msg: &Message) -> CommandResult {
             msg,
             "Successfully removed ip  `{}`  from this server",
             ip
-        )
+        );
     } else {
-        failure!(ctx, msg, "No registered Minecraft IP for this server.")
+        failure!(ctx, msg, "No registered Minecraft IP for this server.");
     }
     Ok(())
 }
@@ -117,19 +117,17 @@ pub async fn online(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
                             "Players: {}/{}",
                             &server.players.online, &server.players.max
                         ),
-                        &server
-                            .players
-                            .list
-                            .as_ref()
-                            .map(|s| {
+                        &server.players.list.as_ref().map_or_else(
+                            || "[]()".into(),
+                            |s| {
                                 let res = s.join(", ").replace('_', "\\_");
                                 if res.len() > 1024 {
                                     "Too many usernames to display!".into()
                                 } else {
                                     res
                                 }
-                            })
-                            .unwrap_or_else(|| "[]()".into()),
+                            },
+                        ),
                         false,
                     );
                     e

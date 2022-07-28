@@ -110,28 +110,27 @@ pub async fn announce(ctx: &Context, msg: &Message, args: Args) -> CommandResult
                 if let Err(error) = announcement::announce(ctx, channel_id, &json).await {
                     announcement_error_handler(ctx, msg, &error).await?;
                     return Err(error);
-                } else {
-                    println!(
-                        "=== ANNOUNCEMENT ===
+                }
+                println!(
+                    "=== ANNOUNCEMENT ===
 Author: {}, {:?}
 Channel: #{}, {:?}
 Guild: {:?}, {:?}
 Content: {:?}
 === END ===",
-                        msg.author.tag(),
-                        msg.author.id,
-                        ctx.cache
-                            .guild_channel_field(channel_id, |c| c.name.clone())
-                            .unwrap_or_else(|| "Unknown channel".to_string()),
-                        channel_id,
-                        ctx.cache
-                            .guild_field(guild_id, |g| g.name.clone())
-                            .unwrap_or_else(|| "Unknown Guild".to_string()),
-                        guild_id,
-                        json
-                    );
-                    success!(ctx, msg);
-                }
+                    msg.author.tag(),
+                    msg.author.id,
+                    ctx.cache
+                        .guild_channel_field(channel_id, |c| c.name.clone())
+                        .unwrap_or_else(|| "Unknown channel".to_string()),
+                    channel_id,
+                    ctx.cache
+                        .guild_field(guild_id, |g| g.name.clone())
+                        .unwrap_or_else(|| "Unknown Guild".to_string()),
+                    guild_id,
+                    json
+                );
+                success!(ctx, msg);
             }
             Err(e) => handle_json_error!(ctx, msg, e),
         }
@@ -175,28 +174,27 @@ pub async fn edit(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult
                     {
                         announcement_error_handler(ctx, msg, &error).await?;
                         return Err(error);
-                    } else {
-                        println!(
-                            "=== ANNOUNCEMENT EDITED ===
+                    }
+                    println!(
+                        "=== ANNOUNCEMENT EDITED ===
 Edit author: {}, {:?}
 Channel: #{}, {:?}
 Guild: {:?}, {:?}
 Content: {:?}
 === END ===",
-                            msg.author.tag(),
-                            msg.author.id,
-                            ctx.cache
-                                .guild_channel_field(channel_id, |c| c.name.clone())
-                                .unwrap_or_else(|| "Unknown channel".to_string()),
-                            channel_id,
-                            ctx.cache
-                                .guild_field(guild_id, |g| g.name.clone())
-                                .unwrap_or_else(|| "Unknown guild".to_string()),
-                            guild_id,
-                            json
-                        );
-                        success!(ctx, msg);
-                    }
+                        msg.author.tag(),
+                        msg.author.id,
+                        ctx.cache
+                            .guild_channel_field(channel_id, |c| c.name.clone())
+                            .unwrap_or_else(|| "Unknown channel".to_string()),
+                        channel_id,
+                        ctx.cache
+                            .guild_field(guild_id, |g| g.name.clone())
+                            .unwrap_or_else(|| "Unknown guild".to_string()),
+                        guild_id,
+                        json
+                    );
+                    success!(ctx, msg);
                 }
                 Err(e) => handle_json_error!(ctx, msg, e),
             }

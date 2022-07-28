@@ -18,10 +18,10 @@ pub mod qa_answers;
 pub mod role_cache;
 pub mod utils;
 
-use mysql_async::OptsBuilder;
+use mysql_async::{OptsBuilder, SslOpts};
 use serenity::client::ClientBuilder;
 use serenity::framework::standard::{macros::group, StandardFramework};
-use serenity::http::client::Http;
+use serenity::http::HttpBuilder;
 use serenity::model::gateway::GatewayIntents;
 use serenity::prelude::*;
 use std::env;
@@ -138,7 +138,12 @@ async fn main() {
             .db_name(Some(db_name))
             .ip_or_hostname(db_server)
             .pass(Some(db_password))
-            .tcp_port(db_port),
+            .tcp_port(db_port)
+            .ssl_opts(Some(
+                SslOpts::default()
+                    //  .with_danger_skip_domain_validation(true)
+                    .with_danger_accept_invalid_certs(true),
+            )),
     );
 
     // reqwest client for API calls
@@ -181,24 +186,30 @@ async fn main() {
         .bucket("basic", |b| b.delay(2).time_span(10).limit(3))
         .await;
 
-    let mut http = Http::new(reqwest_client.inner(), &format!("Bot {}", &token));
-    http.application_id = application_id;
+    let http = HttpBuilder::new(&token)
+        .application_id(application_id)
+        .client(reqwest_client.inner())
+        .build();
 
     let framework = FrameworkKey::new(framework);
 
     // building client
-    let mut client = ClientBuilder::new_with_http(http)
-        .event_handler(Handler)
-        .framework_arc(framework.as_arc())
-        .intents(GatewayIntents::non_privileged() | GatewayIntents::GUILD_MEMBERS)
-        .type_map_insert::<DatabasePool>(pool)
-        .type_map_insert::<ReqwestClient>(reqwest_client)
-        .type_map_insert::<RoleCache>(role_cache)
-        .type_map_insert::<PrefixCache>(prefix_cache)
-        .type_map_insert::<QaChannelsCache>(qa_channels_cache)
-        .type_map_insert::<FrameworkKey>(framework)
-        .await
-        .expect("Error creating client");
+    let mut client = ClientBuilder::new_with_http(
+        http,
+        GatewayIntents::non_privileged()
+            | GatewayIntents::GUILD_MEMBERS
+            | GatewayIntents::MESSAGE_CONTENT,
+    )
+    .event_handler(Handler)
+    .framework_arc(framework.as_arc())
+    .type_map_insert::<DatabasePool>(pool)
+    .type_map_insert::<ReqwestClient>(reqwest_client)
+    .type_map_insert::<RoleCache>(role_cache)
+    .type_map_insert::<PrefixCache>(prefix_cache)
+    .type_map_insert::<QaChannelsCache>(qa_channels_cache)
+    .type_map_insert::<FrameworkKey>(framework)
+    .await
+    .expect("Error creating client");
 
     {
         // Ctrl+C listener

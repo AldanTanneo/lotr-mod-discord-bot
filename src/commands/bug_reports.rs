@@ -1,10 +1,13 @@
 use serenity::client::Context;
 use serenity::collector::CollectComponentInteraction;
 use serenity::framework::standard::{macros::command, Args, CommandResult};
-use serenity::model::{
-    interactions::message_component::{ButtonStyle, MessageComponentInteraction},
-    prelude::*,
+use serenity::model::application::{
+    component::ButtonStyle,
+    interaction::{
+        message_component::MessageComponentInteraction, InteractionResponseType, MessageFlags,
+    },
 };
+use serenity::model::prelude::*;
 use serenity::prelude::*;
 use std::time::Duration;
 
@@ -116,7 +119,7 @@ pub async fn notify_users(
             m.guild_id = Some(LOTR_DISCORD);
             m
         });
-    let message_link = linked_message.as_ref().map(|m| m.link()).ok();
+    let message_link = linked_message.as_ref().map(Message::link).ok();
 
     for user in notified_users {
         let channel = match user.create_dm_channel(ctx).await {
@@ -251,8 +254,7 @@ impl<'a> Either<'a> {
                     .create_interaction_response(ctx, |r| {
                         r.kind(InteractionResponseType::ChannelMessageWithSource)
                             .interaction_response_data(|d| {
-                                d.flags(InteractionApplicationCommandCallbackDataFlags::EPHEMERAL)
-                                    .content(message)
+                                d.flags(MessageFlags::EPHEMERAL).content(message)
                             })
                     })
                     .await?;
@@ -499,7 +501,7 @@ pub async fn buglist(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
                 r.kind(InteractionResponseType::ChannelMessageWithSource);
                 r.interaction_response_data(|d| {
                     d.content("You are not the original user of the command! Call `!bugs` yourself to use the buttons.");
-                    d.flags(InteractionApplicationCommandCallbackDataFlags::EPHEMERAL)
+                    d.flags(MessageFlags::EPHEMERAL)
                 })
             })
             .await?;
@@ -507,9 +509,7 @@ pub async fn buglist(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
         }
         match interaction.data.custom_id.as_str() {
             "previous_page" => {
-                if page != 0 {
-                    page -= 1;
-                }
+                page = page.saturating_sub(1);
             }
             "next_page" => {
                 page += 1;
@@ -517,7 +517,7 @@ pub async fn buglist(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
             _ => (),
         }
 
-        let _ = display_bugs(
+        display_bugs(
             ctx,
             status,
             limit,
@@ -639,7 +639,7 @@ pub async fn bug(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult 
             m.guild_id = Some(LOTR_DISCORD);
             m
         });
-    let message_link = linked_message.as_ref().map(|m| m.link()).ok();
+    let message_link = linked_message.as_ref().map(Message::link).ok();
 
     let is_lotr_discord = msg.guild_id == Some(LOTR_DISCORD);
     let is_admin = if let Some(guild_id) = msg.guild_id {
@@ -671,17 +671,7 @@ pub async fn bug(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult 
             .message_id(response_message.id)
             .await
         {
-            if interaction.user.id != msg.author.id {
-                interaction
-                    .create_interaction_response(ctx, |r| {
-                        r.kind(InteractionResponseType::ChannelMessageWithSource)
-                            .interaction_response_data(|d| {
-                                d.flags(InteractionApplicationCommandCallbackDataFlags::EPHEMERAL)
-                                    .content("You are not allowed to modify bug status!")
-                            })
-                    })
-                    .await?;
-            } else {
+            if interaction.user.id == msg.author.id {
                 let new_status = match interaction.data.custom_id.as_str() {
                     "resolve_bug" => BugStatus::Resolved,
                     "close_bug" => BugStatus::Closed,
@@ -718,6 +708,16 @@ pub async fn bug(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult 
 
                 break;
             }
+
+            interaction
+                .create_interaction_response(ctx, |r| {
+                    r.kind(InteractionResponseType::ChannelMessageWithSource)
+                        .interaction_response_data(|d| {
+                            d.flags(MessageFlags::EPHEMERAL)
+                                .content("You are not allowed to modify bug status!")
+                        })
+                })
+                .await?;
         }
 
         if create_buttons {
@@ -774,13 +774,13 @@ pub async fn bug_status(ctx: &Context, msg: &Message, mut args: Args) -> Command
                     .await?;
                 }
             } else {
-                failure!(ctx, msg, "The second argument must be a bug status.")
+                failure!(ctx, msg, "The second argument must be a bug status.");
             }
         } else {
-            failure!(ctx, msg, "`{}` is not a valid bug id!", bug_id)
+            failure!(ctx, msg, "`{}` is not a valid bug id!", bug_id);
         }
     } else {
-        failure!(ctx, msg, "The first argument must be a bug id.")
+        failure!(ctx, msg, "The first argument must be a bug id.");
     }
     Ok(())
 }
@@ -797,20 +797,19 @@ pub async fn resolve(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
             if let Err(e) = change_bug_status(ctx, bug_id, BugStatus::Resolved).await {
                 failure!(ctx, msg, "The bug LOTR-{} does not exist!", bug_id);
                 return Err(e);
-            } else {
-                termite_success!(ctx, msg, "LOTR-{} has been marked as resolved.", bug_id);
-                notify_users(
-                    ctx,
-                    bug_id,
-                    "A bug you are subscribed to has been marked as resolved.",
-                )
-                .await?;
             }
+            termite_success!(ctx, msg, "LOTR-{} has been marked as resolved.", bug_id);
+            notify_users(
+                ctx,
+                bug_id,
+                "A bug you are subscribed to has been marked as resolved.",
+            )
+            .await?;
         } else {
-            failure!(ctx, msg, "`{}` is not a valid bug id!", bug_id)
+            failure!(ctx, msg, "`{}` is not a valid bug id!", bug_id);
         }
     } else {
-        failure!(ctx, msg, "The first argument must be a bug id.")
+        failure!(ctx, msg, "The first argument must be a bug id.");
     }
     Ok(())
 }
@@ -828,20 +827,19 @@ pub async fn bug_close(ctx: &Context, msg: &Message, mut args: Args) -> CommandR
             if let Err(e) = change_bug_status(ctx, bug_id, BugStatus::Closed).await {
                 failure!(ctx, msg, "The bug LOTR-{} does not exist!", bug_id);
                 return Err(e);
-            } else {
-                termite_success!(ctx, msg, "LOTR-{} has been marked as closed.", bug_id);
-                notify_users(
-                    ctx,
-                    bug_id,
-                    "A bug you are subscribed to has been marked as closed.",
-                )
-                .await?;
             }
+            termite_success!(ctx, msg, "LOTR-{} has been marked as closed.", bug_id);
+            notify_users(
+                ctx,
+                bug_id,
+                "A bug you are subscribed to has been marked as closed.",
+            )
+            .await?;
         } else {
-            failure!(ctx, msg, "`{}` is not a valid bug id!", bug_id)
+            failure!(ctx, msg, "`{}` is not a valid bug id!", bug_id);
         }
     } else {
-        failure!(ctx, msg, "The first argument must be a bug id.")
+        failure!(ctx, msg, "The first argument must be a bug id.");
     }
     Ok(())
 }
@@ -1027,7 +1025,7 @@ pub async fn bug_rename(ctx: &Context, msg: &Message, mut args: Args) -> Command
                     bug_id,
                     "The title of a bug you are subscribed to has been changed",
                 )
-                .await?
+                .await?;
             } else {
                 failure!(ctx, msg, "LOTR-{} does not exist!", bug_id);
             }
@@ -1156,12 +1154,11 @@ including those from closed or resolved bugs."
 
 #[command]
 pub async fn unsubscribe(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    let bug_id = match args.single::<u64>() {
-        Ok(bug_id) => bug_id,
-        _ => {
-            failure!(ctx, msg, "The first argument must be a bug id!");
-            return Ok(());
-        }
+    let bug_id = if let Ok(bug_id) = args.single::<u64>() {
+        bug_id
+    } else {
+        failure!(ctx, msg, "The first argument must be a bug id!");
+        return Ok(());
     };
 
     if is_notified_user(ctx, bug_id, msg.author.id).await != Some(true) {
@@ -1189,12 +1186,11 @@ You will no longer be notified if this bug is edited, closed or resolved.",
 
 #[command]
 pub async fn subscribe(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    let bug_id = match args.single::<u64>() {
-        Ok(bug_id) => bug_id,
-        _ => {
-            failure!(ctx, msg, "The first argument must be a bug id!");
-            return Ok(());
-        }
+    let bug_id = if let Ok(bug_id) = args.single::<u64>() {
+        bug_id
+    } else {
+        failure!(ctx, msg, "The first argument must be a bug id!");
+        return Ok(());
     };
 
     if is_notified_user(ctx, bug_id, msg.author.id).await != Some(false) {

@@ -58,8 +58,7 @@ pub async fn help(ctx: &Context, msg: &Message) -> CommandResult {
                 ))
             }
         })
-        .collect::<Vec<_>>()
-        .join("");
+        .collect::<String>();
 
     msg.author
         .direct_message(ctx, |m| {

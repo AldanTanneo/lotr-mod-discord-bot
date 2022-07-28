@@ -27,7 +27,7 @@ pub const MANAGE_BOT_PERMS: Permissions = Permissions::ADMINISTRATOR
 /// Set of [permissions][Permissions] needed for the bot when inviting it to a server
 pub const INVITE_PERMISSIONS: Permissions = Permissions::MANAGE_ROLES
     .union(Permissions::CHANGE_NICKNAME)
-    .union(Permissions::READ_MESSAGES)
+    .union(Permissions::VIEW_CHANNEL)
     .union(Permissions::SEND_MESSAGES)
     .union(Permissions::CREATE_PUBLIC_THREADS)
     .union(Permissions::CREATE_PRIVATE_THREADS)
@@ -50,9 +50,10 @@ pub const TERMITE_IMAGE: &str =
     "https://media.discordapp.net/attachments/781837314975989772/839479742457839646/termite.png";
 /// Forge logo for the !forge command
 pub const FORGE_ICON: &str =
-    "https://pbs.twimg.com/profile_images/778706890914095109/fhMDH9o6_400x400.jpg";
+    "https://pbs.twimg.com/profile_images/778706890914095109/fhMDH9o6_normal.jpg";
 /// Curseforge logo for the !curseforge command
-pub const CURSEFORGE_ICON: &str = "https://tinyimg.io/i/SVsK1qC.png";
+pub const CURSEFORGE_ICON: &str =
+    "https://pbs.twimg.com/profile_images/1543841140016832512/9FXyHXYM_normal.jpg";
 
 /// Facebook logo for the !facebook command
 pub const FACEBOOK_ICON: &str =

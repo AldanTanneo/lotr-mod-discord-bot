@@ -124,11 +124,11 @@ pub async fn add(ctx: &Context, msg: &Message) -> CommandResult {
     let server_id = msg.guild_id.ok_or(NotInGuild)?;
 
     if let Some(user) = msg.mentions.iter().find(|&user| user.id != BOT_ID) {
-        if !(is_admin!(ctx, server_id, user.id) || user.id == OWNER_ID) {
+        if is_admin!(ctx, server_id, user.id) || user.id == OWNER_ID {
+            failure!(ctx, msg, "This user is already a bot admin on this server!");
+        } else {
             add_admin(ctx, server_id, user.id, false).await?;
             success!(ctx, msg);
-        } else {
-            failure!(ctx, msg, "This user is already a bot admin on this server!");
         }
     } else {
         failure!(
@@ -252,22 +252,21 @@ pub async fn listguilds(ctx: &Context) -> CommandResult {
     {
         if vec.is_empty() {
             break;
+        }
+        let guild_names = vec
+            .iter()
+            .map(|g| format!("{} (`{}`)", g.name, g.id))
+            .collect::<Vec<_>>()
+            .join("\n");
+        count += vec.len();
+        id = vec[vec.len() - 1].id;
+        if first {
+            first = false;
+            owner
+                .dm(&ctx, |m| m.content(format!("**Guilds:**\n{}", guild_names)))
+                .await?;
         } else {
-            let guild_names = vec
-                .iter()
-                .map(|g| format!("{} (`{}`)", g.name, g.id))
-                .collect::<Vec<_>>()
-                .join("\n");
-            count += vec.len();
-            id = vec[vec.len() - 1].id;
-            if first {
-                first = false;
-                owner
-                    .dm(&ctx, |m| m.content(format!("**Guilds:**\n{}", guild_names)))
-                    .await?;
-            } else {
-                owner.dm(&ctx, |m| m.content(guild_names)).await?;
-            }
+            owner.dm(&ctx, |m| m.content(guild_names)).await?;
         }
     }
     owner

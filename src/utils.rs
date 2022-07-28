@@ -23,10 +23,10 @@ pub enum JsonMessageError {
     JsonError(serde_json::Error),
 }
 
-use JsonMessageError::*;
-
 impl std::fmt::Display for JsonMessageError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        use JsonMessageError::*;
+
         match self {
             FileTooBig(size) => {
                 write!(f, "File too big to download: {}", bytesize::ByteSize(*size))
@@ -42,6 +42,8 @@ impl std::error::Error for JsonMessageError {}
 pub async fn get_json_from_message<T: DeserializeOwned>(
     msg: &Message,
 ) -> Result<T, JsonMessageError> {
+    use JsonMessageError::*;
+
     if msg.attachments.is_empty() {
         let content = &msg.content;
         let (a, b) = (
@@ -203,8 +205,8 @@ pub async fn has_permission(
     false
 }
 
-pub fn parse_motd(motd: impl ToString) -> String {
-    let motd = motd.to_string();
+pub fn parse_motd(motd: impl AsRef<str>) -> String {
+    let motd = motd.as_ref();
     let mut res = String::with_capacity(motd.len());
     let mut stack: Vec<&str> = Vec::new();
     let mut is_token = false;
@@ -239,7 +241,7 @@ pub fn parse_motd(motd: impl ToString) -> String {
                 }
                 _ => {
                     res.push('§');
-                    res.push(c)
+                    res.push(c);
                 }
             }
         } else {
@@ -263,7 +265,7 @@ pub fn parse_web_colour(name: &str) -> Option<Colour> {
     Some(Colour(match name {
         "aliceblue" => 0xf0f8ff,
         "antiquewhite" => 0xfaebd7,
-        "aqua" => 0x00ffff,
+        "aqua" | "cyan" => 0x00ffff,
         "aquamarine" => 0x7fffd4,
         "azure" => 0xf0ffff,
         "beige" => 0xf5f5dc,
@@ -281,13 +283,11 @@ pub fn parse_web_colour(name: &str) -> Option<Colour> {
         "cornflowerblue" => 0x6495ed,
         "cornsilk" => 0xfff8dc,
         "crimson" => 0xdc143c,
-        "cyan" => 0x00ffff,
         "darkblue" => 0x00008b,
         "darkcyan" => 0x008b8b,
         "darkgoldenrod" => 0xb8860b,
-        "darkgray" => 0xa9a9a9,
+        "darkgray" | "darkgrey" => 0xa9a9a9,
         "darkgreen" => 0x006400,
-        "darkgrey" => 0xa9a9a9,
         "darkkhaki" => 0xbdb76b,
         "darkmagenta" => 0x8b008b,
         "darkolivegreen" => 0x556b2f,
@@ -297,27 +297,24 @@ pub fn parse_web_colour(name: &str) -> Option<Colour> {
         "darksalmon" => 0xe9967a,
         "darkseagreen" => 0x8fbc8f,
         "darkslateblue" => 0x483d8b,
-        "darkslategray" => 0x2f4f4f,
-        "darkslategrey" => 0x2f4f4f,
+        "darkslategray" | "darkslategrey" => 0x2f4f4f,
         "darkturquoise" => 0x00ced1,
         "darkviolet" => 0x9400d3,
         "deeppink" => 0xff1493,
         "deepskyblue" => 0x00bfff,
-        "dimgray" => 0x696969,
-        "dimgrey" => 0x696969,
+        "dimgray" | "dimgrey" => 0x696969,
         "dodgerblue" => 0x1e90ff,
         "firebrick" => 0xb22222,
         "floralwhite" => 0xfffaf0,
         "forestgreen" => 0x228b22,
-        "fuchsia" => 0xff00ff,
+        "fuchsia" | "magenta" => 0xff00ff,
         "gainsboro" => 0xdcdcdc,
         "ghostwhite" => 0xf8f8ff,
         "gold" => 0xffd700,
         "goldenrod" => 0xdaa520,
-        "gray" => 0x808080,
+        "gray" | "grey" => 0x808080,
         "green" => 0x008000,
         "greenyellow" => 0xadff2f,
-        "grey" => 0x808080,
         "honeydew" => 0xf0fff0,
         "hotpink" => 0xff69b4,
         "indianred" => 0xcd5c5c,
@@ -332,21 +329,18 @@ pub fn parse_web_colour(name: &str) -> Option<Colour> {
         "lightcoral" => 0xf08080,
         "lightcyan" => 0xe0ffff,
         "lightgoldenrodyellow" => 0xfafad2,
-        "lightgray" => 0xd3d3d3,
+        "lightgray" | "lightgrey" => 0xd3d3d3,
         "lightgreen" => 0x90ee90,
-        "lightgrey" => 0xd3d3d3,
         "lightpink" => 0xffb6c1,
         "lightsalmon" => 0xffa07a,
         "lightseagreen" => 0x20b2aa,
         "lightskyblue" => 0x87cefa,
-        "lightslategray" => 0x778899,
-        "lightslategrey" => 0x778899,
+        "lightslategray" | "lightslategrey" => 0x778899,
         "lightsteelblue" => 0xb0c4de,
         "lightyellow" => 0xffffe0,
         "lime" => 0x00ff00,
         "limegreen" => 0x32cd32,
         "linen" => 0xfaf0e6,
-        "magenta" => 0xff00ff,
         "maroon" => 0x800000,
         "mediumaquamarine" => 0x66cdaa,
         "mediumblue" => 0x0000cd,
@@ -392,8 +386,7 @@ pub fn parse_web_colour(name: &str) -> Option<Colour> {
         "silver" => 0xc0c0c0,
         "skyblue" => 0x87ceeb,
         "slateblue" => 0x6a5acd,
-        "slategray" => 0x708090,
-        "slategrey" => 0x708090,
+        "slategray" | "slategrey" => 0x708090,
         "snow" => 0xfffafa,
         "springgreen" => 0x00ff7f,
         "steelblue" => 0x4682b4,
@@ -417,8 +410,8 @@ pub fn parse_web_colour(name: &str) -> Option<Colour> {
 use serenity::async_trait;
 use serenity::builder::CreateInteractionResponse;
 use serenity::http::Http;
-use serenity::model::interactions::{
-    message_component::MessageComponentInteraction, InteractionApplicationCommandCallbackDataFlags,
+use serenity::model::application::interaction::{
+    message_component::MessageComponentInteraction, MessageFlags,
 };
 
 #[async_trait]
@@ -429,12 +422,9 @@ pub trait InteractionEasyResponse {
         msg: impl ToString + Send + Sync + 'async_trait,
     ) -> () {
         self.respond_no_failure(ctx, |r| {
-            r.interaction_response_data(|d| {
-                d.content(msg)
-                    .flags(InteractionApplicationCommandCallbackDataFlags::EPHEMERAL)
-            })
+            r.interaction_response_data(|d| d.content(msg).flags(MessageFlags::EPHEMERAL))
         })
-        .await
+        .await;
     }
 
     async fn respond_no_failure<F>(
@@ -443,10 +433,10 @@ pub trait InteractionEasyResponse {
         f: F,
     ) -> ()
     where
-        F: 'async_trait
+        for<'a, 'r> F: 'async_trait
             + Send
             + Sync
-            + FnOnce(&mut CreateInteractionResponse) -> &mut CreateInteractionResponse;
+            + FnOnce(&'a mut CreateInteractionResponse<'r>) -> &'a mut CreateInteractionResponse<'r>;
 }
 
 #[async_trait]
@@ -457,10 +447,10 @@ impl InteractionEasyResponse for MessageComponentInteraction {
         f: F,
     ) -> ()
     where
-        F: 'async_trait
+        for<'a, 'r> F: 'async_trait
             + Send
             + Sync
-            + FnOnce(&mut CreateInteractionResponse) -> &mut CreateInteractionResponse,
+            + FnOnce(&'a mut CreateInteractionResponse<'r>) -> &'a mut CreateInteractionResponse<'r>,
     {
         if let Err(e) = self.create_interaction_response(ctx, f).await {
             println!(

@@ -75,8 +75,7 @@ pub async fn allowed_blacklist(ctx: &Context, msg: &Message) -> Result<(), Reaso
                 msg.author.tag(),
                 msg.author.id,
                 msg.guild_id
-                    .map(|id| format!("{:?}", id))
-                    .unwrap_or_else(|| "None".into()),
+                    .map_or_else(|| "None".into(), |id| format!("{:?}", id)),
                 msg.channel_id,
                 msg.content
             ),
@@ -113,8 +112,7 @@ pub async fn user_blacklist(ctx: &Context, msg: &Message) -> Result<(), Reason> 
                 msg.author.tag(),
                 msg.author.id,
                 msg.guild_id
-                    .map(|id| format!("{:?}", id))
-                    .unwrap_or_else(|| "None".into()),
+                    .map_or_else(|| "None".into(), |id| format!("{:?}", id)),
                 msg.content
             ),
         })
@@ -175,8 +173,10 @@ pub async fn dispatch_error_hook(
     error: DispatchError,
     command_name: &str,
 ) {
+    use DispatchError::*;
+
     match error {
-        DispatchError::CheckFailed(s, reason) => {
+        CheckFailed(s, reason) => {
             println!(
                 "=== CHECK FAILED ===\nCheck failed in command {}: {}",
                 command_name, s
@@ -202,7 +202,7 @@ pub async fn dispatch_error_hook(
                         })
                         .await
                     {
-                        println!("Error sending warning DM: {}", e)
+                        println!("Error sending warning DM: {}", e);
                     }
                 }
                 Reason::Log(err_message) => {
@@ -211,7 +211,7 @@ pub async fn dispatch_error_hook(
                 _ => println!("(Unknown reason)"),
             }
         }
-        DispatchError::OnlyForGuilds => {
+        OnlyForGuilds => {
             if let Err(e) = msg
                 .reply(ctx, "This command cannot be executed in DMs!")
                 .await
@@ -219,19 +219,18 @@ pub async fn dispatch_error_hook(
                 println!("Error sending guild-only warning: {:?}", e);
             }
         }
-        DispatchError::Ratelimited(rate_limit_info) => {
+        Ratelimited(rate_limit_info) => {
             if rate_limit_info.is_first_try {
                 if let Err(e) = msg
                     .reply(ctx, "Wait a few seconds before using this command again!")
                     .await
                 {
-                    println!("Error sending ratelimited warning: {:?}", e)
+                    println!("Error sending ratelimited warning: {:?}", e);
                 }
             }
         }
-        _ => println!("Dispatch error: {:?}", error),
+        _ => println!("Dispatch error:\n{0:?}", error),
     }
-    println!("=== END ===");
 }
 
 #[hook]

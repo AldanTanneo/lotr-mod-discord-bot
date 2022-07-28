@@ -1,12 +1,12 @@
 pub mod structures;
 
 use serde_json::Value;
+use serenity::client::Context;
 use serenity::framework::standard::CommandResult;
-use serenity::model::prelude::Message;
+use serenity::model::{application::component::ButtonStyle, channel::Message};
 use serenity::utils::colours;
-use serenity::{client::Context, model::interactions::message_component::ButtonStyle};
 
-use super::google::google_search;
+use crate::api::google::google_search;
 use crate::get_reqwest_client;
 use structures::{GenericPage, Namespace, Namespace::*, RandomRes, Wikis, Wikis::*};
 
@@ -31,7 +31,7 @@ pub async fn search(
 
         let ns_code: &str = namespace.into();
 
-        let req = [
+        let request = [
             ("format", "json"),
             ("action", "opensearch"),
             ("limit", "3"),
@@ -40,9 +40,9 @@ pub async fn search(
             ("namespace", ns_code),
         ];
 
-        let res = rclient
+        let response = rclient
             .get(wiki.get_api())
-            .query(&req)
+            .query(&request)
             .send()
             .await
             .ok()?
@@ -50,8 +50,8 @@ pub async fn search(
             .await
             .ok()?;
 
-        let res: Value = serde_json::from_str(&res).ok()?;
-        let title = res[1][0].as_str()?;
+        let response = serde_json::from_str::<Value>(&response).ok()?;
+        let title = response[1][0].as_str()?;
 
         if title == query {
             println!("result: \"{}\"", title);
@@ -75,7 +75,7 @@ pub async fn search(
             ("namespace", ns_code),
         ];
 
-        let res = rclient
+        let response = rclient
             .get(wiki.get_api())
             .query(&req)
             .send()
@@ -85,8 +85,8 @@ pub async fn search(
             .await
             .ok()?;
 
-        let res: Value = serde_json::from_str(&res).ok()?;
-        let title = res[1][0].as_str()?;
+        let response = serde_json::from_str::<Value>(&response).ok()?;
+        let title = response[1][0].as_str()?;
 
         println!("result: \"{}\"", title);
 
@@ -101,7 +101,7 @@ pub async fn search(
 pub async fn random(ctx: &Context, wiki: &Wikis) -> Option<GenericPage> {
     let rclient = get_reqwest_client!(ctx);
 
-    let req = [
+    let request = [
         ("format", "json"),
         ("action", "query"),
         ("list", "random"),
@@ -109,9 +109,9 @@ pub async fn random(ctx: &Context, wiki: &Wikis) -> Option<GenericPage> {
         ("rnlimit", "3"),
     ];
 
-    let res = rclient
+    let response = rclient
         .get(wiki.get_api())
-        .query(&req)
+        .query(&request)
         .send()
         .await
         .ok()?
@@ -119,7 +119,7 @@ pub async fn random(ctx: &Context, wiki: &Wikis) -> Option<GenericPage> {
         .await
         .ok()?;
 
-    let body: RandomRes = serde_json::from_str(&res).ok()?;
+    let body: RandomRes = serde_json::from_str(&response).ok()?;
     Some(
         body.query
             .random
@@ -139,28 +139,27 @@ pub async fn display(
 
     let img = match wiki {
         LotrMod(_) | Minecraft => {
-            let req = [
+            let request = [
                 ("format", "json"),
                 ("action", "imageserving"),
                 ("wisTitle", &page.title),
             ];
 
-            let res = rclient
+            let response = rclient
                 .get(wiki.get_api())
-                .query(&req)
+                .query(&request)
                 .send()
                 .await?
                 .text()
                 .await?;
 
-            let body = serde_json::from_str::<Value>(&res).unwrap_or_default();
+            let body = serde_json::from_str::<Value>(&response).unwrap_or_default();
             body["image"]["imageserving"]
                 .as_str()
-                .map(String::from)
-                .unwrap_or_else(|| wiki.default_img())
+                .map_or_else(|| wiki.default_img(), String::from)
         }
         TolkienGateway => {
-            let req = [
+            let request = [
                 ("format", "json"),
                 ("action", "query"),
                 ("generator", "images"),
@@ -171,23 +170,22 @@ pub async fn display(
                 ("indexpageids", "true"),
             ];
 
-            let res = rclient
+            let response = rclient
                 .get(wiki.get_api())
-                .query(&req)
+                .query(&request)
                 .send()
                 .await?
                 .text()
                 .await?;
 
-            let body = serde_json::from_str::<Value>(&res).unwrap_or_default();
+            let body = serde_json::from_str::<Value>(&response).unwrap_or_default();
 
             let id = body["query"]["pageids"][0].as_str().unwrap_or("0");
             let pages = &body["query"]["pages"];
 
             pages[id]["imageinfo"][0]["url"]
                 .as_str()
-                .map(String::from)
-                .unwrap_or_else(|| wiki.default_img())
+                .map_or_else(|| wiki.default_img(), String::from)
         }
     };
 

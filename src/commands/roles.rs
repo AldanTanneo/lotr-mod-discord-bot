@@ -65,8 +65,6 @@ enum Reason<'a> {
     RoleRetrievalError,
 }
 
-// Clippy false positive here
-#[allow(clippy::needless_lifetimes)]
 async fn can_have_role<'a>(
     ctx: &Context,
     role: &'a roles::CustomRole,

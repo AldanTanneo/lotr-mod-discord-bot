@@ -6,7 +6,7 @@ use serenity::builder::{CreateEmbed, CreateMessage, EditMessage};
 use serenity::client::Context;
 use serenity::framework::standard::CommandResult;
 use serenity::futures::future::join_all;
-use serenity::model::interactions::message_component::ButtonStyle;
+use serenity::model::application::component::ButtonStyle;
 use serenity::model::prelude::*;
 use serenity::utils::Colour;
 use std::convert::TryFrom;
@@ -209,9 +209,9 @@ impl std::fmt::Display for AnnouncementError {
 impl std::error::Error for AnnouncementError {}
 
 fn parse_embed(embed: &AnnouncementEmbed) -> CreateEmbed {
-    let mut builder = CreateEmbed::default();
-
     use AnnouncementEmbedAuthor::*;
+
+    let mut builder = CreateEmbed::default();
 
     match &embed.author {
         Some(Object { name, url, icon }) => {

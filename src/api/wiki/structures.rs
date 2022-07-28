@@ -117,11 +117,10 @@ impl Lang {
 
     fn templates(&self) -> String {
         match self {
-            En => "Templates",
+            En | Zh => "Templates",
             Fr => "Modèles",
             De => "Vorlagen",
             Nl => "Sjablonen",
-            Zh => "Templates",
             Ru => "Шаблоны",
             Es => "Plantillas",
             Ja => "テンプレート",

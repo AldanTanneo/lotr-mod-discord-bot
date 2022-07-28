@@ -139,9 +139,8 @@ pub async fn update_blacklist(ctx: &Context, msg: &Message, mut args: Args) -> C
     let mentioned_channels = args
         .trimmed()
         .iter()
-        .map(|a| serenity::utils::parse_channel(a.unwrap_or_else(|_| "".to_string())))
-        .filter(|c| c.is_some())
-        .map(|c| ChannelId(c.unwrap()));
+        .filter_map(|a| serenity::utils::parse_channel(a.unwrap_or_else(|_| "".to_string())))
+        .map(ChannelId);
 
     for channel in mentioned_channels {
         if check_blacklist(ctx, server_id, UserId(0), channel).await == Some(true) {
