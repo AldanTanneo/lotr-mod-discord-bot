@@ -1,1 +1,0 @@
-worker: ./target/release/lotr-mod-discord-bot

@@ -1,0 +1,4 @@
+app = "lotr-mod-discord-bot"
+
+[experimental]
+cmd = "./lotr-mod-discord-bot"
