@@ -36,9 +36,7 @@ use crate::utils::has_permission;
 #[check]
 #[name = "allowed_blacklist"]
 pub async fn allowed_blacklist(ctx: &Context, msg: &Message) -> Result<(), Reason> {
-    let server_id = if let Some(id) = msg.guild_id {
-        id
-    } else {
+    let Some(server_id) = msg.guild_id else {
         // if not in a guild, always allow - no blacklist in DMs
         return Ok(());
     };
@@ -88,9 +86,7 @@ pub async fn allowed_blacklist(ctx: &Context, msg: &Message) -> Result<(), Reaso
 #[check]
 #[name = "user_blacklist"]
 pub async fn user_blacklist(ctx: &Context, msg: &Message) -> Result<(), Reason> {
-    let server_id = if let Some(id) = msg.guild_id {
-        id
-    } else {
+    let Some(server_id) = msg.guild_id else {
         // if not in a guild, always allow - no blacklist in DMs
         return Ok(());
     };

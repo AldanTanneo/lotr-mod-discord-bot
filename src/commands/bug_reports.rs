@@ -1154,9 +1154,7 @@ including those from closed or resolved bugs."
 
 #[command]
 pub async fn unsubscribe(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    let bug_id = if let Ok(bug_id) = args.single::<u64>() {
-        bug_id
-    } else {
+    let Ok(bug_id) = args.single::<u64>() else {
         failure!(ctx, msg, "The first argument must be a bug id!");
         return Ok(());
     };
@@ -1186,9 +1184,7 @@ You will no longer be notified if this bug is edited, closed or resolved.",
 
 #[command]
 pub async fn subscribe(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    let bug_id = if let Ok(bug_id) = args.single::<u64>() {
-        bug_id
-    } else {
+    let Ok(bug_id) = args.single::<u64>() else {
         failure!(ctx, msg, "The first argument must be a bug id!");
         return Ok(());
     };

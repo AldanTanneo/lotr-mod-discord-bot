@@ -38,16 +38,12 @@ pub async fn handle_reaction(ctx: &Context, reaction: Reaction, guild_id: GuildI
         return;
     }
 
-    let answers_channel = if let Some(answers_channel) = get_answer_channel(ctx, guild_id).await {
-        answers_channel
-    } else {
+    let Some(answers_channel) = get_answer_channel(ctx, guild_id).await else {
         println!("Could not find answer channel for this server");
         return;
     };
 
-    let answer = if let Ok(answer) = reaction.message(ctx).await {
-        answer
-    } else {
+    let Ok(answer) = reaction.message(ctx).await else {
         println!("Could not get answer message from its id");
         return;
     };
@@ -60,12 +56,10 @@ pub async fn handle_reaction(ctx: &Context, reaction: Reaction, guild_id: GuildI
     {
         return;
     } else if let Err(e) = answer.delete_reaction_emoji(ctx, '❓').await {
-        println!("Error deleting '❓' reaction: {}", e);
+        println!("Error deleting '❓' reaction: {e}");
     }
 
-    let question = if let Some(ref question) = answer.referenced_message {
-        question
-    } else {
+    let Some(ref question) = answer.referenced_message else {
         println!("Answer has no referenced question message");
         return;
     };
@@ -123,10 +117,7 @@ pub async fn handle_reaction(ctx: &Context, reaction: Reaction, guild_id: GuildI
         })
         .await
     {
-        println!(
-            "=== Q&A ERROR ===\nError sending Q&A answer: {}\n=== END ===",
-            e
-        );
+        println!("=== Q&A ERROR ===\nError sending Q&A answer: {e}\n=== END ===");
     }
 }
 
@@ -146,6 +137,6 @@ pub async fn handle_message(ctx: &Context, message: &Message, guild_id: GuildId)
     }
 
     if let Err(e) = message.react(ctx, '❓').await {
-        println!("Could not add reaction to message: {}", e);
+        println!("Could not add reaction to message: {e}");
     }
 }

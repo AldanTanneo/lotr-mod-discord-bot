@@ -31,8 +31,8 @@ impl std::fmt::Display for JsonMessageError {
             FileTooBig(size) => {
                 write!(f, "File too big to download: {}", bytesize::ByteSize(*size))
             }
-            DownloadError(e) => write!(f, "Could not download attachment: {}", e),
-            JsonError(e) => write!(f, "Error reading JSON content: {}", e),
+            DownloadError(e) => write!(f, "Could not download attachment: {e}"),
+            JsonError(e) => write!(f, "Error reading JSON content: {e}"),
         }
     }
 }

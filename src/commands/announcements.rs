@@ -145,9 +145,7 @@ Content: {:?}
 #[only_in(guilds)]
 pub async fn edit(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let channel = args.single::<ChannelId>();
-    let msg_id = if let Ok(msg_id) = args.single::<u64>() {
-        msg_id
-    } else {
+    let Ok(msg_id) = args.single::<u64>() else {
         failure!(ctx, msg, "The second argument must be a message ID!");
         return Ok(());
     };

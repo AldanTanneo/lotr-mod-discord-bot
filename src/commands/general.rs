@@ -61,9 +61,7 @@ pub async fn curseforge(ctx: &Context, msg: &Message, mut args: Args) -> Command
         return Ok(());
     }
 
-    let file = if let Some(file) = project.data.latest_files.get(0) {
-        file
-    } else {
+    let Some(file) = project.data.latest_files.get(0) else {
         println!("=== ERROR ===\nNo Curseforge latest file\n=== END ===");
         return Ok(());
     };

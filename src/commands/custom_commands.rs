@@ -81,9 +81,7 @@ pub async fn manual_dispatch(
 #[aliases("command")]
 #[sub_commands(define, custom_command_remove, custom_command_display)]
 pub async fn custom_command(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    let server_id = if let Some(id) = msg.guild_id {
-        id
-    } else {
+    let Some(server_id) = msg.guild_id else {
         // No custom commands for DMs!
         return Ok(());
     };
