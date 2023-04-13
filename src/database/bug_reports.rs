@@ -20,12 +20,13 @@ pub enum BugOrder {
 
 use BugStatus::*;
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
 pub enum BugStatus {
     Closed,
     ForgeVanilla,
     Resolved,
     Low,
+    #[default]
     Medium,
     High,
     Critical,
@@ -57,12 +58,6 @@ impl std::str::FromStr for BugStatus {
             "forgevanilla" | "forge" | "vanilla" => ForgeVanilla,
             _ => return Err(Self::Err {}),
         })
-    }
-}
-
-impl std::default::Default for BugStatus {
-    fn default() -> Self {
-        Medium
     }
 }
 
@@ -131,8 +126,9 @@ impl std::fmt::Display for BugLink {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
 pub enum BugCategory {
+    #[default]
     Renewed,
     Legacy,
 }
@@ -157,12 +153,6 @@ impl std::str::FromStr for BugCategory {
 impl std::fmt::Display for BugCategory {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{:?}", self)
-    }
-}
-
-impl Default for BugCategory {
-    fn default() -> BugCategory {
-        BugCategory::Renewed
     }
 }
 

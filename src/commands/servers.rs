@@ -109,7 +109,7 @@ pub async fn online(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
                     e.title("Server online!");
                     e.description(format!(
                         "{}\n\n**IP:**  `{}`",
-                        parse_motd(&server.motd.raw.join("\n")),
+                        parse_motd(server.motd.raw.join("\n")),
                         &ip,
                     ));
                     e.field(

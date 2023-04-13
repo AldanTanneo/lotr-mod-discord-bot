@@ -9,15 +9,12 @@ use crate::get_database_conn;
 pub async fn is_admin_function(ctx: &Context, server_id: GuildId, user: UserId) -> Option<bool> {
     let mut conn = get_database_conn!(ctx);
 
-    let res = conn
-        .query_first(format!(
-            "SELECT EXISTS(SELECT perm_id FROM {} WHERE server_id={} AND user_id={} LIMIT 1)",
-            TABLE_ADMINS, server_id.0, user.0
-        ))
-        .await
-        .ok()?;
-
-    res
+    conn.query_first(format!(
+        "SELECT EXISTS(SELECT perm_id FROM {} WHERE server_id={} AND user_id={} LIMIT 1)",
+        TABLE_ADMINS, server_id.0, user.0
+    ))
+    .await
+    .ok()?
 }
 
 pub async fn get_admins(ctx: &Context, server_id: GuildId) -> Option<Vec<UserId>> {

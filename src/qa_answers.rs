@@ -117,7 +117,7 @@ pub async fn handle_reaction(ctx: &Context, reaction: Reaction, guild_id: GuildI
                     e.attachment(&attachment.filename);
                 }
                 e.footer(|f| f.icon_url(answer.author.face()));
-                e.timestamp(&answer.timestamp);
+                e.timestamp(answer.timestamp);
                 e
             })
         })

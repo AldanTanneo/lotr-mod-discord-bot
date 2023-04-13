@@ -41,8 +41,9 @@ impl From<RandomPage> for GenericPage {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Default)]
 pub enum Lang {
+    #[default]
     En,
     Fr,
     De,
@@ -51,13 +52,6 @@ pub enum Lang {
     Ru,
     Es,
     Ja,
-}
-
-impl Default for Lang {
-    #[inline]
-    fn default() -> Self {
-        En
-    }
 }
 
 impl Lang {

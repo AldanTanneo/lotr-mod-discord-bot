@@ -204,7 +204,7 @@ Channel: {:?}\nMessage: {}\n=== END ===",
 
             if b.contains("\u{200B}$args") {
                 changed = true;
-                b = b.replace("\u{200B}$args", &to_json_safe_string(&args.rest()));
+                b = b.replace("\u{200B}$args", &to_json_safe_string(args.rest()));
             } else {
                 args.iter::<String>()
                     .filter_map(Result::ok)
