@@ -19,7 +19,7 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
     cargo install --path .
 
 # Runtime image
-FROM debian:bullseye-slim
+FROM debian:latest-slim
 
 # Run as "app" user
 RUN useradd -ms /bin/bash app
