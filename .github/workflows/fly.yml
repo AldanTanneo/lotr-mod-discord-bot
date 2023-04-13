@@ -1,4 +1,4 @@
-name: Fly Deploy
+name: Fly deploy
 
 on:
   push:
@@ -10,6 +10,7 @@ on:
 
 jobs:
   check:
+    name: Code quality
     uses: ./.github/workflows/rust.yml
   deploy:
     name: Deploy app

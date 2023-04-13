@@ -1,17 +1,12 @@
-name: Rust workflow
+name: Code quality
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - "src/**"
-      - "Cargo.toml"
+  workflow_call:
   pull_request:
     branches: [main]
     paths:
       - "src/**"
       - "Cargo.toml"
-  workflow_call:
 
 env:
   CARGO_TERM_COLOR: always
@@ -21,7 +16,7 @@ jobs:
     name: Format
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: dtolnay/rust-toolchain@stable
       - name: Run cargo fmt
         run: cargo fmt --check
@@ -29,7 +24,7 @@ jobs:
     name: Check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: dtolnay/rust-toolchain@stable
       - name: Run cargo check
         run: cargo check

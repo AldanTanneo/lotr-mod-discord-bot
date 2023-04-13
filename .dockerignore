@@ -1,3 +1,8 @@
-/target
-/database_backup
-/env.ps1
+.git
+.github
+target
+database_backup
+env.ps1
+database_structure.sql
+LICENSE
+README.md
