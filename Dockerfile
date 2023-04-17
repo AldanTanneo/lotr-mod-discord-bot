@@ -19,7 +19,7 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
     cargo install --path .
 
 # Runtime image
-FROM debian:latest-slim
+FROM debian:stable-slim
 
 # Run as "app" user
 RUN useradd -ms /bin/bash app
@@ -30,4 +30,4 @@ WORKDIR /app
 # Get compiled binaries from builder's cargo install directory
 COPY --from=builder /usr/local/cargo/bin/lotr-mod-discord-bot /app/lotr-mod-discord-bot
 
-# No CMD or ENTRYPOINT, see fly.toml with `cmd` override.
+CMD ./lotr-mod-discord-bot
