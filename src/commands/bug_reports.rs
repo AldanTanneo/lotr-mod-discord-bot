@@ -1,3 +1,4 @@
+use serenity::builder::{CreateComponents, CreateEmbed};
 use serenity::client::Context;
 use serenity::collector::CollectComponentInteraction;
 use serenity::framework::standard::{macros::command, Args, CommandResult};
@@ -17,85 +18,85 @@ use crate::database::admin_data::is_admin_function;
 use crate::database::bug_reports::{
     add_bug_report, add_link, add_notified_user, change_bug_status, change_category, change_title,
     get_bug_from_id, get_bug_list, get_bug_statistics, get_notifications_for_user,
-    get_notified_users, is_notified_user, remove_link, BugCategory, BugOrder, BugStatus,
+    get_notified_users, is_notified_user, remove_link, BugCategory, BugOrder, BugReport, BugStatus,
 };
 use crate::failure;
 
 pub const TERMITE_EMOJI: EmojiId = EmojiId(938135367486410792);
 
-macro_rules! termite {
-    ($ctx:ident, $msg:ident) => {{
-        $msg.react(
-            $ctx,
-            ReactionType::from(EmojiIdentifier {
-                animated: false,
-                id: TERMITE_EMOJI,
-                name: "bug".into(),
-            }),
-        )
-        .await?;
-    }};
+async fn termite_react(ctx: &Context, msg: &Message) -> CommandResult {
+    msg.react(
+        ctx,
+        ReactionType::from(EmojiIdentifier {
+            animated: false,
+            id: TERMITE_EMOJI,
+            name: "bug".into(),
+        }),
+    )
+    .await?;
+
+    Ok(())
 }
 
 macro_rules! termite_success {
     ($ctx:ident, $msg:ident) => {
-        termite!($ctx, $msg);
+        termite_react($ctx, $msg).await?;
     };
     ($ctx:ident, $msg:ident, $single_message:expr) => {{
         $msg.reply($ctx, $single_message).await?;
-        termite!($ctx, $msg);
+        termite_react($ctx, $msg).await?;
     }};
     ($ctx:ident, $msg:ident, $($success:tt)*) => {{
         termite_success!($ctx, $msg, format!($($success)*));
     }};
 }
 
-macro_rules! create_bug_embed {
-    ($bug:expr, $linked_message:expr) => {
-        |e| {
-            e.author(|a| {
-                a.name("LOTR Mod Bugtracker");
-                a.icon_url(crate::constants::TERMITE_IMAGE);
-                a
+fn create_bug_embed<'a>(
+    bug: &'a BugReport,
+    linked_message: Option<&'a Message>,
+) -> impl Fn(&mut CreateEmbed) -> &mut CreateEmbed + 'a {
+    move |e| {
+        e.author(|a| {
+            a.name("LOTR Mod Bugtracker");
+            a.icon_url(crate::constants::TERMITE_IMAGE);
+            a
+        });
+        e.colour(bug.status.colour());
+        e.title(format!(
+            "{} LOTR-{}: {} [{}]",
+            bug.status.marker(),
+            bug.bug_id,
+            bug.title,
+            bug.category
+        ));
+        if let Some(message) = linked_message {
+            e.description(&message.content);
+            if let Some(image) = message.attachments.get(0) {
+                e.image(&image.url);
+            }
+            e.footer(|f| {
+                f.text(format!(
+                    "Status: {} • Submitted by {}",
+                    bug.status, &message.author.name
+                ))
             });
-            e.colour($bug.status.colour());
-            e.title(format!(
-                "{} LOTR-{}: {} [{}]",
-                $bug.status.marker(),
-                $bug.bug_id,
-                $bug.title,
-                $bug.category
-            ));
-            if let Ok(ref message) = $linked_message {
-                e.description(&message.content);
-                if let Some(image) = message.attachments.get(0) {
-                    e.image(&image.url);
-                }
-                e.footer(|f| {
-                    f.text(format!(
-                        "Status: {} • Submitted by {}",
-                        $bug.status, &message.author.name
-                    ))
-                });
-            } else {
-                e.footer(|f| f.text(format!("Status: {}", $bug.status)));
-            }
-            if !$bug.links.is_empty() {
-                e.field(
-                    "Additional information",
-                    &$bug
-                        .links
-                        .iter()
-                        .map(|link| link.to_string())
-                        .collect::<Vec<_>>()
-                        .join("\n"),
-                    false,
-                );
-            }
-            e.timestamp($bug.timestamp);
-            e
+        } else {
+            e.footer(|f| f.text(format!("Status: {}", bug.status)));
         }
-    };
+        if !bug.links.is_empty() {
+            e.field(
+                "Additional information",
+                &bug.links
+                    .iter()
+                    .map(|link| link.to_string())
+                    .collect::<Vec<_>>()
+                    .join("\n"),
+                false,
+            );
+        }
+        e.timestamp(bug.timestamp);
+        e
+    }
 }
 
 pub async fn notify_users(
@@ -143,7 +144,7 @@ pub async fn notify_users(
                     }),
                     message,
                 ))
-                .embed(create_bug_embed!(bug, linked_message))
+                .embed(create_bug_embed(&bug, linked_message.as_ref().ok()))
                 .components(|c| {
                     c.create_action_row(|a| {
                         if let Some(link) = message_link.as_ref() {
@@ -264,31 +265,32 @@ impl<'a> Either<'a> {
     }
 }
 
-macro_rules! create_buttons {
-    ($disable_previous:expr, $disable_next:expr) => {
-        |c| {
-            c.create_action_row(|a| {
-                a.create_button(|b| {
-                    b.style(ButtonStyle::Secondary);
-                    b.label("Previous");
-                    b.custom_id("previous_page");
-                    b.emoji(ReactionType::Unicode("⬅️".into()));
-                    b.disabled($disable_previous);
-                    b
-                });
-                a.create_button(|b| {
-                    b.style(ButtonStyle::Secondary);
-                    b.label("Next");
-                    b.custom_id("next_page");
-                    b.emoji(ReactionType::Unicode("➡️".into()));
-                    b.disabled($disable_next);
-                    b
-                });
-                a
+fn create_buttons(
+    disable_previous: bool,
+    disable_next: bool,
+) -> impl Fn(&mut CreateComponents) -> &mut CreateComponents {
+    move |c| {
+        c.create_action_row(|a| {
+            a.create_button(|b| {
+                b.style(ButtonStyle::Secondary);
+                b.label("Previous");
+                b.custom_id("previous_page");
+                b.emoji(ReactionType::Unicode("⬅️".into()));
+                b.disabled(disable_previous);
+                b
             });
-            c
-        }
-    };
+            a.create_button(|b| {
+                b.style(ButtonStyle::Secondary);
+                b.label("Next");
+                b.custom_id("next_page");
+                b.emoji(ReactionType::Unicode("➡️".into()));
+                b.disabled(disable_next);
+                b
+            });
+            a
+        });
+        c
+    }
 }
 
 async fn display_bugs(
@@ -417,7 +419,7 @@ async fn display_bugs(
                         r.kind(InteractionResponseType::UpdateMessage)
                             .interaction_response_data(|m| {
                                 m.set_embeds([]).embed(create_embed_reponse!()).components(
-                                    create_buttons!(page <= 1, (page * limit) >= total_bugs),
+                                    create_buttons(page <= 1, (page * limit) >= total_bugs),
                                 )
                             })
                     })
@@ -430,7 +432,7 @@ async fn display_bugs(
                     .channel_id
                     .send_message(ctx, |m| {
                         m.embed(create_embed_reponse!())
-                            .components(create_buttons!(page <= 1, (page * limit) >= total_bugs))
+                            .components(create_buttons(page <= 1, (page * limit) >= total_bugs))
                     })
                     .await?;
                 Ok(Some(response_message))
@@ -530,7 +532,7 @@ pub async fn buglist(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
     }
 
     response_message
-        .edit(ctx, |m| m.components(create_buttons!(true, true)))
+        .edit(ctx, |m| m.components(create_buttons(true, true)))
         .await?;
 
     Ok(())
@@ -576,59 +578,44 @@ pub async fn bug(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult 
         }
     };
 
-    macro_rules! create_bug_buttons {
-        ($message_link:expr) => {
-            |c| {
-                c.create_action_row(|a| {
-                    if let Some(ref link) = $message_link {
-                        a.create_button(|b| {
-                            b.style(ButtonStyle::Link).label("Message link").url(link)
-                        });
-                    }
+    fn create_action_buttons(
+        bug_id: u64,
+        message_link: Option<&'_ str>,
+        create_buttons: bool,
+        disabled: bool,
+    ) -> impl Fn(&mut CreateComponents) -> &mut CreateComponents + '_ {
+        move |c| {
+            c.create_action_row(|a| {
+                if let Some(link) = message_link {
                     a.create_button(|b| {
-                        b.style(ButtonStyle::Primary)
-                            .label("Subscribe")
-                            .custom_id(format!("bug_subscribe__{bug_id}"))
-                    })
-                });
-
-                c
-            }
-        };
-        ($message_link:expr, $create_buttons:expr, $disabled:expr) => {
-            |c| {
-                c.create_action_row(|a| {
-                    if let Some(link) = $message_link.as_ref() {
-                        a.create_button(|b| {
-                            b.style(ButtonStyle::Link)
-                                .label("Jump to message")
-                                .url(link)
-                        });
-                    }
-                    a.create_button(|b| {
-                        b.style(ButtonStyle::Primary)
-                            .label("Subscribe")
-                            .custom_id(format!("bug_subscribe__{bug_id}"))
+                        b.style(ButtonStyle::Link)
+                            .label("Jump to message")
+                            .url(link)
                     });
-                    if $create_buttons {
-                        a.create_button(|b| {
-                            b.style(ButtonStyle::Success)
-                                .label("Resolve")
-                                .custom_id("resolve_bug")
-                                .disabled($disabled)
-                        });
-                        a.create_button(|b| {
-                            b.style(ButtonStyle::Danger)
-                                .label("Close")
-                                .custom_id("close_bug")
-                                .disabled($disabled)
-                        });
-                    }
-                    a
+                }
+                a.create_button(|b| {
+                    b.style(ButtonStyle::Primary)
+                        .label("Subscribe")
+                        .custom_id(format!("bug_subscribe__{bug_id}"))
                 });
-                c
-            }
-        };
+                if create_buttons {
+                    a.create_button(|b| {
+                        b.style(ButtonStyle::Success)
+                            .label("Resolve")
+                            .custom_id("resolve_bug")
+                            .disabled(disabled)
+                    });
+                    a.create_button(|b| {
+                        b.style(ButtonStyle::Danger)
+                            .label("Close")
+                            .custom_id("close_bug")
+                            .disabled(disabled)
+                    });
+                }
+                a
+            });
+            c
+        }
     }
 
     let linked_message = bug
@@ -658,8 +645,13 @@ pub async fn bug(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult 
     let mut response_message = msg
         .channel_id
         .send_message(ctx, |m| {
-            m.embed(create_bug_embed!(bug, linked_message))
-                .components(create_bug_buttons!(message_link, create_buttons, false))
+            m.embed(create_bug_embed(&bug, linked_message.as_ref().ok()))
+                .components(create_action_buttons(
+                    bug_id,
+                    message_link.as_deref(),
+                    create_buttons,
+                    false,
+                ))
         })
         .await?;
 
@@ -688,8 +680,13 @@ pub async fn bug(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult 
                         r.kind(InteractionResponseType::UpdateMessage)
                             .interaction_response_data(|m| {
                                 m.set_embeds([])
-                                    .embed(create_bug_embed!(bug, linked_message))
-                                    .components(create_bug_buttons!(message_link))
+                                    .embed(create_bug_embed(&bug, linked_message.as_ref().ok()))
+                                    .components(create_action_buttons(
+                                        bug_id,
+                                        message_link.as_deref(),
+                                        false,
+                                        false,
+                                    ))
                             })
                     })
                     .await?;
@@ -724,7 +721,12 @@ pub async fn bug(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult 
             // If no interaction was received after timeout, remove the buttons
             response_message
                 .edit(ctx, |m| {
-                    m.components(create_bug_buttons!(message_link, create_buttons, true))
+                    m.components(create_action_buttons(
+                        bug_id,
+                        message_link.as_deref(),
+                        create_buttons,
+                        true,
+                    ))
                 })
                 .await?;
         }
@@ -816,7 +818,7 @@ pub async fn resolve(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
 
 #[command]
 #[checks(is_lotr_discord, is_admin)]
-#[aliases("close")]
+#[aliases(close)]
 pub async fn bug_close(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     if let Ok(bug_id) = args.single::<String>() {
         if let Ok(bug_id) = bug_id
@@ -847,7 +849,7 @@ pub async fn bug_close(ctx: &Context, msg: &Message, mut args: Args) -> CommandR
 #[command]
 #[checks(is_lotr_discord, is_admin)]
 #[sub_commands(bug_link_remove)]
-#[aliases("link")]
+#[aliases(link)]
 pub async fn bug_link(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     if let Ok(bug_id) = args.single::<String>() {
         if let Ok(bug_id) = bug_id
@@ -907,7 +909,7 @@ pub async fn bug_link(ctx: &Context, msg: &Message, mut args: Args) -> CommandRe
 
 #[command]
 #[checks(is_admin, is_lotr_discord)]
-#[aliases("remove")]
+#[aliases(remove)]
 pub async fn bug_link_remove(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     if let Ok(bug_id) = args.single::<String>() {
         if let Ok(bug_id) = bug_id
@@ -952,7 +954,7 @@ pub async fn bug_link_remove(ctx: &Context, msg: &Message, mut args: Args) -> Co
 
 #[command]
 #[checks(is_lotr_discord, is_admin)]
-#[aliases("toggle")]
+#[aliases(toggle)]
 pub async fn bug_toggle_edition(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     if let Ok(bug_id) = args.single::<String>() {
         if let Ok(bug_id) = bug_id
@@ -1092,7 +1094,7 @@ _Open bugs: {}_
 
 #[command]
 #[checks(is_admin, is_lotr_discord)]
-#[aliases("help")]
+#[aliases(help)]
 pub async fn bugtracker_help(ctx: &Context, msg: &Message) -> CommandResult {
     crate::commands::help::display_bugtracker_help(ctx, msg).await
 }
