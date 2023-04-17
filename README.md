@@ -1,4 +1,4 @@
-![build](https://github.com/AldanTanneo/lotr-mod-discord-bot/workflows/Rust%20workflow/badge.svg)
+[![Deployment](https://github.com/AldanTanneo/lotr-mod-discord-bot/actions/workflows/fly.yml/badge.svg)](https://github.com/AldanTanneo/lotr-mod-discord-bot/actions/workflows/fly.yml)
 
 # LOTR Mod Discord Bot
 
