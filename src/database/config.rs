@@ -77,9 +77,7 @@ pub async fn set_prefix(ctx: &Context, server_id: GuildId, prefix: &str) -> Comm
 
     println!("Setting prefix to {prefix} in {server_id}");
     conn.exec_drop(
-        format!(
-            "REPLACE INTO {TABLE_PREFIX} (server_id, prefix) VALUES (:server_id, :prefix)"
-        ),
+        format!("REPLACE INTO {TABLE_PREFIX} (server_id, prefix) VALUES (:server_id, :prefix)"),
         params! {
             "server_id" => server_id.0,
             "prefix" => prefix,
@@ -114,9 +112,7 @@ pub async fn set_minecraft_ip(ctx: &Context, server_id: GuildId, ip: &str) -> Co
     println!("Setting up ip to {ip}");
 
     conn.exec_drop(
-        format!(
-            "REPLACE INTO {TABLE_MC_SERVER_IP} (server_id, mc_ip) VALUES (:server_id, :mc_ip)"
-        ),
+        format!("REPLACE INTO {TABLE_MC_SERVER_IP} (server_id, mc_ip) VALUES (:server_id, :mc_ip)"),
         params! {
             "server_id" => server_id.0,
             "mc_ip" => ip,
@@ -133,9 +129,7 @@ pub async fn set_minecraft_ip(ctx: &Context, server_id: GuildId, ip: &str) -> Co
 pub async fn delete_minecraft_ip(ctx: &Context, server_id: GuildId) -> CommandResult {
     let mut conn = get_database_conn!(ctx);
 
-    let req = format!(
-        "DELETE FROM {TABLE_MC_SERVER_IP} WHERE server_id = :server_id LIMIT 1"
-    );
+    let req = format!("DELETE FROM {TABLE_MC_SERVER_IP} WHERE server_id = :server_id LIMIT 1");
 
     conn.exec_drop(
         req.as_str(),

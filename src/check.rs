@@ -173,9 +173,7 @@ pub async fn dispatch_error_hook(
 
     match error {
         CheckFailed(s, reason) => {
-            println!(
-                "=== CHECK FAILED ===\nCheck failed in command {command_name}: {s}"
-            );
+            println!("=== CHECK FAILED ===\nCheck failed in command {command_name}: {s}");
             match reason {
                 Reason::User(err_message) => {
                     match join(

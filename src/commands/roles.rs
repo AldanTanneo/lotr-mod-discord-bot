@@ -96,9 +96,7 @@ async fn can_have_role<'a>(
                     return Err(IncompatibleRole(role_name));
                 }
             } else {
-                println!(
-                    "Could not retrieve \"{role_name}\" role! Denying permission."
-                );
+                println!("Could not retrieve \"{role_name}\" role! Denying permission.");
                 return Err(RoleRetrievalError);
             }
         }
@@ -113,9 +111,7 @@ async fn can_have_role<'a>(
                     return Err(Reason::MissingRequiredRole(role_name));
                 }
             } else {
-                println!(
-                    "Could not retrieve \"{role_name}\" role! Denying permission."
-                );
+                println!("Could not retrieve \"{role_name}\" role! Denying permission.");
                 return Err(RoleRetrievalError);
             }
         }

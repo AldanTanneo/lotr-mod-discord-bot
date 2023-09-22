@@ -42,10 +42,8 @@ pub async fn get_blacklist(
 
     let user_blacklist: Vec<UserId> = conn
         .exec_map(
-            format!(
-                "SELECT user_id as id FROM {TABLE_USER_BLACKLIST} WHERE server_id=:server_id"
-            )
-            .as_str(),
+            format!("SELECT user_id as id FROM {TABLE_USER_BLACKLIST} WHERE server_id=:server_id")
+                .as_str(),
             params! {
                 "server_id" => server_id.0,
             },

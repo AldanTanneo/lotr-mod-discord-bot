@@ -22,10 +22,7 @@ pub async fn get_admins(ctx: &Context, server_id: GuildId) -> Option<Vec<UserId>
 
     let res = conn
         .exec_map(
-            format!(
-                "SELECT user_id FROM {TABLE_ADMINS} WHERE server_id=:server_id"
-            )
-            .as_str(),
+            format!("SELECT user_id FROM {TABLE_ADMINS} WHERE server_id=:server_id").as_str(),
             params! {
                 "server_id" => server_id.0
             },

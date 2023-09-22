@@ -51,10 +51,7 @@ pub async fn add_floppa(ctx: &Context, floppa_url: String) -> CommandResult {
             .await?;
     } else {
         conn.exec_drop(
-            format!(
-                "INSERT INTO {TABLE_FLOPPA} (image_url) VALUES (:image_url)"
-            )
-            .as_str(),
+            format!("INSERT INTO {TABLE_FLOPPA} (image_url) VALUES (:image_url)").as_str(),
             params! {
                 "image_url" => floppa_url,
             },

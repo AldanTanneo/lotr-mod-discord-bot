@@ -95,9 +95,7 @@ impl EventHandler for Handler {
             if let Err(e) =
                 crate::database::admin_data::add_admin(&ctx, guild.id, guild.owner_id, false).await
             {
-                println!(
-                    "=== ERROR ===\nCould not add Guild owner as admin: {e}\n=== END ==="
-                );
+                println!("=== ERROR ===\nCould not add Guild owner as admin: {e}\n=== END ===");
             }
 
             OWNER_ID
@@ -107,9 +105,7 @@ impl EventHandler for Handler {
                 .dm(&ctx, |m| {
                     m.embed(|e| {
                         if let Some(num_members) = guild.approximate_member_count {
-                            e.description(format!(
-                                "Owner: {guild_owner}\n{num_members} members"
-                            ));
+                            e.description(format!("Owner: {guild_owner}\n{num_members} members"));
                         } else {
                             e.description(format!("Owner: {guild_owner}"));
                         }

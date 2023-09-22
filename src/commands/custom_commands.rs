@@ -345,9 +345,7 @@ pub async fn define(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
                 ));
             }
             let body = serde_json::to_string_pretty(&message)?;
-            println!(
-                "adding custom command \"{name}\": {body}\n({documentation:?})"
-            );
+            println!("adding custom command \"{name}\": {body}\n({documentation:?})");
             let db_res =
                 add_custom_command(ctx, server_id, &name, &body, documentation.as_str()).await;
             if db_res.is_ok()

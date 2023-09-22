@@ -148,9 +148,7 @@ pub async fn get_role_list(ctx: &Context, server_id: GuildId) -> Option<Vec<Vec<
 
     let roles: Vec<u64> = conn
         .exec(
-            format!(
-                "SELECT role_id FROM {TABLE_ROLES} WHERE server_id = :server_id"
-            ),
+            format!("SELECT role_id FROM {TABLE_ROLES} WHERE server_id = :server_id"),
             params! {"server_id" => server_id.0},
         )
         .await
