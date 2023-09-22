@@ -1,4 +1,4 @@
-use chrono::{DateTime, NaiveDateTime, Utc};
+use chrono::{DateTime, NaiveDateTime, TimeZone, Utc};
 use const_format::formatcp;
 use mysql_async::prelude::*;
 use serenity::client::Context;
@@ -216,7 +216,7 @@ impl PartialBugReport {
             bug_id,
             title,
             status,
-            timestamp: DateTime::from_utc(timestamp, Utc),
+            timestamp: Utc.from_utc_datetime(&timestamp), // DateTime::from_utc(timestamp, Utc),
             category,
         })
     }
@@ -267,7 +267,7 @@ FROM {} WHERE bug_id = :bug_id",
         status: status
             .parse()
             .expect("Expected a valid bug status from the database"),
-        timestamp: DateTime::from_utc(timestamp, Utc),
+        timestamp: Utc.from_utc_datetime(&timestamp),
         category: category
             .parse()
             .expect("Expected a valid category from the database"),
