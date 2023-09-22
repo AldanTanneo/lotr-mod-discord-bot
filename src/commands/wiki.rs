@@ -10,7 +10,7 @@ use api::wiki::structures::{Lang, Lang::*, Namespace, Namespace::*, Wikis};
 async fn wiki_search(
     ctx: &Context,
     msg: &Message,
-    args: &mut Args,
+    args: &Args,
     namespace: Namespace,
     wiki: &Wikis,
 ) -> CommandResult {
