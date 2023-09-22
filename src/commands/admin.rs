@@ -193,7 +193,7 @@ pub async fn blacklist(ctx: &Context, msg: &Message, args: Args) -> CommandResul
             .send_message(ctx, |m| {
                 m.embed(|e| {
                     e.title("Blacklist");
-                    e.description(format!("On **{}**", guild_name));
+                    e.description(format!("On **{guild_name}**"));
                     e.field("Blacklisted users:", user_names.join("\n"), true);
                     e.field("Blacklisted channels:", channel_names.join("\n"), true)
                 });
@@ -263,14 +263,14 @@ pub async fn listguilds(ctx: &Context) -> CommandResult {
         if first {
             first = false;
             owner
-                .dm(&ctx, |m| m.content(format!("**Guilds:**\n{}", guild_names)))
+                .dm(&ctx, |m| m.content(format!("**Guilds:**\n{guild_names}")))
                 .await?;
         } else {
             owner.dm(&ctx, |m| m.content(guild_names)).await?;
         }
     }
     owner
-        .dm(ctx, |m| m.content(format!("*{} guilds*", count)))
+        .dm(ctx, |m| m.content(format!("*{count} guilds*")))
         .await?;
     Ok(())
 }

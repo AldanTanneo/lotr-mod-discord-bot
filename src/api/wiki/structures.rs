@@ -70,12 +70,12 @@ impl Lang {
 
     fn maindesc(&self, username: &str) -> String {
         match self {
-            En => format!("Welcome, {}, to The Lord of the Rings Minecraft Mod Wiki, the official public wiki for everything related to the Lord of the Rings Mod.", username),
-            Fr => format!("Bienvenue, {}, sur le Wiki du Mod Seigneur des Anneaux pour Minecraft, un wiki public pour tout ce qui concerne le Mod Seigneur des Anneaux.", username),
-            De => format!("Willkommen, {}, im Der Herr der Ringe Minecraft Mod Wiki, einem öffentlichem Wiki für alles, was sich auf die Der Herr der Ringe Mod bezieht.", username),
-            Nl => format!("Welkom, {}, op de In de ban van de Ring Minecraft Mod wiki, de officiële openbare Nederlandstalige wiki voor alles in verband met de In de ban van de Ring Mod.", username),
+            En => format!("Welcome, {username}, to The Lord of the Rings Minecraft Mod Wiki, the official public wiki for everything related to the Lord of the Rings Mod."),
+            Fr => format!("Bienvenue, {username}, sur le Wiki du Mod Seigneur des Anneaux pour Minecraft, un wiki public pour tout ce qui concerne le Mod Seigneur des Anneaux."),
+            De => format!("Willkommen, {username}, im Der Herr der Ringe Minecraft Mod Wiki, einem öffentlichem Wiki für alles, was sich auf die Der Herr der Ringe Mod bezieht."),
+            Nl => format!("Welkom, {username}, op de In de ban van de Ring Minecraft Mod wiki, de officiële openbare Nederlandstalige wiki voor alles in verband met de In de ban van de Ring Mod."),
             Zh => "欢迎你来到魔戒我的世界模组百科！".into(),
-            Ru => format!("Добро пожаловать, {}, на Вики, связанную с модом Lord of the Rings Mod.", username),
+            Ru => format!("Добро пожаловать, {username}, на Вики, связанную с модом Lord of the Rings Mod."),
             Es => "Bienvenidos a Wiki Lotrminecraftmod\nEl wiki sobre el mod El Señor de los Anillos para Minecraft que todos pueden editar.".into(),
             Ja => "このサイトはThe Lord of The Rings Minecraft Mod Wiki、指輪物語MODに関する公式Wikiの日本語版です。FANDOMのアカウントを作成して言語設定を日本語にすることで、メニュー周りも日本語になり読みやすくなります。".into()
         }
@@ -193,7 +193,7 @@ impl Wikis {
 
     pub fn site(&self) -> String {
         match self {
-            LotrMod(lang) => format!("https://lotrminecraftmod.fandom.com/{}", lang),
+            LotrMod(lang) => format!("https://lotrminecraftmod.fandom.com/{lang}"),
             TolkienGateway => "https://tolkiengateway.net".to_string(),
             Minecraft => "https://minecraft.gamepedia.com".to_string(),
         }
@@ -235,18 +235,16 @@ impl Wikis {
                 title: self.name().into(),
                 link: self.site(),
                 desc: Some(format!(
-                    "Welcome, {}, to Tolkien Gateway,
-the J.R.R. Tolkien encyclopedia that anyone can edit.",
-                    username
+                    "Welcome, {username}, to Tolkien Gateway,
+the J.R.R. Tolkien encyclopedia that anyone can edit."
                 )),
             },
             Minecraft => GenericPage {
                 title: self.name().into(),
                 link: self.site(),
                 desc: Some(format!(
-                    "Welcome, {}, to the Official Minecraft Wiki,
-a publicly accessible and editable wiki for information on Minecraft and related subjects.",
-                    username
+                    "Welcome, {username}, to the Official Minecraft Wiki,
+a publicly accessible and editable wiki for information on Minecraft and related subjects."
                 )),
             },
         }
@@ -334,7 +332,7 @@ impl Namespace {
             Minecraft => GenericPage {
                 title: "Official Minecraft Wiki".into(),
                 link: wiki.site(),
-                desc: Some("".into()),
+                desc: Some(String::new()),
             }
         }
     }

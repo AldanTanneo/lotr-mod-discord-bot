@@ -11,19 +11,17 @@ pub async fn get_floppa(ctx: &Context, n: Option<i64>) -> Option<String> {
 
     if let Some(n) = n {
         let max_len: i64 = conn
-            .query_first(format!("SELECT MAX(id) FROM {}", TABLE_FLOPPA))
+            .query_first(format!("SELECT MAX(id) FROM {TABLE_FLOPPA}"))
             .await
             .ok()??;
         let num = (((n - 1) % max_len) + max_len) % max_len + 1;
         conn.query_first(format!(
-            "SELECT image_url FROM {} WHERE id={}",
-            TABLE_FLOPPA, num
+            "SELECT image_url FROM {TABLE_FLOPPA} WHERE id={num}"
         ))
         .await
     } else {
         conn.query_first(format!(
-            "SELECT image_url FROM {} ORDER BY RAND() LIMIT 1 ",
-            TABLE_FLOPPA
+            "SELECT image_url FROM {TABLE_FLOPPA} ORDER BY RAND() LIMIT 1 "
         ))
         .await
     }
@@ -35,7 +33,7 @@ pub async fn add_floppa(ctx: &Context, floppa_url: String) -> CommandResult {
 
     let images: Vec<String> = conn
         .exec_map(
-            format!("SELECT image_url FROM {}", TABLE_FLOPPA).as_str(),
+            format!("SELECT image_url FROM {TABLE_FLOPPA}").as_str(),
             (),
             |url| url,
         )
@@ -54,8 +52,7 @@ pub async fn add_floppa(ctx: &Context, floppa_url: String) -> CommandResult {
     } else {
         conn.exec_drop(
             format!(
-                "INSERT INTO {} (image_url) VALUES (:image_url)",
-                TABLE_FLOPPA
+                "INSERT INTO {TABLE_FLOPPA} (image_url) VALUES (:image_url)"
             )
             .as_str(),
             params! {

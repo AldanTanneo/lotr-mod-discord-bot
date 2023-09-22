@@ -39,7 +39,7 @@ impl EventHandler for Handler {
             })
             .await
         {
-            println!("Error starting the bot: {}", e);
+            println!("Error starting the bot: {e}");
         } else {
             println!("Started bot!");
         }
@@ -96,8 +96,7 @@ impl EventHandler for Handler {
                 crate::database::admin_data::add_admin(&ctx, guild.id, guild.owner_id, false).await
             {
                 println!(
-                    "=== ERROR ===\nCould not add Guild owner as admin: {}\n=== END ===",
-                    e
+                    "=== ERROR ===\nCould not add Guild owner as admin: {e}\n=== END ==="
                 );
             }
 
@@ -109,11 +108,10 @@ impl EventHandler for Handler {
                     m.embed(|e| {
                         if let Some(num_members) = guild.approximate_member_count {
                             e.description(format!(
-                                "Owner: {}\n{} members",
-                                guild_owner, num_members
+                                "Owner: {guild_owner}\n{num_members} members"
                             ));
                         } else {
-                            e.description(format!("Owner: {}", guild_owner));
+                            e.description(format!("Owner: {guild_owner}"));
                         }
                         if let Some(icon) = guild.icon_url() {
                             e.thumbnail(icon);
@@ -189,10 +187,9 @@ impl EventHandler for Handler {
                         .say_ephemeral(
                             &ctx,
                             format!(
-                                ":x: You are not subscribed to bug LOTR-{}.
+                                ":x: You are not subscribed to bug LOTR-{bug_id}.
 
-To see all your active notifications type  `!bug notifications`",
-                                bug_id
+To see all your active notifications type  `!bug notifications`"
                             ),
                         )
                         .await;
@@ -212,10 +209,9 @@ from LOTR-{} notifications\nError: {}\n=== END ===",
                         .say_ephemeral(
                             &ctx,
                             format!(
-                                "You have successfully been unsubscribed from bug LOTR-{}.
+                                "You have successfully been unsubscribed from bug LOTR-{bug_id}.
 
-To see all your active notifications type  `!bug notifications`",
-                                bug_id
+To see all your active notifications type  `!bug notifications`"
                             ),
                         )
                         .await;
@@ -231,10 +227,9 @@ To see all your active notifications type  `!bug notifications`",
                         .say_ephemeral(
                             &ctx,
                             format!(
-                                ":x: You are already subscribed to bug LOTR-{}.
+                                ":x: You are already subscribed to bug LOTR-{bug_id}.
 
-To see all your active notifications type  `!bug notifications`",
-                                bug_id
+To see all your active notifications type  `!bug notifications`"
                             ),
                         )
                         .await;
@@ -254,10 +249,9 @@ to LOTR-{} notifications\nError: {}\n=== END ===",
                         .say_ephemeral(
                             &ctx,
                             format!(
-                                "You have successfully been subscribed to bug LOTR-{}.
+                                "You have successfully been subscribed to bug LOTR-{bug_id}.
 
-To see all your active notifications type  `!bug notifications`",
-                                bug_id
+To see all your active notifications type  `!bug notifications`"
                             ),
                         )
                         .await;

@@ -66,10 +66,9 @@ async fn colour(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     msg.channel_id
         .send_message(ctx, |m| {
             m.embed(|e| {
-                e.title(format!("Colour: #{:06x}", colour_value));
+                e.title(format!("Colour: #{colour_value:06x}"));
                 e.image(format!(
-                    "https://singlecolorimage.com/get/{:06x}/400x300",
-                    colour_value
+                    "https://singlecolorimage.com/get/{colour_value:06x}/400x300"
                 ));
                 e.colour(colour_value);
                 e

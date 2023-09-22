@@ -44,7 +44,7 @@ pub async fn help(ctx: &Context, msg: &Message) -> CommandResult {
                     prefix,
                     name,
                     match newline {
-                        0 => format!("  {}\n", desc),
+                        0 => format!("  {desc}\n"),
                         _ => String::new(),
                     },
                     newline = match newline {
@@ -62,7 +62,7 @@ pub async fn help(ctx: &Context, msg: &Message) -> CommandResult {
 
     msg.author
         .direct_message(ctx, |m| {
-            m.content(format!("My prefix here is \"{}\"", prefix));
+            m.content(format!("My prefix here is \"{prefix}\""));
             m.embed(|e| {
                 e.colour(Colour::DARK_GREEN);
                 e.title("Available commands");
@@ -109,8 +109,7 @@ Available languages: `en`, `de`, `fr`, `es`, `nl`, `ja`, `zh`, `ru`
 [TolkienGateway](http://www.tolkiengateway.net/)
 `{prefix}wiki minecraft <query>`  Display search result from the \
 [Official Minecraft Wiki](https://minecraft.gamepedia.com/)
-",
-                        prefix = prefix
+"
                     ),
                     false,
                 );
@@ -153,7 +152,7 @@ Available languages: `en`, `de`, `fr`, `es`, `nl`, `ja`, `zh`, `ru`
                     if is_admin {
                         e.field(
                             "Admin commands",
-                            format!("Do  `{}help admin`  to see admin commands", prefix),
+                            format!("Do  `{prefix}help admin`  to see admin commands"),
                             false,
                         );
                     }
@@ -306,7 +305,6 @@ in which case you don't need to specify a url.
  \tThe command returns a unique link id which you can remove with the command  \
  `{prefix}bug link remove <bug id> <link id>`.
 ",
-                        prefix = prefix,
                     ),
                     false,
                 );
@@ -328,8 +326,7 @@ chronological order starting from the latest one, and with a default limit of 10
 `{prefix}bug toggle <bug id>`  Switch a bug's edition between renewed and legacy.
 
 `{prefix}bug statistics` Show bugtracker statistics.
-",
-                        prefix = prefix
+"
                     ),
                     false,
                 );
@@ -341,7 +338,6 @@ Equivalent to  `{prefix}bug status <bug id> resolved`.
 `{prefix}bug close <bug id>`  Marks a bug as closed. \
 Equivalent to  `{prefix}bug status <bug id> closed`.
 ",
-                        prefix = prefix,
                     ),
                     false,
                 );
@@ -386,8 +382,7 @@ async fn admin_help(ctx: &Context, msg: &Message) -> CommandResult {
 `{prefix}admin remove <user mention>`  Removes admin rights for a user
 `{prefix}admin list`  Display a list of bot admins
 `{prefix}blacklist [user or channel mention]`  Prevent some commands to be used by the user or \
-in the channel (except for bot admins). When used without arguments, displays the blacklist.", 
-                        prefix=prefix
+in the channel (except for bot admins). When used without arguments, displays the blacklist."
                     ),
                     false,
                 );
@@ -407,8 +402,7 @@ in the channel (except for bot admins). When used without arguments, displays th
 ```
 `{prefix}role remove <role mention>`  Delete a role from the bot. This will not delete the role \
 itself.
-`{prefix}role show <role name>`  Display a role and its properties.",
-                        prefix=prefix
+`{prefix}role show <role name>`  Display a role and its properties."
                     ),
                     false,
                 );
@@ -426,8 +420,7 @@ or leave empty to get a list of commands
 `{prefix}command remove <command name>`  Remove a custom command
 
 *Only bot admins can use these commands*
-*For bugtracker help, use  `{prefix}help bugtracker`*",
-                        prefix=prefix
+*For bugtracker help, use  `{prefix}help bugtracker`*"
                     ),
                     false,
                 )

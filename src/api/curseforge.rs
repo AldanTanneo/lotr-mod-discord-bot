@@ -52,7 +52,7 @@ pub async fn get_project_info(ctx: &Context, id: u64) -> CommandResult<CurseProj
         env::var("CURSEFORGE_API_KEY").expect("Expected a curseforge api key in the environment");
 
     let rclient = get_reqwest_client!(ctx);
-    let request = format!("{}{}", CURSE_API, id);
+    let request = format!("{CURSE_API}{id}");
     let response = rclient
         .get(&request)
         .header("accept", "application/json")

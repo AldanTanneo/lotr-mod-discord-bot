@@ -45,7 +45,7 @@ pub async fn allowed_blacklist(ctx: &Context, msg: &Message) -> Result<(), Reaso
         .channel_id
         .to_channel(ctx)
         .await
-        .map_err(|e| Reason::Log(format!("Could not retrieve channel: {:?}", e)))?
+        .map_err(|e| Reason::Log(format!("Could not retrieve channel: {e:?}")))?
         .guild()
         .map(|g| g.thread_metadata.and(g.parent_id))
         .ok_or_else(|| Reason::Log("Not in a guild".into()))?;
@@ -64,7 +64,7 @@ pub async fn allowed_blacklist(ctx: &Context, msg: &Message) -> Result<(), Reaso
         && !has_permission(ctx, server_id, msg.author.id, MANAGE_BOT_PERMS).await
     {
         if let Err(err) = msg.delete(ctx).await {
-            println!("Could not delete blacklisted message: {}", err);
+            println!("Could not delete blacklisted message: {err}");
         }
         Err(Reason::UserAndLog {
             user: "You are not allowed to use this command here.".into(),
@@ -73,7 +73,7 @@ pub async fn allowed_blacklist(ctx: &Context, msg: &Message) -> Result<(), Reaso
                 msg.author.tag(),
                 msg.author.id,
                 msg.guild_id
-                    .map_or_else(|| "None".into(), |id| format!("{:?}", id)),
+                    .map_or_else(|| "None".into(), |id| format!("{id:?}")),
                 msg.channel_id,
                 msg.content
             ),
@@ -99,7 +99,7 @@ pub async fn user_blacklist(ctx: &Context, msg: &Message) -> Result<(), Reason> 
         && !has_permission(ctx, server_id, msg.author.id, MANAGE_BOT_PERMS).await
     {
         if let Err(err) = msg.delete(ctx).await {
-            println!("Could not delete user blacklisted message: {}", err);
+            println!("Could not delete user blacklisted message: {err}");
         }
         Err(Reason::UserAndLog {
             user: "You are not allowed to use this command here.".into(),
@@ -108,7 +108,7 @@ pub async fn user_blacklist(ctx: &Context, msg: &Message) -> Result<(), Reason> 
                 msg.author.tag(),
                 msg.author.id,
                 msg.guild_id
-                    .map_or_else(|| "None".into(), |id| format!("{:?}", id)),
+                    .map_or_else(|| "None".into(), |id| format!("{id:?}")),
                 msg.content
             ),
         })
@@ -174,8 +174,7 @@ pub async fn dispatch_error_hook(
     match error {
         CheckFailed(s, reason) => {
             println!(
-                "=== CHECK FAILED ===\nCheck failed in command {}: {}",
-                command_name, s
+                "=== CHECK FAILED ===\nCheck failed in command {command_name}: {s}"
             );
             match reason {
                 Reason::User(err_message) => {
@@ -190,7 +189,7 @@ pub async fn dispatch_error_hook(
                     }
                 }
                 Reason::UserAndLog { user, log } => {
-                    println!("{}", log);
+                    println!("{log}");
                     if let Err(e) = msg
                         .author
                         .dm(ctx, |m| {
@@ -198,11 +197,11 @@ pub async fn dispatch_error_hook(
                         })
                         .await
                     {
-                        println!("Error sending warning DM: {}", e);
+                        println!("Error sending warning DM: {e}");
                     }
                 }
                 Reason::Log(err_message) => {
-                    println!("{}", err_message);
+                    println!("{err_message}");
                 }
                 _ => println!("(Unknown reason)"),
             }
@@ -212,7 +211,7 @@ pub async fn dispatch_error_hook(
                 .reply(ctx, "This command cannot be executed in DMs!")
                 .await
             {
-                println!("Error sending guild-only warning: {:?}", e);
+                println!("Error sending guild-only warning: {e:?}");
             }
         }
         Ratelimited(rate_limit_info) => {
@@ -221,11 +220,11 @@ pub async fn dispatch_error_hook(
                     .reply(ctx, "Wait a few seconds before using this command again!")
                     .await
                 {
-                    println!("Error sending ratelimited warning: {:?}", e);
+                    println!("Error sending ratelimited warning: {e:?}");
                 }
             }
         }
-        _ => println!("Dispatch error:\n{0:?}", error),
+        _ => println!("Dispatch error:\n{error:?}"),
     }
 }
 
@@ -252,9 +251,9 @@ Content: {}
             msg.author.id,
             if let Some(guild_id) = msg.guild_id {
                 if let Some(name) = ctx.cache.guild_field(guild_id, |g| g.name.clone()) {
-                    format!("{:?}, {:?}", name, guild_id)
+                    format!("{name:?}, {guild_id:?}")
                 } else {
-                    format!("{:?}", guild_id)
+                    format!("{guild_id:?}")
                 }
             } else {
                 "None".into()

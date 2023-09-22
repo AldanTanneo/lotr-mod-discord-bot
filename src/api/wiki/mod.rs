@@ -18,7 +18,7 @@ pub async fn search(
 ) -> Option<GenericPage> {
     let rclient = get_reqwest_client!(ctx);
 
-    println!("wiki search: \"{}\" on {:?} ({})", query, wiki, namespace);
+    println!("wiki search: \"{query}\" on {wiki:?} ({namespace})");
 
     if namespace == &Page {
         let [hit, link, desc] = google_search(ctx, query, wiki).await?;
@@ -54,7 +54,7 @@ pub async fn search(
         let title = response[1][0].as_str()?;
 
         if title == query {
-            println!("result: \"{}\"", title);
+            println!("result: \"{title}\"");
             Some(GenericPage {
                 title: title.into(),
                 link,
@@ -88,7 +88,7 @@ pub async fn search(
         let response = serde_json::from_str::<Value>(&response).ok()?;
         let title = response[1][0].as_str()?;
 
-        println!("result: \"{}\"", title);
+        println!("result: \"{title}\"");
 
         Some(GenericPage {
             title: title.into(),

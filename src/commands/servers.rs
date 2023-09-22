@@ -24,7 +24,7 @@ async fn server_ip(ctx: &Context, msg: &Message) -> CommandResult {
                 m.embed(|e| {
                     e.colour(Colour::TEAL);
                     e.title("Server IP:");
-                    e.description(format!("`{}`", ip));
+                    e.description(format!("`{ip}`"));
                     e
                 })
             })
@@ -48,7 +48,7 @@ pub async fn set_ip(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let server_id = msg.guild_id.ok_or(NotInGuild)?;
 
     if let Some(ip) = args.current() {
-        println!("Setting up IP to {} on {}", ip, server_id);
+        println!("Setting up IP to {ip} on {server_id}");
         set_minecraft_ip(ctx, server_id, ip).await?;
         success!(ctx, msg, "Set Minecraft server IP to  `{}`", ip);
     } else {

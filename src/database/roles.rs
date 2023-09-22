@@ -51,11 +51,9 @@ pub async fn get_role(ctx: &Context, server_id: GuildId, role_name: &str) -> Opt
 
     let (id, name, properties, colour): (u64, String, String, u32) = conn.exec_first(
         format!(
-            "SELECT roles.role_id, role_name, role_properties, role_colour FROM {} AS roles
-            JOIN {} AS aliases ON roles.role_id = aliases.role_id AND roles.server_id = aliases.server_id
-            WHERE alias_name = :role_name AND roles.server_id = :server_id",
-            TABLE_ROLES,
-            TABLE_ROLES_ALIASES
+            "SELECT roles.role_id, role_name, role_properties, role_colour FROM {TABLE_ROLES} AS roles
+            JOIN {TABLE_ROLES_ALIASES} AS aliases ON roles.role_id = aliases.role_id AND roles.server_id = aliases.server_id
+            WHERE alias_name = :role_name AND roles.server_id = :server_id"
         ),
         params! {
         "role_name" => role_name,
@@ -83,8 +81,7 @@ pub async fn add_role(ctx: &Context, server_id: GuildId, role: &CustomRole) -> C
     };
     conn.exec_drop(
         format!(
-            "DELETE FROM {} WHERE server_id = :server_id AND role_id = :role_id",
-            TABLE_ROLES_ALIASES
+            "DELETE FROM {TABLE_ROLES_ALIASES} WHERE server_id = :server_id AND role_id = :role_id"
         ),
         params! {
             "server_id" => server_id.0,
@@ -94,8 +91,7 @@ pub async fn add_role(ctx: &Context, server_id: GuildId, role: &CustomRole) -> C
     .await?;
     conn.exec_batch(
             format!(
-                "INSERT INTO {} (server_id, alias_name, role_id) VALUES (:server_id, :alias_name, :role_id)",
-                TABLE_ROLES_ALIASES,
+                "INSERT INTO {TABLE_ROLES_ALIASES} (server_id, alias_name, role_id) VALUES (:server_id, :alias_name, :role_id)",
             ),
             iter::once(&role.name).chain(aliases.iter()).map(|alias| params! {
                 "server_id" => server_id.0,
@@ -108,8 +104,7 @@ pub async fn add_role(ctx: &Context, server_id: GuildId, role: &CustomRole) -> C
     let properties = serde_json::to_string(&role.properties)?;
 
     conn.exec_drop(format!(
-        "REPLACE INTO {} (server_id, role_id, role_name, role_properties, role_colour) VALUES (:server_id, :role_id, :role_name, :role_properties, :colour)",
-        TABLE_ROLES
+        "REPLACE INTO {TABLE_ROLES} (server_id, role_id, role_name, role_properties, role_colour) VALUES (:server_id, :role_id, :role_name, :role_properties, :colour)"
     ), params! {
         "server_id" => server_id.0,
         "role_id" => role.id.0,
@@ -125,8 +120,7 @@ pub async fn delete_role(ctx: &Context, server_id: GuildId, role_id: RoleId) -> 
     let mut conn = get_database_conn!(ctx);
     conn.exec_drop(
         format!(
-            "DELETE FROM {} WHERE server_id = :server_id AND role_id = :role_id",
-            TABLE_ROLES_ALIASES
+            "DELETE FROM {TABLE_ROLES_ALIASES} WHERE server_id = :server_id AND role_id = :role_id"
         ),
         params! {
             "server_id" => server_id.0,
@@ -137,8 +131,7 @@ pub async fn delete_role(ctx: &Context, server_id: GuildId, role_id: RoleId) -> 
 
     conn.exec_drop(
         format!(
-            "DELETE FROM {} WHERE server_id = :server_id AND role_id = :role_id LIMIT 1",
-            TABLE_ROLES
+            "DELETE FROM {TABLE_ROLES} WHERE server_id = :server_id AND role_id = :role_id LIMIT 1"
         ),
         params! {
             "server_id" => server_id.0,
@@ -156,8 +149,7 @@ pub async fn get_role_list(ctx: &Context, server_id: GuildId) -> Option<Vec<Vec<
     let roles: Vec<u64> = conn
         .exec(
             format!(
-                "SELECT role_id FROM {} WHERE server_id = :server_id",
-                TABLE_ROLES
+                "SELECT role_id FROM {TABLE_ROLES} WHERE server_id = :server_id"
             ),
             params! {"server_id" => server_id.0},
         )
@@ -170,8 +162,7 @@ pub async fn get_role_list(ctx: &Context, server_id: GuildId) -> Option<Vec<Vec<
         result.push(
             conn.exec(
                 format!(
-                    "SELECT alias_name FROM {} WHERE server_id = :server_id AND role_id = :role_id",
-                    TABLE_ROLES_ALIASES
+                    "SELECT alias_name FROM {TABLE_ROLES_ALIASES} WHERE server_id = :server_id AND role_id = :role_id"
                 ),
                 params! {"server_id" => server_id.0, "role_id" => id},
             )
@@ -192,8 +183,7 @@ pub async fn get_aliases(
 
     conn.exec(
         format!(
-            "SELECT alias_name FROM {} WHERE server_id = :server_id AND role_id = :role_id",
-            TABLE_ROLES_ALIASES
+            "SELECT alias_name FROM {TABLE_ROLES_ALIASES} WHERE server_id = :server_id AND role_id = :role_id"
         ),
         params! {
             "server_id" => server_id.0,

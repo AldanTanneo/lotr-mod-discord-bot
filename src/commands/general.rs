@@ -143,11 +143,10 @@ pub async fn forge(ctx: &Context, msg: &Message, mut args: Args) -> CommandResul
                     .title("Have you checked your Forge version?")
                     .description(format!(
                         "To function properly, the mod needs to run with \
-Forge {} or later for Minecraft {}",
-                        version, mc
+Forge {version} or later for Minecraft {mc}"
                     ))
                     .author(|a| {
-                        a.name(format!("Minecraft Forge for {}", mc))
+                        a.name(format!("Minecraft Forge for {mc}"))
                             .icon_url(crate::constants::FORGE_ICON)
                             .url(&forge_link)
                     })
@@ -156,7 +155,7 @@ Forge {} or later for Minecraft {}",
                 c.create_action_row(|b| {
                     b.create_button(|b| {
                         b.style(ButtonStyle::Link)
-                            .label(format!("Download Forge for {}", mc))
+                            .label(format!("Download Forge for {mc}"))
                             .url(&forge_link)
                     })
                 })
@@ -213,7 +212,7 @@ pub async fn invite(ctx: &Context, msg: &Message) -> CommandResult {
                     })
                     .field(
                         "Invite me to your server!",
-                        format!("My invite link is available [here]({}).", invite_url),
+                        format!("My invite link is available [here]({invite_url})."),
                         false,
                     )
             })

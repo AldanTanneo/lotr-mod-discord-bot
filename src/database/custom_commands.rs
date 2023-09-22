@@ -47,8 +47,7 @@ pub async fn add_custom_command(
         )
     } else {
         format!(
-            "INSERT INTO {} (server_id, name, command_json, documentation) VALUES (:server_id, :name, :body, :description)",
-            TABLE_CUSTOM_COMMANDS
+            "INSERT INTO {TABLE_CUSTOM_COMMANDS} (server_id, name, command_json, documentation) VALUES (:server_id, :name, :body, :description)"
         )
     };
 
@@ -70,8 +69,7 @@ pub async fn remove_custom_command(ctx: &Context, server_id: GuildId, name: &str
     let mut conn = get_database_conn!(ctx);
 
     let req = format!(
-        "DELETE FROM {} WHERE server_id = :server_id AND name = :name LIMIT 1",
-        TABLE_CUSTOM_COMMANDS
+        "DELETE FROM {TABLE_CUSTOM_COMMANDS} WHERE server_id = :server_id AND name = :name LIMIT 1"
     );
 
     conn.exec_drop(
@@ -97,8 +95,7 @@ pub async fn get_command_data(
     let body = conn
         .exec_first(
             format!(
-                "SELECT command_json FROM {} WHERE server_id = :server_id AND name = :name",
-                TABLE_CUSTOM_COMMANDS,
+                "SELECT command_json FROM {TABLE_CUSTOM_COMMANDS} WHERE server_id = :server_id AND name = :name",
             ),
             params! {
                 "server_id" => server_id.0,
@@ -111,8 +108,7 @@ pub async fn get_command_data(
     let description = if desc {
         conn.exec_first(
             format!(
-                "SELECT documentation FROM {} WHERE server_id = :server_id AND name = :name",
-                TABLE_CUSTOM_COMMANDS,
+                "SELECT documentation FROM {TABLE_CUSTOM_COMMANDS} WHERE server_id = :server_id AND name = :name",
             ),
             params! {
                 "server_id" => server_id.0,
@@ -140,8 +136,7 @@ pub async fn get_custom_commands_list(
 
     conn.exec(
         format!(
-            "SELECT name, documentation FROM {} WHERE server_id = :server_id ORDER BY documentation DESC",
-            TABLE_CUSTOM_COMMANDS
+            "SELECT name, documentation FROM {TABLE_CUSTOM_COMMANDS} WHERE server_id = :server_id ORDER BY documentation DESC"
         )
         .as_str(),
         params! {

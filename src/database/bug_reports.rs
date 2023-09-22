@@ -36,7 +36,7 @@ impl std::fmt::Display for BugStatus {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
             ForgeVanilla => write!(f, "Forge or Vanilla"),
-            _ => write!(f, "{:?}", self),
+            _ => write!(f, "{self:?}"),
         }
     }
 }
@@ -152,7 +152,7 @@ impl std::str::FromStr for BugCategory {
 
 impl std::fmt::Display for BugCategory {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{:?}", self)
+        write!(f, "{self:?}")
     }
 }
 
@@ -301,7 +301,7 @@ VALUES (:channel_id, :message_id, :title, :status, :category)",
     .await?;
 
     if let Err(e) = msg.react(ctx, status.reaction()).await {
-        println!("Could not add reaction to bug report: {}", e);
+        println!("Could not add reaction to bug report: {e}");
     }
 
     conn.query_first(formatcp!("SELECT MAX(bug_id) FROM {}", TABLE_BUG_REPORTS))
@@ -331,7 +331,7 @@ pub async fn get_bug_list(
             category = if let Some(c) = category {
                 format!("AND category = '{}'", c.as_str())
             } else {
-                "".into()
+                String::new()
             },
         ))
         .await
@@ -350,7 +350,7 @@ WHERE {} {category} ORDER BY {ordering} LIMIT :limit OFFSET :offset",
             category = if let Some(c) = category {
                 format!("AND category = '{}'", c.as_str())
             } else {
-                "".into()
+                String::new()
             },
             ordering = match display_order {
                 BugOrder::Chronological(false) | BugOrder::None => "timestamp DESC",
@@ -428,13 +428,13 @@ pub async fn change_bug_status(
     match ChannelId(channel_id).message(ctx, MessageId(msg_id)).await {
         Ok(msg) => {
             if let Err(e) = msg.delete_reaction_emoji(ctx, old_status.reaction()).await {
-                println!("Could not remove reaction from bug report: {}", e);
+                println!("Could not remove reaction from bug report: {e}");
             }
             if let Err(e) = msg.react(ctx, new_status.reaction()).await {
-                println!("Could not add reaction to bug report: {}", e);
+                println!("Could not add reaction to bug report: {e}");
             }
         }
-        Err(e) => println!("Could not get message for bug report: {}", e),
+        Err(e) => println!("Could not get message for bug report: {e}"),
     }
 
     Ok(old_status)

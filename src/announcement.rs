@@ -192,14 +192,12 @@ impl std::fmt::Display for AnnouncementError {
         match self {
             InvalidColour(c) => write!(
                 f,
-                "invalid colour, not a valid hexadecimal value or web colour name: `{}`",
-                c
+                "invalid colour, not a valid hexadecimal value or web colour name: `{c}`"
             ),
             InvalidReaction(e) => {
                 write!(
                     f,
-                    "reaction conversion failed on invalid reaction string: `{}`",
-                    e
+                    "reaction conversion failed on invalid reaction string: `{e}`"
                 )
             }
         }

@@ -33,7 +33,7 @@ async fn announcement_error_handler(
                             e.author(|a| a.name("Error sending announcement"));
                             e.colour(serenity::utils::Colour::RED);
                             e.title(message);
-                            e.description(format!("Error code: `{}`", code));
+                            e.description(format!("Error code: `{code}`"));
                             for DiscordJsonSingleError {
                                 code,
                                 message,
@@ -41,8 +41,8 @@ async fn announcement_error_handler(
                             } in errors
                             {
                                 e.field(
-                                    format!("`{}`", code),
-                                    format!("{}\nPath: `{}`", message, path),
+                                    format!("`{code}`"),
+                                    format!("{message}\nPath: `{path}`"),
                                     false,
                                 );
                             }

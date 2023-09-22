@@ -60,7 +60,7 @@ pub async fn get_prefix(ctx: &Context, server_id: GuildId) -> Option<String> {
     let prefix = if let Some(prefix) = res {
         prefix
     } else {
-        println!("Initializing prefix for {:?}", server_id);
+        println!("Initializing prefix for {server_id:?}");
         set_prefix(ctx, server_id, "!").await.ok()?;
         println!("Prefix initialized successfully");
         "!".to_string()
@@ -75,11 +75,10 @@ pub async fn get_prefix(ctx: &Context, server_id: GuildId) -> Option<String> {
 pub async fn set_prefix(ctx: &Context, server_id: GuildId, prefix: &str) -> CommandResult {
     let mut conn = get_database_conn!(ctx);
 
-    println!("Setting prefix to {} in {}", prefix, server_id);
+    println!("Setting prefix to {prefix} in {server_id}");
     conn.exec_drop(
         format!(
-            "REPLACE INTO {} (server_id, prefix) VALUES (:server_id, :prefix)",
-            TABLE_PREFIX
+            "REPLACE INTO {TABLE_PREFIX} (server_id, prefix) VALUES (:server_id, :prefix)"
         ),
         params! {
             "server_id" => server_id.0,
@@ -112,12 +111,11 @@ pub async fn get_minecraft_ip(ctx: &Context, server_id: GuildId) -> Option<Strin
 pub async fn set_minecraft_ip(ctx: &Context, server_id: GuildId, ip: &str) -> CommandResult {
     let mut conn = get_database_conn!(ctx);
 
-    println!("Setting up ip to {}", ip);
+    println!("Setting up ip to {ip}");
 
     conn.exec_drop(
         format!(
-            "REPLACE INTO {} (server_id, mc_ip) VALUES (:server_id, :mc_ip)",
-            TABLE_MC_SERVER_IP
+            "REPLACE INTO {TABLE_MC_SERVER_IP} (server_id, mc_ip) VALUES (:server_id, :mc_ip)"
         ),
         params! {
             "server_id" => server_id.0,
@@ -136,8 +134,7 @@ pub async fn delete_minecraft_ip(ctx: &Context, server_id: GuildId) -> CommandRe
     let mut conn = get_database_conn!(ctx);
 
     let req = format!(
-        "DELETE FROM {} WHERE server_id = :server_id LIMIT 1",
-        TABLE_MC_SERVER_IP
+        "DELETE FROM {TABLE_MC_SERVER_IP} WHERE server_id = :server_id LIMIT 1"
     );
 
     conn.exec_drop(

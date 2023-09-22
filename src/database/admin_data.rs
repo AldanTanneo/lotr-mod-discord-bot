@@ -23,8 +23,7 @@ pub async fn get_admins(ctx: &Context, server_id: GuildId) -> Option<Vec<UserId>
     let res = conn
         .exec_map(
             format!(
-                "SELECT user_id FROM {} WHERE server_id=:server_id",
-                TABLE_ADMINS
+                "SELECT user_id FROM {TABLE_ADMINS} WHERE server_id=:server_id"
             )
             .as_str(),
             params! {
@@ -50,8 +49,7 @@ pub async fn add_admin(
 
     conn.exec_drop(
         format!(
-        "REPLACE INTO {} (server_id, user_id, floppadmin) VALUES (:server_id, :user_id, :floppa)",
-        TABLE_ADMINS
+        "REPLACE INTO {TABLE_ADMINS} (server_id, user_id, floppadmin) VALUES (:server_id, :user_id, :floppa)"
     ),
         params! {
             "server_id" => server_id.0,
@@ -69,8 +67,7 @@ pub async fn remove_admin(ctx: &Context, server_id: GuildId, user_id: UserId) ->
 
     conn.exec_drop(
         format!(
-            "DELETE FROM {} WHERE server_id = :server_id AND user_id = :user_id LIMIT 1",
-            TABLE_ADMINS
+            "DELETE FROM {TABLE_ADMINS} WHERE server_id = :server_id AND user_id = :user_id LIMIT 1"
         )
         .as_str(),
         params! {

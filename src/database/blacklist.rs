@@ -43,8 +43,7 @@ pub async fn get_blacklist(
     let user_blacklist: Vec<UserId> = conn
         .exec_map(
             format!(
-                "SELECT user_id as id FROM {} WHERE server_id=:server_id",
-                TABLE_USER_BLACKLIST
+                "SELECT user_id as id FROM {TABLE_USER_BLACKLIST} WHERE server_id=:server_id"
             )
             .as_str(),
             params! {
@@ -58,8 +57,7 @@ pub async fn get_blacklist(
     let channel_blacklist: Vec<ChannelId> = conn
         .exec_map(
             format!(
-                "SELECT channel_id as id FROM {} WHERE server_id=:server_id",
-                TABLE_CHANNEL_BLACKLIST
+                "SELECT channel_id as id FROM {TABLE_CHANNEL_BLACKLIST} WHERE server_id=:server_id"
             )
             .as_str(),
             params! {
@@ -101,8 +99,7 @@ pub async fn update_blacklist(ctx: &Context, msg: &Message, mut args: Args) -> C
         if check_blacklist(ctx, server_id, user.id, ChannelId(0)).await == Some(true) {
             conn.exec_drop(
                 format!(
-                    "DELETE FROM {} WHERE server_id = :server_id AND user_id = :user_id LIMIT 1",
-                    TABLE_USER_BLACKLIST
+                    "DELETE FROM {TABLE_USER_BLACKLIST} WHERE server_id = :server_id AND user_id = :user_id LIMIT 1"
                 )
                 .as_str(),
                 params! {
@@ -120,8 +117,7 @@ pub async fn update_blacklist(ctx: &Context, msg: &Message, mut args: Args) -> C
         } else {
             conn.exec_drop(
                 format!(
-                    "INSERT INTO {} (server_id, user_id) VALUES (:server_id, :user_id)",
-                    TABLE_USER_BLACKLIST
+                    "INSERT INTO {TABLE_USER_BLACKLIST} (server_id, user_id) VALUES (:server_id, :user_id)"
                 )
                 .as_str(),
                 params! {
@@ -139,15 +135,14 @@ pub async fn update_blacklist(ctx: &Context, msg: &Message, mut args: Args) -> C
     let mentioned_channels = args
         .trimmed()
         .iter()
-        .filter_map(|a| serenity::utils::parse_channel(a.unwrap_or_else(|_| "".to_string())))
+        .filter_map(|a| serenity::utils::parse_channel(a.unwrap_or_else(|_| String::new())))
         .map(ChannelId);
 
     for channel in mentioned_channels {
         if check_blacklist(ctx, server_id, UserId(0), channel).await == Some(true) {
             conn.exec_drop(
                 format!(
-                    "DELETE FROM {} WHERE server_id = :server_id AND channel_id = :channel_id LIMIT 1",
-                    TABLE_CHANNEL_BLACKLIST
+                    "DELETE FROM {TABLE_CHANNEL_BLACKLIST} WHERE server_id = :server_id AND channel_id = :channel_id LIMIT 1"
                 )
                 .as_str(),
                 params! {
@@ -165,8 +160,7 @@ pub async fn update_blacklist(ctx: &Context, msg: &Message, mut args: Args) -> C
         } else {
             conn.exec_drop(
                 format!(
-                    "INSERT INTO {} (server_id, channel_id) VALUES (:server_id, :channel_id)",
-                    TABLE_CHANNEL_BLACKLIST
+                    "INSERT INTO {TABLE_CHANNEL_BLACKLIST} (server_id, channel_id) VALUES (:server_id, :channel_id)"
                 )
                 .as_str(),
                 params! {

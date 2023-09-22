@@ -88,7 +88,7 @@ fn create_bug_embed<'a>(
                 "Additional information",
                 &bug.links
                     .iter()
-                    .map(|link| link.to_string())
+                    .map(ToString::to_string)
                     .collect::<Vec<_>>()
                     .join("\n"),
                 false,
@@ -205,8 +205,7 @@ pub async fn track(ctx: &Context, msg: &Message, mut args: Args) -> CommandResul
     msg.channel_id
         .send_message(ctx, |m| {
             m.content(format!(
-                "Tracking bug LOTR-{} (priority: `{}`, edition: {})",
-                bug_id, status, category
+                "Tracking bug LOTR-{bug_id} (priority: `{status}`, edition: {category})"
             ))
             .reference_message(referenced_message)
             .allowed_mentions(|f| f.empty_parse())
@@ -324,7 +323,7 @@ async fn display_bugs(
                 if let Some(c) = category {
                     format!(" [{c}]")
                 } else {
-                    "".into()
+                    String::new()
                 },
                 total_bugs
             );
@@ -338,7 +337,7 @@ async fn display_bugs(
                         if category.is_none() {
                             format!(" [{}]", b.category)
                         } else {
-                            "".into()
+                            String::new()
                         }
                     )
                 })
@@ -351,7 +350,7 @@ async fn display_bugs(
                 if let Some(c) = category {
                     format!(" [{c}]")
                 } else {
-                    "".into()
+                    String::new()
                 },
                 total_bugs
             );
@@ -366,7 +365,7 @@ async fn display_bugs(
                         if category.is_none() {
                             format!(" [{}]", b.category)
                         } else {
-                            "".into()
+                            String::new()
                         }
                     )
                 })
@@ -695,8 +694,7 @@ pub async fn bug(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult 
                     ctx,
                     bug_id,
                     format!(
-                        "A bug you are subscribed to has been changed from `{}` to `{}`",
-                        old_status, new_status
+                        "A bug you are subscribed to has been changed from `{old_status}` to `{new_status}`"
                     ),
                 )
                 .await?;
@@ -769,8 +767,7 @@ pub async fn bug_status(ctx: &Context, msg: &Message, mut args: Args) -> Command
                         ctx,
                         bug_id,
                         format!(
-                            "A bug you are subscribed to has been changed from `{}` to `{}`",
-                            old_status, new_status
+                            "A bug you are subscribed to has been changed from `{old_status}` to `{new_status}`"
                         ),
                     )
                     .await?;
@@ -977,8 +974,7 @@ pub async fn bug_toggle_edition(ctx: &Context, msg: &Message, mut args: Args) ->
                             ctx,
                             bug_id,
                             format!(
-                                "A bug you are subscribed to has been changed from {} to {}",
-                                old_category, category
+                                "A bug you are subscribed to has been changed from {old_category} to {category}"
                             ),
                         )
                         .await?;

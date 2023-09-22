@@ -97,8 +97,7 @@ async fn can_have_role<'a>(
                 }
             } else {
                 println!(
-                    "Could not retrieve \"{}\" role! Denying permission.",
-                    role_name
+                    "Could not retrieve \"{role_name}\" role! Denying permission."
                 );
                 return Err(RoleRetrievalError);
             }
@@ -115,8 +114,7 @@ async fn can_have_role<'a>(
                 }
             } else {
                 println!(
-                    "Could not retrieve \"{}\" role! Denying permission.",
-                    role_name
+                    "Could not retrieve \"{role_name}\" role! Denying permission."
                 );
                 return Err(RoleRetrievalError);
             }
@@ -137,9 +135,9 @@ async fn display_roles(ctx: &Context, msg: &Message, in_dms: bool) -> CommandRes
                 String::from("**Use `!role <role name>` to claim a role**"),
                 |x, (name, aliases)| {
                     if aliases.is_empty() {
-                        format!("{}\n{}", x, name)
+                        format!("{x}\n{name}")
                     } else {
-                        format!("{}\n{} (*aliases:* {})", x, name, aliases)
+                        format!("{x}\n{name} (*aliases:* {aliases})")
                     }
                 },
             );

@@ -137,7 +137,7 @@ Channel: {:?}\nMessage: {}\n=== END ===",
                         msg.author.tag(),
                         msg.author.id,
                         msg.guild_id
-                            .map_or_else(|| "None".into(), |id| format!("{:?}", id)),
+                            .map_or_else(|| "None".into(), |id| format!("{id:?}")),
                         msg.channel_id,
                         msg.content
                     );
@@ -208,7 +208,7 @@ Channel: {:?}\nMessage: {}\n=== END ===",
                     .filter_map(Result::ok)
                     .enumerate()
                     .for_each(|(i, arg)| {
-                        let key = format!("\u{200B}${}", i);
+                        let key = format!("\u{200B}${i}");
                         if b.contains(&key) {
                             changed = true;
                             b = b.replace(
@@ -235,7 +235,7 @@ Channel: {:?}\nMessage: {}\n=== END ===",
                     .enumerate()
                 {
                     changed = true;
-                    println!("Default argument '{}'", arg);
+                    println!("Default argument '{arg}'");
                     b = b.replace(
                         format!("\u{200B}${}", i + argc).as_str(),
                         &arg.replace('$', "\\$"),
@@ -346,8 +346,7 @@ pub async fn define(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
             }
             let body = serde_json::to_string_pretty(&message)?;
             println!(
-                "adding custom command \"{}\": {}\n({:?})",
-                name, body, documentation
+                "adding custom command \"{name}\": {body}\n({documentation:?})"
             );
             let db_res =
                 add_custom_command(ctx, server_id, &name, &body, documentation.as_str()).await;
@@ -404,7 +403,7 @@ async fn custom_command_display(ctx: &Context, msg: &Message, args: Args) -> Com
             msg.channel_id
                 .send_message(ctx, |m| {
                     m.embed(|e| {
-                        e.title(format!("Custom command: {}", name));
+                        e.title(format!("Custom command: {name}"));
                         if let Some(desc) = &command.description {
                             e.description(desc);
                         }
@@ -425,7 +424,7 @@ async fn custom_command_display(ctx: &Context, msg: &Message, args: Args) -> Com
                         e
                     });
                     if file_too_big {
-                        m.add_file((bytes, format!("{}.json", name).as_str()));
+                        m.add_file((bytes, format!("{name}.json").as_str()));
                     }
                     m
                 })
@@ -449,7 +448,7 @@ async fn custom_command_display(ctx: &Context, msg: &Message, args: Args) -> Com
                                     "{newline}`{}`{}",
                                     name,
                                     match newline {
-                                        0 => format!("  {}\n", desc),
+                                        0 => format!("  {desc}\n"),
                                         _ => String::new(),
                                     },
                                     newline = match newline {
