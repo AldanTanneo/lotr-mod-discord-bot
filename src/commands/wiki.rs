@@ -104,12 +104,12 @@ async fn random(ctx: &Context, msg: &Message) -> CommandResult {
 
 #[command]
 #[aliases("tolkiengateway")]
-pub async fn tolkien(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+pub async fn tolkien(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let wiki = Wikis::TolkienGateway;
     if args.is_empty() {
         wiki::display(ctx, msg, &wiki.default(&msg.author.name), &wiki).await?;
     } else {
-        wiki_search(ctx, msg, &mut args, Page, &wiki).await?;
+        wiki_search(ctx, msg, &args, Page, &wiki).await?;
     }
 
     Ok(())
@@ -117,12 +117,12 @@ pub async fn tolkien(ctx: &Context, msg: &Message, mut args: Args) -> CommandRes
 
 #[command]
 #[aliases("mc")]
-pub async fn minecraft(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+pub async fn minecraft(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     let wiki = Wikis::Minecraft;
     if args.is_empty() {
         wiki::display(ctx, msg, &wiki.default(&msg.author.name), &wiki).await?;
     } else {
-        wiki_search(ctx, msg, &mut args, Page, &wiki).await?;
+        wiki_search(ctx, msg, &args, Page, &wiki).await?;
     }
 
     Ok(())

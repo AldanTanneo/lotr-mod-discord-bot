@@ -105,31 +105,47 @@ pub async fn online(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
             .send_message(ctx, |m| {
                 m.embed(|e| {
                     e.colour(Colour::DARK_GREEN);
-                    e.thumbnail(format!("https://eu.mc-api.net/v3/server/favicon/{}", &ip));
+                    e.thumbnail(format!("https://api.mcstatus.io/v2/icon/{}", &ip));
                     e.title("Server online!");
                     e.description(format!(
                         "{}\n\n**IP:**  `{}`",
                         parse_motd(server.motd.raw.join("\n")),
                         &ip,
                     ));
-                    e.field(
-                        format!(
-                            "Players: {}/{}",
-                            &server.players.online, &server.players.max
-                        ),
-                        &server.players.list.as_ref().map_or_else(
-                            || "[]()".into(),
-                            |s| {
-                                let res = s.join(", ").replace('_', "\\_");
-                                if res.len() > 1024 {
-                                    "Too many usernames to display!".into()
+
+                    let (lst, first) = server
+                        .players
+                        .list
+                        .into_iter()
+                        .map(|p| p.replace('_', "\\_"))
+                        .fold((String::new(), true), |(mut curr, first), p| {
+                            if curr.len() + curr.len().min(2) + p.len() >= 1024 {
+                                let title = if first {
+                                    format!(
+                                        "Players: {}/{}",
+                                        server.players.online, server.players.max
+                                    )
                                 } else {
-                                    res
+                                    String::new()
+                                };
+                                e.field(title, curr, false);
+                                (p, false)
+                            } else {
+                                if !curr.is_empty() {
+                                    curr.push_str(", ");
                                 }
-                            },
-                        ),
-                        false,
-                    );
+                                curr.push_str(&p);
+                                (curr, first)
+                            }
+                        });
+
+                    let title = if first {
+                        format!("Players: {}/{}", server.players.online, server.players.max)
+                    } else {
+                        String::new()
+                    };
+                    e.field(title, lst, false);
+
                     e
                 });
                 m.reference_message(msg);

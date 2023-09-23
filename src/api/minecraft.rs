@@ -13,7 +13,8 @@ pub struct Description {
 pub struct PlayerList {
     pub online: u32,
     pub max: u32,
-    pub list: Option<Vec<String>>,
+    #[serde(default)]
+    pub list: Vec<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]

@@ -14,7 +14,7 @@ pub const LOTR_DISCORD: GuildId = GuildId(405091134327619587);
 pub const MAX_JSON_FILE_SIZE: u64 = 10240;
 
 /// Bit filter for colours
-pub const BIT_FILTER_24BITS: u32 = !(!0 << 24);
+pub const BIT_FILTER_24BITS: u32 = (1 << 24) - 1;
 
 /// Set of [permissions][Permissions] needed to manage the bot (bot admins and owner excepted).
 pub const MANAGE_BOT_PERMS: Permissions = Permissions::ADMINISTRATOR
@@ -53,7 +53,7 @@ pub const FORGE_ICON: &str =
     "https://pbs.twimg.com/profile_images/778706890914095109/fhMDH9o6_normal.jpg";
 /// Curseforge logo for the !curseforge command
 pub const CURSEFORGE_ICON: &str =
-    "https://pbs.twimg.com/profile_images/1543841140016832512/9FXyHXYM_normal.jpg";
+    "https://cdn-images-1.medium.com/v2/resize:fill:45:45/1*ZCi5iwccyX6AYBt4pjY_BQ.png";
 
 /// Facebook logo for the !facebook command
 pub const FACEBOOK_ICON: &str =
