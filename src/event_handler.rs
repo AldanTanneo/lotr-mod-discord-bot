@@ -125,37 +125,25 @@ impl EventHandler for Handler {
     }
 
     async fn reaction_add(&self, ctx: Context, reaction: Reaction) {
-        let guild_id = match reaction.guild_id {
-            None => return,
-            Some(guild_id) => {
-                if guild_id != LOTR_DISCORD {
-                    return;
-                }
-                guild_id
-            }
-        };
+        if reaction.guild_id != Some(LOTR_DISCORD) {
+            return;
+        }
 
         if reaction.emoji.unicode_eq("❓") {
-            crate::qa_answers::handle_reaction(&ctx, reaction, guild_id).await;
+            crate::qa_answers::handle_reaction(&ctx, reaction, LOTR_DISCORD).await;
         }
     }
 
     async fn message(&self, ctx: Context, message: Message) {
-        let guild_id = match message.guild_id {
-            None => return,
-            Some(guild_id) => {
-                if guild_id != LOTR_DISCORD {
-                    return;
-                }
-                guild_id
-            }
-        };
+        if message.guild_id != Some(LOTR_DISCORD) {
+            return;
+        }
 
         if message.referenced_message.is_none() {
             return;
         }
 
-        crate::qa_answers::handle_message(&ctx, &message, guild_id).await;
+        crate::qa_answers::handle_message(&ctx, &message, LOTR_DISCORD).await;
     }
 
     async fn interaction_create(&self, ctx: Context, interaction: Interaction) {

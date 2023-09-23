@@ -159,7 +159,7 @@ pub async fn online(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
                 m.embed(|e| {
                     e.colour(Colour::RED);
                     e.title("Server offline...");
-                    e.description(format!("**IP:**  `{}`", &ip));
+                    e.description(format!("**IP:**  `{ip}`"));
                     e
                 });
                 m.reference_message(msg);
