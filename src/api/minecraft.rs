@@ -43,7 +43,8 @@ pub async fn get_server_status(ctx: &Context, ip: &str) -> Option<MinecraftServe
             }
         }
         Err(e) => {
-            println!("Error parsing server status: {e} ({e:?})");
+            println!("Error parsing server status for {request}:\n{e} ({e:?})");
+            println!("(answered: {response:?})");
             None
         }
     }
