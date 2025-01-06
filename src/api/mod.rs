@@ -33,6 +33,7 @@ impl ReqwestClient {
         Self(
             reqwest::Client::builder()
                 .use_rustls_tls()
+                .user_agent("LOTR Mod Discord Bot")
                 .build()
                 .expect("Could not build the reqwest client"),
         )
