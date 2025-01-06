@@ -90,7 +90,7 @@ pub const PAYPAL_LINK_EUROS: &str =
 /// [`!curseforge`][crate::commands::general::curseforge] command
 pub const CURSE_API: &str = "https://api.curseforge.com/v1/mods/";
 /// A Minecraft server [public API](https://api.mcsrvstat.us/) for the [`!online`][crate::commands::servers::online] command
-pub const MINECRAFT_API: &str = "https://api.mcsrvstat.us/2/";
+pub const MINECRAFT_API: &str = "https://api.mcsrvstat.us/3/";
 /// Google API for custom google search
 pub const GOOGLE_API: &str = "https://www.googleapis.com/customsearch/v1?";
 
