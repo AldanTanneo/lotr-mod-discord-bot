@@ -10,11 +10,16 @@ pub struct Description {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+pub struct Player {
+    pub name: String,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
 pub struct PlayerList {
     pub online: u32,
     pub max: u32,
     #[serde(default)]
-    pub list: Vec<String>,
+    pub list: Vec<Player>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -29,13 +34,17 @@ pub async fn get_server_status(ctx: &Context, ip: &str) -> Option<MinecraftServe
 
     let request = format!("{MINECRAFT_API}{ip}");
     let response = rclient.get(&request).send().await.ok()?.text().await.ok()?;
-    if let Ok(server) = serde_json::from_str::<MinecraftServer>(&response) {
-        if server.online {
-            Some(server)
-        } else {
+    match serde_json::from_str::<MinecraftServer>(&response) {
+        Ok(server) => {
+            if server.online {
+                Some(server)
+            } else {
+                None
+            }
+        }
+        Err(e) => {
+            println!("Error parsing server status: {e} ({e:?})");
             None
         }
-    } else {
-        None
     }
 }
