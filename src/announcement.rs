@@ -165,7 +165,7 @@ pub struct Announcement {
     pub content: Option<String>,
     #[serde(alias = "image")]
     pub file: Option<String>,
-    #[serde(alias = "image")]
+    #[serde(alias = "images")]
     pub files: Option<Vec<String>>,
 
     pub embed: Option<AnnouncementEmbed>,

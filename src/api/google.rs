@@ -43,7 +43,7 @@ pub async fn google_search(ctx: &Context, query: &str, wiki: &Wikis) -> Option<[
         .ok()?;
 
     let result: GoogleSearch = serde_json::from_str(&res_body).ok()?;
-    let hit = result.items.get(0)?;
+    let hit = result.items.first()?;
     println!("Google search result: {}", hit.link);
     Some([hit.title.clone(), hit.link.clone(), hit.snippet.clone()])
 }

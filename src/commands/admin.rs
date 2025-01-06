@@ -2,11 +2,11 @@
 //!
 //! Three categories of people can manage the bot:
 //! - Users with the
-//! [`MANAGE_BOT_PERMS`][struct@crate::constants::MANAGE_BOT_PERMS]
-//! set of permissions, equivalent to
-//! `ADMINISTRATOR | MANAGE_CHANNELS | MANAGE_GUILD`;
+//!   [`MANAGE_BOT_PERMS`][struct@crate::constants::MANAGE_BOT_PERMS]
+//!   set of permissions, equivalent to
+//!   `ADMINISTRATOR | MANAGE_CHANNELS | MANAGE_GUILD`;
 //! - Users that are promoted to "bot admins" by another admin, using the
-//! [`!admin add`][add] command;
+//!   [`!admin add`][add] command;
 //! - And lastly, the bot [owner][OWNER_ID].
 //!
 //! Most of these commands are only executable by admins, with the exception of
@@ -15,19 +15,19 @@
 //!
 //! # Admin-only commands
 //! - [`!prefix`][prefix] displays the current prefix or changes it to the
-//! prefix passed in as argument.
+//!   prefix passed in as argument.
 //! - [`!admin add`][add] adds a new admin to the database.
 //! - [`!admin remove`][remove] removes a bot admin.
 //! - [`!blacklist`][blacklist] displays the blacklist, or adds the mentionned
-//! channel or users to the blacklist.
+//!   channel or users to the blacklist.
 //! - [`!announce`][announce] allows bot admin to post messages as the bot,
-//! useful for official announcements.
+//!   useful for official announcements.
 //!
 //! # Owner-only commands
 //! - [`!floppadmin`][floppadmin] allows the owner to give access to the floppa
-//! database.
+//!   database.
 //! - [`!listguilds`][listguilds] allows the owner to get a list of guilds
-//! the bot has been invited in.
+//!   the bot has been invited in.
 //!
 //! # About the blacklist
 //!

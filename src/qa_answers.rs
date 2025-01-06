@@ -5,7 +5,7 @@ use serenity::prelude::*;
 use crate::database::qa_data::*;
 
 fn extract_image_attachment(msg: &Message) -> Option<&Attachment> {
-    msg.attachments.get(0).and_then(|a| {
+    msg.attachments.first().and_then(|a| {
         if a.content_type
             .as_ref()
             .map(|s| s.starts_with("image"))

@@ -126,7 +126,7 @@ async fn display_roles(ctx: &Context, msg: &Message, in_dms: bool) -> CommandRes
     if let Some(roles) = roles::get_role_list(ctx, server_id).await {
         let role_list = roles
             .iter()
-            .filter_map(|aliases| aliases.get(0).map(|name| (name, aliases[1..].join(", "))))
+            .filter_map(|aliases| aliases.first().map(|name| (name, aliases[1..].join(", "))))
             .fold(
                 String::from("**Use `!role <role name>` to claim a role**"),
                 |x, (name, aliases)| {

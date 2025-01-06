@@ -261,7 +261,7 @@ pub fn to_json_safe_string(s: impl AsRef<str>) -> String {
 
 use serenity::utils::Colour;
 
-const WEB_COLOURS: [(&'static str, u32); 147] = [
+const WEB_COLOURS: [(&str, u32); 147] = [
     ("aliceblue", 0xf0f8ff),
     ("antiquewhite", 0xfaebd7),
     ("aqua", 0x00ffff),

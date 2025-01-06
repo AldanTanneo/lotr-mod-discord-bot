@@ -61,7 +61,7 @@ pub async fn curseforge(ctx: &Context, msg: &Message, mut args: Args) -> Command
         return Ok(());
     }
 
-    let Some(file) = project.data.latest_files.get(0) else {
+    let Some(file) = project.data.latest_files.first() else {
         println!("=== ERROR ===\nNo Curseforge latest file\n=== END ===");
         return Ok(());
     };
@@ -390,7 +390,7 @@ pub async fn user_info(ctx: &Context, msg: &Message, mut args: Args) -> CommandR
                 }
                 e.field(
                     "Account creation date",
-                    &user.id.created_at().format("%d %B %Y at %R"),
+                    user.id.created_at().format("%d %B %Y at %R"),
                     true,
                 );
                 if let Some(joined_at) = member.joined_at {

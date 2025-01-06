@@ -71,7 +71,7 @@ fn create_bug_embed<'a>(
         ));
         if let Some(message) = linked_message {
             e.description(&message.content);
-            if let Some(image) = message.attachments.get(0) {
+            if let Some(image) = message.attachments.first() {
                 e.image(&image.url);
             }
             e.footer(|f| {
@@ -86,7 +86,7 @@ fn create_bug_embed<'a>(
         if !bug.links.is_empty() {
             e.field(
                 "Additional information",
-                &bug.links
+                bug.links
                     .iter()
                     .map(ToString::to_string)
                     .collect::<Vec<_>>()

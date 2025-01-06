@@ -397,7 +397,7 @@ async fn custom_command_display(ctx: &Context, msg: &Message, args: Args) -> Com
         if let Some(command) = get_command_data(ctx, server_id, name, true).await {
             println!("Displaying command docs for command {}", command.name);
             let mut file_too_big = false;
-            let bytes = command.body.as_str().as_bytes();
+            let bytes = command.body.as_bytes();
             msg.channel_id
                 .send_message(ctx, |m| {
                     m.embed(|e| {
@@ -436,31 +436,32 @@ async fn custom_command_display(ctx: &Context, msg: &Message, args: Args) -> Com
             .send_message(ctx, |m| {
                 m.embed(|e| {
                     e.title("Custom commands");
-                    e.description(
-                        list.iter()
-                            .map(|(name, desc)| {
-                                if desc.is_empty() {
+                    e.description(list.iter().fold(String::new(), |mut acc, (name, desc)| {
+                        use std::fmt::Write;
+
+                        if desc.is_empty() {
+                            newline += 1;
+                        }
+                        write!(
+                            acc,
+                            "{newline}`{}`{}",
+                            name,
+                            match newline {
+                                0 => format!("  {desc}\n"),
+                                _ => String::new(),
+                            },
+                            newline = match newline {
+                                0 => "",
+                                1 => {
                                     newline += 1;
+                                    "\n"
                                 }
-                                format!(
-                                    "{newline}`{}`{}",
-                                    name,
-                                    match newline {
-                                        0 => format!("  {desc}\n"),
-                                        _ => String::new(),
-                                    },
-                                    newline = match newline {
-                                        0 => "",
-                                        1 => {
-                                            newline += 1;
-                                            "\n"
-                                        }
-                                        _ => ", ",
-                                    }
-                                )
-                            })
-                            .collect::<String>(),
-                    )
+                                _ => ", ",
+                            }
+                        )
+                        .unwrap();
+                        acc
+                    }))
                 })
             })
             .await?;

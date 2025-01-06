@@ -9,33 +9,33 @@ lto = true
 
 [dependencies]
 bytesize = "1"
-itertools = "0.11"
+itertools = "0.14"
 serde_json = "1.0"
 serde = "1.0"
 chrono = "0.4"
 humantime-serde = "1.1"
-dashmap = "5"
+dashmap = "6"
 alea = "0.2"
-serde_tuple = "0.5"
+serde_tuple = "1.1"
 const_format = "0.2"
 urlencoding = "2.1"
 
 [dependencies.reqwest]
 version = "0.11"
 default-features = false
-features = ["rustls"]
+features = ["rustls-tls"]
 
 [dependencies.iso-8601]
 git = "https://github.com/AldanTanneo/iso-8601"
 features = ["chrono"]
 
 [dependencies.mysql_async]
-version = "0.32"
+version = "0.35"
 default-features = false
 features = ["default-rustls"]
 
 [dependencies.mysql_common]
-version = "0.30"
+version = "0.34"
 default-features = false
 features = ["chrono"]
 
