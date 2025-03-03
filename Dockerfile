@@ -8,7 +8,7 @@ RUN --mount=type=cache,target=/usr/local/cargo,from=rust:bookworm,source=/usr/lo
     cargo build --release && mv ./target/release/lotr-mod-discord-bot ./lotr-mod-discord-bot
 
 # Runtime image
-FROM debian:bookworm-slim
+FROM debian:bookworm
 
 # Run as "app" user
 RUN useradd -ms /bin/bash app

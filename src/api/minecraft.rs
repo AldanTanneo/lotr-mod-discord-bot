@@ -4,7 +4,7 @@ use serenity::client::Context;
 use crate::constants::MINECRAFT_API;
 use crate::get_reqwest_client;
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Default)]
 pub struct Description {
     pub raw: Vec<String>,
 }
@@ -14,7 +14,7 @@ pub struct Player {
     pub name: String,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Default)]
 pub struct PlayerList {
     pub online: u32,
     pub max: u32,
@@ -25,7 +25,9 @@ pub struct PlayerList {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct MinecraftServer {
     pub online: bool,
+    #[serde(default)]
     pub motd: Description,
+    #[serde(default)]
     pub players: PlayerList,
 }
 
