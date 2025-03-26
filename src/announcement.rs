@@ -320,11 +320,7 @@ fn parse_embed(embed: &AnnouncementEmbed) -> CreateEmbed {
     builder
 }
 
-pub async fn announce<'a>(
-    ctx: &Context,
-    channel: ChannelId,
-    message: &'a Announcement,
-) -> CommandResult {
+pub async fn announce(ctx: &Context, channel: ChannelId, message: &Announcement) -> CommandResult {
     let mut builder = CreateMessage::default();
 
     // message content

@@ -114,7 +114,6 @@ macro_rules! get_database_conn {
         };
         pool.get_conn()
             .await
-            .ok()
             .expect("Could not retrieve connection to database")
     }};
 }

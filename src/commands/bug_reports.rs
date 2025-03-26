@@ -245,7 +245,7 @@ enum Either<'a> {
     Interaction(&'a MessageComponentInteraction),
 }
 
-impl<'a> Either<'a> {
+impl Either<'_> {
     async fn failure(&self, ctx: &Context, message: &str) -> Result<(), SerenityError> {
         match self {
             Either::Message(msg) => failure!(ctx, msg, message),
