@@ -18,7 +18,7 @@ pub mod qa_answers;
 pub mod role_cache;
 pub mod utils;
 
-use mysql_async::{OptsBuilder, SslOpts};
+use mysql_async::{OptsBuilder, PoolConstraints, PoolOpts, SslOpts};
 use serenity::client::ClientBuilder;
 use serenity::framework::standard::{macros::group, StandardFramework};
 use serenity::http::HttpBuilder;
@@ -139,6 +139,7 @@ async fn main() {
             .ip_or_hostname(db_server)
             .pass(Some(db_password))
             .tcp_port(db_port)
+            .pool_opts(PoolOpts::new().with_constraints(PoolConstraints::new(0, 5).unwrap()))
             .ssl_opts(Some(
                 SslOpts::default()
                     //  .with_danger_skip_domain_validation(true)
