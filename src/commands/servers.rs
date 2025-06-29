@@ -109,7 +109,7 @@ pub async fn online(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
                     e.title("Server online!");
                     e.description(format!(
                         "{}\n\n**IP:**  `{}`",
-                        parse_motd(server.motd.raw.join("\n")),
+                        parse_motd(server.motd.raw),
                         &ip,
                     ));
 
@@ -117,7 +117,7 @@ pub async fn online(ctx: &Context, msg: &Message, mut args: Args) -> CommandResu
                         .players
                         .list
                         .into_iter()
-                        .map(|p| p.name.replace('_', "\\_"))
+                        .map(|p| p.name_clean.replace('_', "\\_"))
                         .fold((String::new(), true), |(mut curr, first), p| {
                             if curr.len() + curr.len().min(2) + p.len() >= 1024 {
                                 let title = if first {

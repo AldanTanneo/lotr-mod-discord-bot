@@ -6,12 +6,12 @@ use crate::get_reqwest_client;
 
 #[derive(Serialize, Deserialize, Debug, Default)]
 pub struct Description {
-    pub raw: Vec<String>,
+    pub raw: String,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Player {
-    pub name: String,
+    pub name_clean: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, Default)]
